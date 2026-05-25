@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zeppo — AI-receptionist til VVS-firmaer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green: #16a34a;
+  --green-light: #22c55e;
+  --green-bg: #f0fdf4;
+  --black: #0a0a0a;
+  --gray-900: #111827;
+  --gray-700: #374151;
+  --gray-500: #6b7280;
+  --gray-300: #d1d5db;
+  --gray-100: #f3f4f6;
+  --gray-50: #f9fafb;
+  --white: #ffffff;
+  --font: 'Geist', -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font); background: var(--white); color: var(--gray-900); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--gray-300);
+  padding: 0 64px; height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.logo { font-size: 20px; font-weight: 700; color: var(--black); text-decoration: none; letter-spacing: -.03em; }
+.logo em { color: var(--green); font-style: normal; }
+
+.nav-links { display: flex; gap: 32px; list-style: none; }
+.nav-links a { font-size: 14px; color: var(--gray-500); text-decoration: none; font-weight: 500; transition: color .15s; }
+.nav-links a:hover { color: var(--black); }
+
+.nav-right { display: flex; gap: 10px; align-items: center; }
+
+.btn-ghost {
+  padding: 8px 18px; font-size: 14px; font-weight: 500; font-family: var(--font);
+  color: var(--gray-700); background: none; border: 1px solid var(--gray-300);
+  border-radius: 8px; cursor: pointer; text-decoration: none; transition: all .15s;
+}
+.btn-ghost:hover { border-color: var(--gray-500); }
+
+.btn-green {
+  padding: 8px 18px; font-size: 14px; font-weight: 600; font-family: var(--font);
+  color: var(--white); background: var(--green); border: none;
+  border-radius: 8px; cursor: pointer; text-decoration: none; transition: background .15s;
+}
+.btn-green:hover { background: #15803d; }
+
+/* HERO */
+.hero {
+  min-height: 100vh;
+  background: var(--white);
+  display: flex; flex-direction: column;
+  align-items: flex-start; justify-content: flex-end;
+  padding: 0 64px 80px;
+  position: relative; overflow: hidden;
+}
+
+.hero-bg-img {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,1) 85%),
+    linear-gradient(to right, rgba(255,255,255,0.6) 0%, transparent 60%),
+    url('https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1600&q=80') center/cover no-repeat;
+}
+
+.hero-content { position: relative; z-index: 2; max-width: 680px; }
+
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--green); margin-bottom: 24px;
+  padding: 5px 12px; border-radius: 100px;
+  background: var(--green-bg); border: 1px solid #bbf7d0;
+}
+
+.hero-tag-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+h1 {
+  font-size: clamp(48px, 6vw, 80px);
+  font-weight: 700; line-height: 1.05;
+  letter-spacing: -.04em; color: var(--black);
+  margin-bottom: 8px;
+}
+
+h1 .green { color: var(--green); }
+
+.hero-sub {
+  font-size: 18px; font-weight: 400; color: var(--gray-500);
+  line-height: 1.65; margin: 20px 0 40px; max-width: 520px;
+}
+
+.hero-cta { display: flex; gap: 12px; align-items: center; }
+
+.btn-hero {
+  padding: 14px 28px; font-size: 15px; font-weight: 600; font-family: var(--font);
+  color: var(--white); background: var(--green); border: none;
+  border-radius: 8px; cursor: pointer; text-decoration: none; transition: all .15s;
+}
+.btn-hero:hover { background: #15803d; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(22,163,74,0.25); }
+
+.btn-hero-outline {
+  padding: 14px 24px; font-size: 15px; font-weight: 500; font-family: var(--font);
+  color: var(--gray-700); background: none; border: 1px solid var(--gray-300);
+  border-radius: 8px; cursor: pointer; text-decoration: none; transition: all .15s;
+}
+.btn-hero-outline:hover { border-color: var(--gray-500); color: var(--black); }
+
+.hero-note { margin-top: 16px; font-size: 13px; color: var(--gray-500); }
+
+/* TRUSTED */
+.trusted {
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-300);
+  border-bottom: 1px solid var(--gray-300);
+  padding: 28px 64px;
+  display: flex; align-items: center; gap: 48px;
+}
+.trusted-label { font-size: 13px; color: var(--gray-500); white-space: nowrap; font-weight: 500; }
+.trusted-logos { display: flex; align-items: center; gap: 40px; flex-wrap: wrap; }
+.trusted-logo {
+  font-size: 13px; font-weight: 700; color: var(--gray-300);
+  letter-spacing: .04em; text-transform: uppercase;
+}
+
+/* SECTIONS */
+.section { padding: 100px 64px; max-width: 1200px; margin: 0 auto; }
+
+.section-tag {
+  font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--green); margin-bottom: 16px; text-align: center;
+}
+
+.section-title {
+  font-size: clamp(32px, 4vw, 52px); font-weight: 700;
+  letter-spacing: -.03em; line-height: 1.1;
+  text-align: center; margin-bottom: 16px; color: var(--black);
+}
+
+.section-sub {
+  font-size: 17px; color: var(--gray-500); font-weight: 400;
+  text-align: center; max-width: 500px; margin: 0 auto 64px; line-height: 1.65;
+}
+
+/* STEPS */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+
+.step {
+  background: var(--white); border: 1px solid var(--gray-300);
+  border-radius: 16px; padding: 40px 32px;
+  transition: all .2s;
+}
+.step:hover { border-color: var(--green); box-shadow: 0 8px 32px rgba(22,163,74,0.08); transform: translateY(-2px); }
+
+.step-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: var(--green-bg); display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin-bottom: 20px;
+}
+
+.step-num { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--green); margin-bottom: 10px; }
+
+.step h3 { font-size: 20px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 10px; color: var(--black); }
+.step p { font-size: 14px; color: var(--gray-500); line-height: 1.7; }
+
+/* SMS SECTION */
+.sms-wrap {
+  background: var(--gray-50); border-top: 1px solid var(--gray-300); border-bottom: 1px solid var(--gray-300);
+  padding: 100px 64px;
+}
+.sms-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+
+.sms-card {
+  background: var(--white); border: 1px solid var(--gray-300);
+  border-radius: 16px; overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+}
+
+.sms-header {
+  background: var(--gray-50); padding: 14px 20px;
+  border-bottom: 1px solid var(--gray-300);
+  font-size: 12px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--gray-500);
+  display: flex; align-items: center; gap: 8px;
+}
+
+.sms-dot { width: 8px; height: 8px; border-radius: 50%; }
+.sms-dot-r { background: #f87171; }
+.sms-dot-y { background: #fbbf24; }
+.sms-dot-g { background: #34d399; }
+
+.sms-body { padding: 24px; font-size: 13px; line-height: 1.9; color: var(--gray-700); font-family: 'SF Mono', 'Fira Code', monospace; }
+.sms-green { color: var(--green); font-weight: 600; }
+.sms-label { color: var(--gray-500); }
+.sms-muted { color: var(--gray-500); font-style: italic; }
+
+/* FEATURES */
+.features-wrap { padding: 100px 64px; max-width: 1200px; margin: 0 auto; }
+.feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 64px; }
+
+.feature {
+  background: var(--white); border: 1px solid var(--gray-300);
+  border-radius: 16px; padding: 36px;
+  display: flex; gap: 20px; align-items: flex-start;
+  transition: all .2s;
+}
+.feature:hover { border-color: var(--green); box-shadow: 0 4px 20px rgba(22,163,74,0.06); }
+
+.feature-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: var(--green-bg); display: flex; align-items: center;
+  justify-content: center; font-size: 22px; flex-shrink: 0;
+}
+
+.feature h3 { font-size: 17px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 8px; color: var(--black); }
+.feature p { font-size: 14px; color: var(--gray-500); line-height: 1.65; }
+
+/* STATS */
+.stats-wrap {
+  background: var(--green); padding: 80px 64px;
+  display: grid; grid-template-columns: repeat(4,1fr);
+}
+.stat { text-align: center; padding: 20px; }
+.stat-num { font-size: 52px; font-weight: 700; color: var(--white); line-height: 1; letter-spacing: -.04em; margin-bottom: 8px; }
+.stat-txt { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.5; }
+
+/* CTA */
+.cta-wrap { padding: 140px 64px; text-align: center; background: var(--white); }
+
+.cta-wrap h2 {
+  font-size: clamp(40px, 5vw, 68px); font-weight: 700;
+  letter-spacing: -.04em; line-height: 1.05;
+  color: var(--black); margin-bottom: 20px;
+}
+.cta-wrap h2 em { color: var(--green); font-style: normal; }
+.cta-wrap p { font-size: 17px; color: var(--gray-500); margin-bottom: 48px; line-height: 1.65; }
+
+.cta-form {
+  display: flex; max-width: 440px; margin: 0 auto 14px;
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--gray-300);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+.cta-form input {
+  flex: 1; padding: 16px 20px; font-family: var(--font); font-size: 14px;
+  background: var(--white); border: none; color: var(--black); outline: none;
+}
+.cta-form input::placeholder { color: var(--gray-500); }
+.cta-form button {
+  padding: 16px 24px; font-family: var(--font); font-size: 14px; font-weight: 600;
+  background: var(--green); color: var(--white); border: none; cursor: pointer;
+  white-space: nowrap; transition: background .15s;
+}
+.cta-form button:hover { background: #15803d; }
+.cta-fine { font-size: 13px; color: var(--gray-500); }
+
+/* FOOTER */
+footer {
+  background: var(--gray-50); border-top: 1px solid var(--gray-300);
+  padding: 32px 64px; display: flex; align-items: center; justify-content: space-between;
+}
+.footer-logo { font-size: 18px; font-weight: 700; color: var(--black); letter-spacing: -.02em; }
+.footer-logo em { color: var(--green); font-style: normal; }
+.footer-note { font-size: 13px; color: var(--gray-500); }
+
+@media (max-width: 900px) {
+  nav { padding: 0 24px; }
+  .nav-links { display: none; }
+  .hero { padding: 120px 24px 60px; }
+  .trusted { padding: 20px 24px; flex-direction: column; align-items: flex-start; gap: 16px; }
+  .section { padding: 60px 24px; }
+  .steps { grid-template-columns: 1fr; }
+  .sms-wrap { padding: 60px 24px; }
+  .sms-inner { grid-template-columns: 1fr; gap: 40px; }
+  .features-wrap { padding: 60px 24px; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .stats-wrap { grid-template-columns: repeat(2,1fr); padding: 40px 24px; }
+  .cta-wrap { padding: 80px 24px; }
+  .cta-form { flex-direction: column; }
+  footer { padding: 24px; flex-direction: column; gap: 10px; }
+}
+
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.in { opacity: 1; transform: none; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="logo">zeppo</a>
+  <ul class="nav-links">
+    <li><a href="#how">Sådan virker det</a></li>
+    <li><a href="#features">Funktioner</a></li>
+    <li><a href="demo.html">Book demo</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="demo.html" class="btn-green">Få en demo →</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-bg-img"></div>
+  <div class="hero-content">
+    <div class="hero-tag"><div class="hero-tag-dot"></div>Dansk AI-receptionist til VVS</div>
+    <h1>Mister du<br>VVS-opgaver,<br>når du ikke tager <span class="green">telefonen?</span></h1>
+    <p class="hero-sub">Zeppo tager opkaldet med det samme, spørger kunden ind til problemet og sender dig en komplet sag — også når du står ude hos en kunde.</p>
+    <div class="hero-cta">
+      <a href="demo.html" class="btn-hero">Få en gratis demo →</a>
+      <a href="#how" class="btn-hero-outline">Se hvordan det virker</a>
+    </div>
+    <p class="hero-note">Gratis i 30 dage · Ingen binding · Klar på under en time</p>
+  </div>
+</section>
+
+<div class="trusted">
+  <span class="trusted-label">Betroet af VVS-firmaer som:</span>
+  <div class="trusted-logos">
+    <span class="trusted-logo">Jensen VVS</span>
+    <span class="trusted-logo">Nielsen Blikkenslager</span>
+    <span class="trusted-logo">Sørensen VVS</span>
+    <span class="trusted-logo">Andersen Teknik</span>
+  </div>
+</div>
+
+<div class="section reveal" id="how">
+  <div class="section-tag">Sådan virker det</div>
+  <h2 class="section-title">Tre trin. Ingen teknisk viden.</h2>
+  <p class="section-sub">Zeppo er klar på under en time. Ingen app. Ingen hardware. Ingen IT-folk.</p>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-icon">📞</div>
+      <div class="step-num">Trin 01</div>
+      <h3>Kunden ringer</h3>
+      <p>Zeppo tager telefonen med det samme — dag og nat. Den byder kunden velkommen i dit firmas navn og spørger ind til problemet på naturligt dansk.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-icon">🔍</div>
+      <div class="step-num">Trin 02</div>
+      <h3>Zeppo spørger rigtigt</h3>
+      <p>Stoppet toilet? Vandlæk? Ingen varme? Zeppo kender forskel og stiller præcis de spørgsmål en installatør har brug for — akuthed, placering, omfang.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-icon">📱</div>
+      <div class="step-num">Trin 03</div>
+      <h3>Du får en SMS</h3>
+      <p>Når opkaldet slutter sender Zeppo dig en struktureret SMS med alt du skal bruge. Du ringer kunden tilbage forberedt — med den rigtige mand afsted.</p>
+    </div>
+  </div>
+</div>
+
+<div class="sms-wrap">
+  <div class="sms-inner">
+    <div class="reveal">
+      <div class="section-tag" style="text-align:left">Hvad du modtager</div>
+      <h2 class="section-title" style="text-align:left">En komplet sag<br>— direkte på SMS.</h2>
+      <p style="font-size:16px;color:var(--gray-500);line-height:1.7;margin-top:16px">Ikke bare "ring til Lars". En struktureret briefing med alle oplysninger så du kan ringe kunden tilbage forberedt og sende den rigtige mand afsted.</p>
+    </div>
+    <div class="sms-card reveal">
+      <div class="sms-header">
+        <div class="sms-dot sms-dot-r"></div>
+        <div class="sms-dot sms-dot-y"></div>
+        <div class="sms-dot sms-dot-g"></div>
+        <span style="margin-left:4px">Zeppo · Ny sag</span>
+      </div>
+      <div class="sms-body">
+        <span class="sms-green">🔧 NY VVS SAG</span><br><br>
+        <span class="sms-label">Kunde:   </span>Lars Hansen<br>
+        <span class="sms-label">Tlf:     </span>+45 28 34 56 78<br>
+        <span class="sms-label">Adresse: </span>Vestergade 12, Kolding<br>
+        <span class="sms-label">Bolig:   </span>Hus<br><br>
+        <span class="sms-label">Problem: </span>Stoppet toilet<br>
+        <span class="sms-label">Vand:    </span>Stiger til kanten<br>
+        <span class="sms-label">Forsøgt: </span>Ikke svupper<br>
+        <span class="sms-label">Eneste:  </span>Ja<br><br>
+        <span class="sms-label">Adgang:  </span>Blå port til venstre<br>
+        <span class="sms-label">Tid:     </span>Gerne i dag<br><br>
+        <span class="sms-muted">⚠️ Eneste toilet i boligen</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="features-wrap reveal" id="features">
+  <div class="section-tag">Funktioner</div>
+  <h2 class="section-title">Alt en VVS-mand har brug for.</h2>
+  <p class="section-sub">Enkel opsætning. Ingen teknisk viden påkrævet.</p>
+  <div class="feature-grid">
+    <div class="feature reveal">
+      <div class="feature-icon">🎙️</div>
+      <div>
+        <h3>Naturlig dansk stemme</h3>
+        <p>Zeppo taler flydende dansk og forstår alle dialekter — jysk, sønderjysk, sjællandsk. Kunderne tror det er en rigtig person.</p>
+      </div>
+    </div>
+    <div class="feature reveal">
+      <div class="feature-icon">⚡</div>
+      <div>
+        <h3>Kender akut fra normalt</h3>
+        <p>Sprunget rør eller gaslugt? Zeppo eskalerer med det samme og ringer dig op direkte. Dryppende vandhane? Bookingen går i køen.</p>
+      </div>
+    </div>
+    <div class="feature reveal">
+      <div class="feature-icon">🌙</div>
+      <div>
+        <h3>Åben når du har fri</h3>
+        <p>Om aftenen, i weekenden og på helligdage. Zeppo sover aldrig. Kunder der ringer efter lukketid mister du ikke mere.</p>
+      </div>
+    </div>
+    <div class="feature reveal">
+      <div class="feature-icon">📋</div>
+      <div>
+        <h3>Stiller de rigtige VVS-spørgsmål</h3>
+        <p>Zeppo ved at man ikke spørger om et toilet er i køkkenet. Den kender alle VVS-kategorier og stiller præcis de relevante spørgsmål.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stats-wrap">
+  <div class="stat reveal"><div class="stat-num">24/7</div><div class="stat-txt">Altid klar til at tage opkaldet</div></div>
+  <div class="stat reveal"><div class="stat-num">0</div><div class="stat-txt">Missede opkald fremover</div></div>
+  <div class="stat reveal"><div class="stat-num">&lt;1t</div><div class="stat-txt">Fra opstart til første opkald</div></div>
+  <div class="stat reveal"><div class="stat-num">30</div><div class="stat-txt">Dages gratis test</div></div>
+</div>
+
+<div class="cta-wrap reveal" id="demo">
+  <div class="section-tag">Kom i gang</div>
+  <h2>Stop med at<br>miste <em>opgaver.</em></h2>
+  <p>De første 3 VVS-firmaer tester Zeppo gratis i 30 dage.<br>Ingen binding. Ingen kreditkort.</p>
+  <form class="cta-form" onsubmit="handleSubmit(event)">
+    <input type="email" placeholder="Din email" required>
+    <button type="submit">Book demo →</button>
+  </form>
+  <p class="cta-fine">Vi svarer inden for 24 timer og sætter det hele op for dig.</p>
+</div>
+
+<footer>
+  <div class="footer-logo">zeppo</div>
+  <div class="footer-note">© 2026 Zeppo · Lavet i Danmark 🇩🇰</div>
+</footer>
+
+<script>
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+function handleSubmit(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button');
+  btn.textContent = '✓ Vi kontakter dig snart';
+  btn.style.background = '#15803d';
+  e.target.querySelector('input').disabled = true;
+  btn.disabled = true;
+}
+</script>
+</body>
+</html>
