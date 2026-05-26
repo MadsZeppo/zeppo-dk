@@ -24,7 +24,8 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   font-family: var(--fb);
   color: var(--ink);
   background:
@@ -48,10 +49,11 @@ nav {
 .nav-link:hover { color: var(--ink); }
 
 main {
-  min-height: 100vh; padding: 120px 24px 70px;
+  height: 100vh; padding: 84px 24px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
 }
 
 .tag {
@@ -69,11 +71,11 @@ main {
 }
 
 h1 {
-  max-width: 760px;
-  margin: 0 auto 16px;
+  max-width: 680px;
+  margin: 0 auto 12px;
   font-family: var(--ff);
   color: var(--black);
-  font-size: clamp(48px, 7vw, 88px);
+  font-size: clamp(40px, 5vw, 64px);
   font-weight: 300;
   line-height: .98;
   letter-spacing: -.05em;
@@ -82,8 +84,8 @@ h1 {
 
 h1 em { color: var(--g); font-style: italic; font-weight: 700; }
 .page-sub {
-  max-width: 540px;
-  margin: 0 auto 42px;
+  max-width: 520px;
+  margin: 0 auto 24px;
   color: var(--mid);
   font-size: 17px;
   font-weight: 300;
@@ -91,25 +93,35 @@ h1 em { color: var(--g); font-style: italic; font-weight: 700; }
   text-align: center;
 }
 
+.contact-frame {
+  width: min(820px, 100%);
+  max-height: calc(100vh - 108px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255,255,255,.92);
+  padding: 30px;
+  box-shadow: 0 22px 70px rgba(0,0,0,0.08);
+}
+
 .form-box {
   width: 100%;
-  max-width: 700px;
+  max-width: 680px;
   margin: 0 auto;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--white);
-  padding: 40px;
-  box-shadow: 0 22px 70px rgba(0,0,0,0.08);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
 
 .form-box h2 {
   color: var(--black);
   font-family: var(--ff);
-  font-size: 34px;
+  font-size: 28px;
   font-weight: 600;
   line-height: 1.15;
   letter-spacing: -.03em;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .form-box > p {
@@ -117,18 +129,18 @@ h1 em { color: var(--g); font-style: italic; font-weight: 700; }
   font-size: 15px;
   font-weight: 300;
   line-height: 1.6;
-  margin-bottom: 26px;
+  margin-bottom: 18px;
 }
 
 form {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 12px;
 }
 
 label {
@@ -148,12 +160,12 @@ input, textarea {
   font: inherit;
   font-size: 14px;
   outline: none;
-  padding: 13px 14px;
+  padding: 11px 12px;
   transition: border-color .15s, box-shadow .15s;
 }
 
 textarea {
-  min-height: 118px;
+  min-height: 84px;
   resize: vertical;
 }
 
@@ -163,7 +175,7 @@ input:focus, textarea:focus {
 }
 
 button {
-  min-height: 48px;
+  min-height: 44px;
   border: none;
   border-radius: 8px;
   background: var(--g);
@@ -184,9 +196,12 @@ button:disabled { cursor: not-allowed; opacity: .7; transform: none; }
 
 @media (max-width: 900px) {
   nav { padding: 0 20px; }
-  main { padding: 100px 20px 48px; }
-  .form-box { padding: 24px; }
+  main { padding: 80px 14px 14px; }
+  .contact-frame { padding: 20px; max-height: calc(100vh - 94px); }
+  h1 { font-size: 38px; }
+  .page-sub { font-size: 14px; line-height: 1.45; margin-bottom: 16px; }
   .row { grid-template-columns: 1fr; }
+  textarea { min-height: 70px; }
 }
 </style>
 </head>
@@ -197,11 +212,11 @@ button:disabled { cursor: not-allowed; opacity: .7; transform: none; }
 </nav>
 
 <main>
-  <div class="tag">Kontakt os</div>
-  <h1>Kontakt mig om <em>Zeppo.</em></h1>
-  <p class="page-sub">Skriv dine oplysninger her, så vender jeg tilbage og viser, hvordan Zeppo kan hjælpe dit VVS-firma med at tage flere opkald.</p>
+  <section class="contact-frame">
+    <h1>Kontakt os om <em>Zeppo.</em></h1>
+    <p class="page-sub">Skriv dine oplysninger her, så vender jeg tilbage og viser, hvordan Zeppo kan hjælpe dit VVS-firma med at tage flere opkald.</p>
 
-  <section class="form-box">
+    <div class="form-box">
       <h2>Book en demo</h2>
       <p>Udfyld formularen, så kontakter jeg dig hurtigst muligt.</p>
       <form id="demoForm">
@@ -233,6 +248,7 @@ button:disabled { cursor: not-allowed; opacity: .7; transform: none; }
         <div class="status" id="status"></div>
       </form>
       <p class="fine">Du får svar inden for 24 timer på hverdage.</p>
+    </div>
   </section>
 </main>
 
