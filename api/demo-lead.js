@@ -26,9 +26,19 @@ export default async function handler(req, res) {
     const from = process.env.TWILIO_NUMBER;
     const to = process.env.VVS_NUMBER;
 
-    if (!accountSid || !authToken || !from || !to) {
-      console.error('Mangler Twilio env vars til demo lead');
-      return res.status(500).json({ ok: false, error: 'Server mangler SMS-konfiguration' });
+    const missing = [
+      ['TWILIO_ACCOUNT_SID', accountSid],
+      ['TWILIO_AUTH_TOKEN', authToken],
+      ['TWILIO_NUMBER', from],
+      ['VVS_NUMBER', to]
+    ].filter(([, value]) => !value).map(([name]) => name);
+
+    if (missing.length > 0) {
+      console.error('Mangler Twilio env vars til demo lead:', missing.join(', '));
+      return res.status(500).json({
+        ok: false,
+        error: `Server mangler SMS-konfiguration: ${missing.join(', ')}`
+      });
     }
 
     const client = twilio(accountSid, authToken);
@@ -40,7 +50,14 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true });
   } catch (error) {
-    console.error('Demo lead fejl:', error);
-    return res.status(500).json({ ok: false, error: 'Kunne ikke sende forespørgsel' });
+    console.error('Demo lead fejl:', {
+      message: error.message,
+      code: error.code,
+      status: error.status
+    });
+    return res.status(500).json({
+      ok: false,
+      error: error.message ? `Twilio fejl: ${error.message}` : 'Kunne ikke sende forespørgsel'
+    });
   }
 }

@@ -40,15 +40,8 @@ nav {
   border-bottom: 1px solid rgba(228,228,231,0.6);
 }
 
-.logo {
-  font-family: var(--ff);
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--black);
-  text-decoration: none;
-  letter-spacing: -.03em;
-}
-.logo-dot { color: var(--g); }
+.logo { font-family: var(--ff); font-size: 21px; font-weight: 700; color: var(--g); text-decoration: none; letter-spacing: -.04em; }
+.logo-dot { color: var(--ink); }
 .nav-link { color: var(--mid); text-decoration: none; font-size: 14px; font-weight: 400; }
 .nav-link:hover { color: var(--ink); }
 
@@ -253,7 +246,8 @@ form.addEventListener('submit', async (event) => {
       body: JSON.stringify(payload)
     });
 
-    if (!response.ok) throw new Error('Kunne ikke sende formularen');
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'Kunne ikke sende formularen');
 
     form.reset();
     statusEl.className = 'status ok';
@@ -265,7 +259,7 @@ form.addEventListener('submit', async (event) => {
       `Navn: ${payload.name || ''}\nFirma: ${payload.company || ''}\nTelefon: ${payload.phone || ''}\nEmail: ${payload.email || ''}\n\n${payload.message || ''}`
     );
     statusEl.className = 'status error';
-    statusEl.innerHTML = `Formularen kunne ikke sendes direkte. <a href="mailto:mf@zeppo.dk?subject=${subject}&body=${body}">Send som email i stedet</a>.`;
+    statusEl.innerHTML = `${error.message}. <a href="mailto:mf@zeppo.dk?subject=${subject}&body=${body}">Send som email i stedet</a>.`;
     button.disabled = false;
     button.textContent = 'Send forespørgsel';
   }
