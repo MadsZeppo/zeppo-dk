@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { appendFile, mkdir } from 'fs/promises';
+import { appendFile, mkdir, readFile } from 'fs/promises';
 
 dotenv.config();
 
@@ -751,6 +751,26 @@ app.post('/demo-lead', async (req, res) => {
   } catch (err) {
     console.error('❌ Demo lead fejl:', err.message);
     return res.status(500).json({ ok: false, error: 'Kunne ikke gemme forespørgsel' });
+  }
+});
+
+app.get('/api/demo-leads', async (_req, res) => {
+  try {
+    const file = path.join(__dirname, 'data', 'demo-leads.jsonl');
+    const content = await readFile(file, 'utf8').catch((err) => {
+      if (err.code === 'ENOENT') return '';
+      throw err;
+    });
+    const leads = content
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line))
+      .reverse();
+
+    return res.json({ ok: true, leads });
+  } catch (err) {
+    console.error('❌ Kunne ikke hente demo leads:', err.message);
+    return res.status(500).json({ ok: false, error: 'Kunne ikke hente forespørgsler' });
   }
 });
 
