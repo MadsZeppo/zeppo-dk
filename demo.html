@@ -314,7 +314,7 @@ form.addEventListener('submit', async (event) => {
       `Navn: ${payload.name || ''}\nFirma: ${payload.company || ''}\nTelefon: ${payload.phone || ''}\nEmail: ${payload.email || ''}\n\n${payload.message || ''}`
     );
     statusEl.className = 'status error';
-    statusEl.innerHTML = `Formularen kunne ikke sendes direkte. <a href="mailto:kontakt@zeppo.ai?subject=${subject}&body=${body}">Send som email i stedet</a>.`;
+    statusEl.innerHTML = `Formularen kunne ikke sendes direkte. <a href="mailto:mf@zeppo.dk?subject=${subject}&body=${body}">Send som email i stedet</a>.`;
     button.disabled = false;
     button.textContent = 'Send forespørgsel';
   }
