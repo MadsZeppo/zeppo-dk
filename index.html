@@ -584,8 +584,8 @@ footer { background: var(--night); border-top: 1px solid rgba(255,255,255,.05); 
     <div class="eyebrow cta-eyebrow"><div class="eyebrow-line"></div>Kom i gang i dag</div>
     <div class="cta-h">Stop med at<br>miste <em>opgaver.</em></div>
     <p class="cta-sub">Alle nye VVS-firmaer får de første 14 dage gratis. Ingen binding. Intet kreditkort.</p>
-    <form class="cta-form" onsubmit="handleSubmit(event)">
-      <input type="email" placeholder="Din emailadresse" required>
+    <form class="cta-form" action="https://formspree.io/f/xzdwkvzq" method="POST">
+      <input type="email" name="email" placeholder="Din emailadresse" required>
       <button type="submit">Book demo →</button>
     </form>
     <p class="cta-fine">Vi svarer inden for 24 timer og sætter det hele op for dig.</p>
@@ -611,14 +611,6 @@ window.addEventListener('scroll', () => {
   document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 20);
 });
 
-function handleSubmit(e) {
-  e.preventDefault();
-  const btn = e.target.querySelector('button');
-  btn.textContent = '✓ Vi kontakter dig snart';
-  btn.style.background = '#15803d';
-  e.target.querySelector('input').disabled = true;
-  btn.disabled = true;
-}
 </script>
 </body>
 </html>

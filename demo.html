@@ -193,7 +193,7 @@ button:disabled { cursor: not-allowed; opacity: .7; transform: none; }
     <div class="form-box">
       <h2>Book en demo</h2>
       <p>Udfyld formularen, så kontakter jeg dig hurtigst muligt.</p>
-      <form id="demoForm">
+      <form id="demoForm" action="https://formspree.io/f/xzdwkvzq" method="POST">
         <div class="row">
           <label>
             Navn
@@ -226,44 +226,5 @@ button:disabled { cursor: not-allowed; opacity: .7; transform: none; }
   </section>
 </main>
 
-<script>
-const form = document.getElementById('demoForm');
-const statusEl = document.getElementById('status');
-
-form.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const button = form.querySelector('button');
-  const payload = Object.fromEntries(new FormData(form).entries());
-  button.disabled = true;
-  button.textContent = 'Sender...';
-  statusEl.className = 'status';
-  statusEl.textContent = '';
-
-  try {
-    const response = await fetch('/api/demo-lead', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Kunne ikke sende formularen');
-
-    form.reset();
-    statusEl.className = 'status ok';
-    statusEl.textContent = 'Tak. Jeg har modtaget din forespørgsel og kontakter dig snart.';
-    button.textContent = 'Sendt';
-  } catch (error) {
-    const subject = encodeURIComponent('Book demo af Zeppo');
-    const body = encodeURIComponent(
-      `Navn: ${payload.name || ''}\nFirma: ${payload.company || ''}\nTelefon: ${payload.phone || ''}\nEmail: ${payload.email || ''}\n\n${payload.message || ''}`
-    );
-    statusEl.className = 'status error';
-    statusEl.innerHTML = `${error.message}. <a href="mailto:mf@zeppo.dk?subject=${subject}&body=${body}">Send som email i stedet</a>.`;
-    button.disabled = false;
-    button.textContent = 'Send forespørgsel';
-  }
-});
-</script>
 </body>
 </html>
