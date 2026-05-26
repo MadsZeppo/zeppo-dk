@@ -70,39 +70,19 @@ nav {
 
 /* ── HERO ── */
 .hero {
-  padding: 148px 48px 0;
+  padding: 104px 48px 0;
   display: flex; flex-direction: column; align-items: center;
   text-align: center;
 }
 
-.hero-pill {
-  display: inline-flex; align-items: center; gap: 8px;
-  background: var(--white); border: 1px solid var(--bdr);
-  border-radius: 100px; padding: 6px 16px 6px 8px;
-  font-size: 13px; font-weight: 400; color: var(--mid);
-  margin-bottom: 40px;
-  box-shadow: 0 1px 4px rgba(0,0,0,.05);
-  animation: fadeUp .6s .05s var(--ease) both;
-}
-.pill-dot {
-  width: 20px; height: 20px; border-radius: 50%;
-  background: var(--glt); border: 1px solid rgba(26,107,60,.15);
-  display: flex; align-items: center; justify-content: center;
-}
-.pill-dot::after {
-  content: ''; width: 8px; height: 8px; border-radius: 50%;
-  background: var(--g); animation: blink 2.5s ease-in-out infinite;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-
 h1 {
-  font-family: var(--ff);
-  font-size: clamp(52px, 7.5vw, 104px);
-  font-weight: 300; line-height: .97; letter-spacing: -.05em;
+  font-family: var(--fb);
+  font-size: clamp(52px, 7.2vw, 100px);
+  font-weight: 500; line-height: 1.02; letter-spacing: -.055em;
   color: var(--ink); max-width: 900px;
   animation: fadeUp .7s .1s var(--ease) both;
 }
-h1 em { font-style: italic; font-weight: 700; color: var(--g); }
+h1 em { font-style: normal; font-weight: 700; color: var(--g); }
 h1 .dim { color: var(--muted); }
 
 .hero-sub {
@@ -179,16 +159,6 @@ h1 .dim { color: var(--muted); }
 .m-foot-l { display: flex; align-items: center; gap: 9px; font-size: 12.5px; font-weight: 500; color: var(--g); }
 .m-pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--g); animation: blink 2s ease-in-out infinite; }
 .m-foot-r { font-size: 12px; color: var(--muted); }
-
-/* ── TRUST BAND ── */
-.trust-band {
-  background: var(--white); border-top: 1px solid var(--bdr); border-bottom: 1px solid var(--bdr);
-  padding: 22px 48px; display: flex; align-items: center; gap: 32px;
-}
-.trust-lbl { font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
-.trust-sep { width: 1px; height: 28px; background: var(--bdr); flex-shrink: 0; }
-.trust-logos { display: flex; align-items: center; gap: 36px; flex-wrap: wrap; }
-.trust-logo { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #ccc; }
 
 /* ── SECTIONS ── */
 .section { max-width: 1100px; margin: 0 auto; padding: 120px 48px; }
@@ -303,7 +273,7 @@ footer { background: var(--ink); padding: 40px 48px; display: flex; align-items:
 @media (max-width: 768px) {
   nav { padding: 0 20px; }
   .nav-c { display: none; }
-  .hero { padding: 120px 20px 0; }
+  .hero { padding: 92px 20px 0; }
   .mockup-frame { padding: 20px 16px 0; }
   .section, .dark { padding: 80px 20px; }
   .steps { grid-template-columns: 1fr; }
@@ -316,7 +286,6 @@ footer { background: var(--ink); padding: 40px 48px; display: flex; align-items:
   .f-links { flex-wrap: wrap; justify-content: center; }
   .m-body { grid-template-columns: 1fr; }
   .m-col + .m-col { border-left: none; border-top: 1px solid var(--bdr); }
-  .trust-band { padding: 16px 20px; gap: 16px; flex-wrap: wrap; }
 }
 </style>
 </head>
@@ -340,11 +309,6 @@ footer { background: var(--ink); padding: 40px 48px; display: flex; align-items:
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-pill">
-    <div class="pill-dot"></div>
-    60% af VVS-mestre åbner ikke telefonen når de er ude
-  </div>
-
   <h1>
     Aldrig et<br>
     <em>mistet</em> opkald<br>
@@ -397,19 +361,6 @@ footer { background: var(--ink); padding: 40px 48px; display: flex; align-items:
     </div>
   </div>
 </section>
-
-<!-- TRUST -->
-<div class="trust-band">
-  <span class="trust-lbl">Betroet af</span>
-  <div class="trust-sep"></div>
-  <div class="trust-logos">
-    <span class="trust-logo">Jensen VVS</span>
-    <span class="trust-logo">Nielsen Blik</span>
-    <span class="trust-logo">Sørensen VVS</span>
-    <span class="trust-logo">Andersen Teknik</span>
-    <span class="trust-logo">Vestjyllands VVS</span>
-  </div>
-</div>
 
 <!-- HOW -->
 <div class="section" id="how">
