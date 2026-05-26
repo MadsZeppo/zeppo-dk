@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zeppo — Aldrig et mistet opkald</title>
+<title>Zeppo — Mister du VVS-opkald?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400;1,9..144,700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <style>
@@ -115,13 +115,35 @@ h1 .dim { color: var(--muted); }
 }
 .btn-s:hover { border-color: #b0b0a8; color: var(--ink); }
 
+.hero-badges {
+  display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 22px;
+  animation: fadeUp .7s .28s var(--ease) both;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 12px;
+  border: 1px solid var(--bdr);
+  border-radius: 999px;
+  background: rgba(255,255,255,.72);
+  color: var(--mid);
+  font-size: 13px;
+  font-weight: 400;
+}
+.hero-badge::before {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--g);
+}
+
 /* MOCKUP */
 .mockup-outer {
   width: 100%; margin-top: 64px;
   animation: fadeUp .8s .32s var(--ease) both;
 }
 .mockup-frame {
-  background: var(--bdr);
+  background: #d8d8d1;
   border-radius: 24px 24px 0 0;
   padding: 32px 32px 0;
   max-width: 1100px; margin: 0 auto;
@@ -132,10 +154,10 @@ h1 .dim { color: var(--muted); }
   border: 1px solid rgba(0,0,0,.06);
   border-bottom: none;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,.04), 0 20px 60px rgba(0,0,0,.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,.06), 0 24px 70px rgba(0,0,0,.16);
 }
 .m-bar {
-  background: #f0f0ed; padding: 12px 18px; border-bottom: 1px solid var(--bdr);
+  background: #e9e9e4; padding: 12px 18px; border-bottom: 1px solid var(--bdr);
   display: flex; align-items: center; gap: 10px;
 }
 .m-dots { display: flex; gap: 6px; }
@@ -143,12 +165,33 @@ h1 .dim { color: var(--muted); }
 .m-r { background: #ff5f57; } .m-y { background: #febc2e; } .m-g { background: #28c840; }
 .m-title { flex: 1; text-align: center; font-size: 11.5px; font-weight: 500; color: var(--muted); letter-spacing: .03em; }
 
+.m-status {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--bdr);
+  background: #fff7f7;
+}
+.m-status-main {
+  display: flex; align-items: center; gap: 10px;
+  color: #b42318;
+  font-size: 14px;
+  font-weight: 700;
+}
+.m-status-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #dc2626;
+}
+.m-status-note {
+  color: var(--mid);
+  font-size: 13px;
+}
 .m-body { display: grid; grid-template-columns: 1fr 1fr; }
 .m-col { padding: 28px 32px; }
 .m-col + .m-col { border-left: 1px solid var(--bdr); }
-.m-lbl { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+.m-lbl { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--g); margin-bottom: 18px; }
 .m-row { display: flex; gap: 10px; font-family: 'SF Mono','Fira Code',monospace; font-size: 13px; line-height: 2.1; }
-.m-k { color: var(--muted); min-width: 72px; font-size: 12px; }
+.m-k { color: var(--mid); min-width: 72px; font-size: 12px; }
 .m-v { color: var(--ink); font-weight: 500; }
 .m-v.g { color: var(--g); } .m-v.y { color: #c26a00; } .m-v.r { color: #c0392b; }
 
@@ -310,21 +353,27 @@ footer { background: var(--ink); padding: 40px 48px; display: flex; align-items:
 <!-- HERO -->
 <section class="hero">
   <h1>
-    Aldrig et<br>
-    <em>mistet</em> opkald<br>
-    <span class="dim">igen.</span>
+    Mister du opkald,<br>
+    mens du er ude<br>
+    hos <em>kunder?</em>
   </h1>
 
   <p class="hero-sub">
-    Zeppo tager telefonen, spørger kunden ind til problemet og sender dig en komplet sag — også når du er ude hos en anden kunde.
+    Zeppo tager telefonen, spørger ind til problemet og sender dig en komplet opgave med navn, adresse, hastegrad og hvad kunden skal have hjælp til.
   </p>
 
   <div class="hero-btns">
     <a href="demo.html" class="btn-p">
-      Book en gratis demo
+      Prøv gratis i 30 dage
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
     <a href="#how" class="btn-s">Se hvordan det virker</a>
+  </div>
+
+  <div class="hero-badges">
+    <span class="hero-badge">Tager opkald 24/7</span>
+    <span class="hero-badge">Kan kobles til kalender</span>
+    <span class="hero-badge">Akutte sager prioriteres</span>
   </div>
 
   <div class="mockup-outer">
@@ -334,6 +383,10 @@ footer { background: var(--ink); padding: 40px 48px; display: flex; align-items:
           <div class="m-dots"><div class="m-d m-r"></div><div class="m-d m-y"></div><div class="m-d m-g"></div></div>
           <div class="m-title">Zeppo · Ny sag modtaget</div>
           <div style="width:48px"></div>
+        </div>
+        <div class="m-status">
+          <div class="m-status-main"><span class="m-status-dot"></span>Akut — eneste toilet i boligen</div>
+          <div class="m-status-note">Prioritet: i dag</div>
         </div>
         <div class="m-body">
           <div class="m-col">
