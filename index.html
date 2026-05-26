@@ -70,19 +70,19 @@ nav {
 
 /* ── HERO ── */
 .hero {
-  padding: 104px 48px 0;
+  padding: 104px 48px 48px;
   display: flex; flex-direction: column; align-items: center;
   text-align: center;
 }
 
 h1 {
   font-family: var(--fb);
-  font-size: clamp(52px, 7.2vw, 100px);
-  font-weight: 500; line-height: 1.02; letter-spacing: -.055em;
+  font-size: clamp(48px, 6.8vw, 92px);
+  font-weight: 500; line-height: 1.06; letter-spacing: -.025em;
   color: var(--ink); max-width: 900px;
   animation: fadeUp .7s .1s var(--ease) both;
 }
-h1 em { font-style: normal; font-weight: 700; color: var(--g); }
+h1 em { font-style: normal; font-weight: 700; color: var(--g); letter-spacing: -.015em; }
 h1 .dim { color: var(--muted); }
 
 .hero-sub {
@@ -139,7 +139,7 @@ h1 .dim { color: var(--muted); }
 
 /* MOCKUP */
 .mockup-outer {
-  width: 100%; margin-top: 64px;
+  width: 100%; margin-top: 54px; margin-bottom: -34px;
   animation: fadeUp .8s .32s var(--ease) both;
 }
 .mockup-frame {
@@ -147,6 +147,8 @@ h1 .dim { color: var(--muted); }
   border-radius: 24px 24px 0 0;
   padding: 32px 32px 0;
   max-width: 1100px; margin: 0 auto;
+  position: relative;
+  z-index: 2;
 }
 .mockup {
   background: var(--white);
@@ -204,7 +206,20 @@ h1 .dim { color: var(--muted); }
 .m-foot-r { font-size: 12px; color: var(--muted); }
 
 /* ── SECTIONS ── */
-.section { max-width: 1100px; margin: 0 auto; padding: 120px 48px; }
+.section { max-width: 1100px; margin: 0 auto; padding: 96px 48px 120px; }
+#how {
+  position: relative;
+  padding-top: 92px;
+}
+#how::before {
+  content: '';
+  position: absolute;
+  left: 48px;
+  right: 48px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--bdr), transparent);
+}
 
 .s-head { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: end; margin-bottom: 64px; }
 .eyebrow { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--g); margin-bottom: 18px; }
@@ -272,6 +287,7 @@ h1 .dim { color: var(--muted); }
 .stat:last-child { border-right: none; }
 .stat:hover { background: var(--glt); }
 .stat-n { font-family: var(--ff); font-size: 56px; font-weight: 700; letter-spacing: -.06em; line-height: 1; color: var(--ink); margin-bottom: 10px; }
+.stat-n.words { font-family: var(--fb); font-size: 38px; font-weight: 600; letter-spacing: -.04em; }
 .stat-u { font-size: 28px; color: var(--g); }
 .stat-l { font-size: 13px; font-weight: 300; color: var(--muted); line-height: 1.5; }
 
@@ -316,8 +332,12 @@ footer { background: var(--ink); padding: 40px 48px; display: flex; align-items:
 @media (max-width: 768px) {
   nav { padding: 0 20px; }
   .nav-c { display: none; }
-  .hero { padding: 92px 20px 0; }
+  .hero { padding: 92px 20px 34px; }
   .mockup-frame { padding: 20px 16px 0; }
+  .mockup-outer { margin-bottom: -18px; }
+  .section { padding: 72px 20px 90px; }
+  #how { padding-top: 70px; }
+  #how::before { left: 20px; right: 20px; }
   .section, .dark { padding: 80px 20px; }
   .steps { grid-template-columns: 1fr; }
   .stats { grid-template-columns: repeat(2,1fr); }
@@ -536,7 +556,7 @@ footer { background: var(--ink); padding: 40px 48px; display: flex; align-items:
   <div class="stat rv"><div class="stat-n">24<span class="stat-u">/7</span></div><div class="stat-l">Altid klar til<br>at tage opkaldet</div></div>
   <div class="stat rv d1"><div class="stat-n">0</div><div class="stat-l">Mistede opkald<br>fremover</div></div>
   <div class="stat rv d2"><div class="stat-n">&lt;1<span class="stat-u">t</span></div><div class="stat-l">Fra opstart til<br>første opkald</div></div>
-  <div class="stat rv d3"><div class="stat-n">14<span class="stat-u">d</span></div><div class="stat-l">Gratis test<br>ingen binding</div></div>
+  <div class="stat rv d3"><div class="stat-n words">30 dage</div><div class="stat-l">Gratis prøveperiode<br>uden binding</div></div>
 </div>
 
 <!-- CTA -->
@@ -545,7 +565,7 @@ footer { background: var(--ink); padding: 40px 48px; display: flex; align-items:
   <div class="cta-in">
     <div class="eyebrow" style="justify-content:center;margin-bottom:18px"><div class="eyebrow-line"></div>Kom i gang i dag</div>
     <div class="cta-h">Stop med at<br>miste <em>opgaver.</em></div>
-    <p class="cta-sub">Alle nye VVS-firmaer får de første 14 dage gratis. Ingen binding. Intet kreditkort.</p>
+    <p class="cta-sub">Alle nye VVS-firmaer får de første 30 dage gratis. Ingen binding. Intet kreditkort.</p>
     <form class="cta-form" action="https://formspree.io/f/xzdwkvzq" method="POST">
       <input type="email" name="email" placeholder="Din emailadresse" required>
       <button type="submit">Book demo →</button>
