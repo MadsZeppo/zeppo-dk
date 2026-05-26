@@ -158,25 +158,6 @@ h1 .fade { color: var(--muted); }
 .mf-pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--g); animation: pulse 2s ease-in-out infinite; }
 .mf-time { font-size: 11.5px; color: var(--muted); }
 
-/* ── LOGOS MARQUEE ── */
-.logos-band {
-  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-  background: var(--surf); overflow: hidden; padding: 20px 0; position: relative;
-}
-.logos-band::before, .logos-band::after {
-  content: ''; position: absolute; top: 0; bottom: 0; width: 120px; z-index: 2;
-}
-.logos-band::before { left: 0; background: linear-gradient(90deg, var(--surf), transparent); }
-.logos-band::after  { right: 0; background: linear-gradient(-90deg, var(--surf), transparent); }
-.logos-inner { display: flex; width: max-content; animation: marquee 28s linear infinite; }
-.logos-inner:hover { animation-play-state: paused; }
-.logo-track { display: flex; align-items: center; gap: 64px; padding: 0 32px; }
-.logo-item { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #d4d4d8; white-space: nowrap; transition: color .2s; user-select: none; }
-.logo-item:hover { color: var(--muted); }
-.logo-sep { width: 4px; height: 4px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
-
-@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-
 /* ── SECTIONS ── */
 .section { max-width: 1200px; margin: 0 auto; padding: 136px 48px; }
 .eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--g); margin-bottom: 20px; }
@@ -420,32 +401,6 @@ footer { background: var(--night); border-top: 1px solid rgba(255,255,255,.05); 
   </div>
 </section>
 
-<!-- LOGOS -->
-<div class="logos-band">
-  <div class="logos-inner">
-    <div class="logo-track">
-      <span class="logo-item">Jensen VVS</span><div class="logo-sep"></div>
-      <span class="logo-item">Nielsen Blik</span><div class="logo-sep"></div>
-      <span class="logo-item">Sørensen VVS</span><div class="logo-sep"></div>
-      <span class="logo-item">Andersen Teknik</span><div class="logo-sep"></div>
-      <span class="logo-item">Vestjyllands VVS</span><div class="logo-sep"></div>
-      <span class="logo-item">Nordjylland Rør</span><div class="logo-sep"></div>
-      <span class="logo-item">Fyn Varme</span><div class="logo-sep"></div>
-      <span class="logo-item">Køge VVS</span><div class="logo-sep"></div>
-    </div>
-    <div class="logo-track">
-      <span class="logo-item">Jensen VVS</span><div class="logo-sep"></div>
-      <span class="logo-item">Nielsen Blik</span><div class="logo-sep"></div>
-      <span class="logo-item">Sørensen VVS</span><div class="logo-sep"></div>
-      <span class="logo-item">Andersen Teknik</span><div class="logo-sep"></div>
-      <span class="logo-item">Vestjyllands VVS</span><div class="logo-sep"></div>
-      <span class="logo-item">Nordjylland Rør</span><div class="logo-sep"></div>
-      <span class="logo-item">Fyn Varme</span><div class="logo-sep"></div>
-      <span class="logo-item">Køge VVS</span><div class="logo-sep"></div>
-    </div>
-  </div>
-</div>
-
 <!-- HOW IT WORKS -->
 <div class="section" id="how">
   <div class="how-head rv">
@@ -584,7 +539,7 @@ footer { background: var(--night); border-top: 1px solid rgba(255,255,255,.05); 
     <div class="eyebrow cta-eyebrow"><div class="eyebrow-line"></div>Kom i gang i dag</div>
     <div class="cta-h">Stop med at<br>miste <em>opgaver.</em></div>
     <p class="cta-sub">Alle nye VVS-firmaer får de første 14 dage gratis. Ingen binding. Intet kreditkort.</p>
-    <form class="cta-form" action="https://formspree.io/f/xzdwkvzq" method="POST">
+    <form class="cta-form" action="https://formspree.io/f/xzdwkvgo" method="POST">
       <input type="email" name="email" placeholder="Din emailadresse" required>
       <button type="submit">Book demo →</button>
     </form>
