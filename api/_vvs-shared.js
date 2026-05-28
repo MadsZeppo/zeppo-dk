@@ -50,11 +50,6 @@ function cleanField(value) {
 }
 
 export function getCustomerPhone(message) {
-  const businessNumbers = [
-    process.env.TWILIO_NUMBER,
-    process.env.VVS_NUMBER,
-  ].map(normalizePhone).filter(Boolean);
-
   const orderedCandidates = [
     message?.call?.customer?.number,
     message?.customer?.number,
@@ -66,7 +61,7 @@ export function getCustomerPhone(message) {
     message?.from,
   ].map(normalizePhone).filter(Boolean);
 
-  const selected = orderedCandidates.find((number) => !businessNumbers.includes(number)) || null;
+  const selected = orderedCandidates[0] || null;
   console.log('Caller-ID:', { selected, candidates: orderedCandidates });
   return selected;
 }
@@ -519,95 +514,38 @@ Returner præcis dette JSON-objekt:
 }
 
 export function buildVvsSms(info) {
-  const isVicevaertSag = info.vicevaert_relevant === 'ja';
+  const isVicevaert = info.vicevaert_relevant === 'ja';
   const niveau = safe(info.akut_niveau);
-  const emoji =
-    isVicevaertSag ? '🏢' :
-    niveau === 'RØD' ? '🚨' :
-    niveau === 'GUL' ? '⚠️' : '🔧';
-  const adresseLinje = getSmsAddressLine(info);
-  const kategori = safe(info.kategori);
-  const statusLinje = isVicevaertSag
-    ? `AFVENTER VICEVÆRT · ${kategori.toUpperCase()}`
-    : `${safe(info.prioritet)} · ${niveau} · ${kategori.toUpperCase()}`;
+  const emoji = isVicevaert ? '🏢' : niveau === 'RØD' ? '🚨' : niveau === 'GUL' ? '⚠️' : '🔧';
 
   const linjer = [
-    `${emoji} ZEPPO · NY VVS-SAG`,
-    statusLinje,
+    `${emoji} NY VVS-SAG`,
     ``,
-    `KUNDE`,
     `Navn: ${safe(info.navn)}`,
-    `Telefon: ${safe(info.telefon)}`,
-    adresseLinje,
+    `Tlf: ${info.telefon !== 'Ikke oplyst' ? safe(info.telefon) : 'Kunden ringer tilbage'}`,
+    `Adresse: ${getSmsAddressLine(info).replace('Adresse: ', '')}`,
     `Bolig: ${safe(info.boligtype)}`,
+    ``,
+    `Problem: ${safe(info.problem)}`,
   ];
 
-  pushKnown(linjer, 'Bygning', info.bygningsalder);
-
-  linjer.push(
-    ``,
-    `OPGAVE`,
-    `Problem: ${safe(info.problem)}`,
-    `Omfang: ${safe(info.omfang)}`
-  );
-
-  if (info.eneste_toilet === 'ja') linjer.push(`⚠️ Eneste toilet: Ja`);
-  if (
-    safe(info.toilet_type) !== 'Ikke oplyst' &&
-    safe(info.toilet_type) !== 'ikke relevant' &&
-    safe(info.toilet_type) !== 'ukendt'
-  ) {
-    linjer.push(`Toilet: ${info.toilet_type}`);
-  }
-  if (
-    safe(info.varmekilde) !== 'Ikke oplyst' &&
-    safe(info.varmekilde) !== 'ikke relevant' &&
-    safe(info.varmekilde) !== 'ukendt'
-  ) {
-    linjer.push(`Varmekilde: ${info.varmekilde}`);
-  }
-  pushKnown(linjer, 'Fejlkode', info.fejlkode);
-  pushKnown(linjer, 'Startede', info.startede);
-  pushKnown(linjer, 'Kunden har prøvet', info.forsogt);
-
-  const obs = [];
-  if (info.kemikalier_brugt === 'ja') {
-    obs.push(`Kemikalier brugt - medbring syrebestandige handsker/briller`);
-  }
-  if (info.vicevaert_relevant === 'ja') {
-    obs.push(`Mulig fællessag - kunden er bedt om at kontakte vicevært`);
-  }
-  if (safe(info.forsikring_informeret) === 'ja') obs.push(`Forsikring er informeret`);
-
-  linjer.push(``);
-  linjer.push(`PRAKTISK`);
-  if (info.vicevaert_relevant === 'ja') {
-    linjer.push(`Sagstype: FÆLLES INSTALLATION - vicevært kontaktes af kunden`);
-    linjer.push(`(Ingen besøg booket - afventer viceværten)`);
+  if (isVicevaert) {
+    linjer.push(``);
+    linjer.push(`⚠️ FÆLLES INSTALLATION`);
+    linjer.push(`Kunden er bedt om at kontakte viceværten eller ejerforeningen.`);
+    linjer.push(`Intet besøg booket — afventer at viceværten tager kontakt.`);
   } else {
+    linjer.push(``);
     linjer.push(`Ønsket tid: ${safe(info.tidspunkt)}`);
-  }
-  pushKnown(linjer, 'Adgang', info.adgang);
-
-  if (obs.length > 0) {
-    linjer.push(``);
-    linjer.push(`OBS`);
-    obs.forEach((item) => linjer.push(`⚠️ ${item}`));
+    if (safe(info.adgang) !== 'Ikke oplyst') linjer.push(`Adgang: ${safe(info.adgang)}`);
   }
 
-  if (safe(info.ekstra_noter) !== 'Ikke oplyst') {
-    linjer.push(``);
-    linjer.push(`NOTE`);
-    linjer.push(safe(info.ekstra_noter));
-  }
+  if (safe(info.fejlkode) !== 'Ikke oplyst') linjer.push(`Fejlkode: ${safe(info.fejlkode)}`);
+  if (safe(info.forsogt) !== 'Ikke oplyst') linjer.push(`Forsøgt: ${safe(info.forsogt)}`);
+  if (info.kemikalier_brugt === 'ja') linjer.push(`⚠️ KEMIKALIER BRUGT`);
+  if (safe(info.ekstra_noter) !== 'Ikke oplyst') linjer.push(`Note: ${safe(info.ekstra_noter)}`);
 
   return linjer.join('\n');
-}
-
-function pushKnown(lines, label, value) {
-  if (safe(value) !== 'Ikke oplyst') {
-    lines.push(`${label}: ${safe(value)}`);
-  }
 }
 
 function getSmsAddressLine(info) {
