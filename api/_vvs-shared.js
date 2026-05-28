@@ -58,26 +58,37 @@ export function getCustomerPhone(message) {
   const directCandidates = [
     message?.call?.customer?.number,
     message?.call?.customer?.phoneNumber,
-    message?.call?.customer?.sipUri,
-    message?.call?.customerNumber,
-    message?.call?.from,
-    message?.call?.phoneCallProviderDetails?.from,
-    message?.call?.twilio?.from,
+    message?.call?.customer?.numberE164,
     message?.customer?.number,
     message?.customer?.phoneNumber,
+    message?.customer?.numberE164,
+    message?.call?.customerNumber,
     message?.customerNumber,
+    message?.call?.phoneCallProviderDetails?.from,
+    message?.call?.phoneCallProviderDetails?.caller,
+    message?.call?.phoneCallProviderDetails?.callerNumber,
+    message?.call?.phoneCallProviderDetails?.customerNumber,
+    message?.call?.from,
+    message?.call?.twilio?.from,
+    message?.call?.twilio?.caller,
     message?.from,
+    message?.call?.customer?.sipUri,
   ].map(normalizePhone).filter(Boolean);
 
   const direct = directCandidates.find((number) => !businessNumbers.includes(number));
-  if (direct) return direct;
+  if (direct) {
+    console.log('Caller-ID valgt:', { selected: direct, candidates: directCandidates });
+    return direct;
+  }
 
   const allCandidates = collectPhoneCandidates(message)
     .map(normalizePhone)
     .filter(Boolean)
     .filter((number) => !businessNumbers.includes(number));
 
-  return allCandidates[0] || null;
+  const selected = allCandidates[0] || null;
+  console.log('Caller-ID fallback:', { selected, candidates: allCandidates.slice(0, 10) });
+  return selected;
 }
 
 function normalizePhone(value) {
@@ -91,6 +102,13 @@ function normalizePhone(value) {
   if (/^\d{8}$/.test(cleaned)) return `+45${cleaned}`;
   if (/^\+\d{8,18}$/.test(cleaned)) return cleaned;
   return null;
+}
+
+function getAlternativePhoneFromTranscript(transcript, callerPhone) {
+  const caller = normalizePhone(callerPhone);
+  const matches = String(transcript || '').match(/(?:\+45\s*)?(?:\d[\s-]*){8}|\+\d[\d\s-]{7,18}/g) || [];
+  const phones = matches.map(normalizePhone).filter(Boolean);
+  return phones.find((phone) => phone !== caller) || null;
 }
 
 function collectPhoneCandidates(value, depth = 0) {
@@ -419,7 +437,8 @@ Inkluder ALT relevant fra samtalen:
 VIGTIGE REGLER:
 - "omfang" = præcis hvor (fx "ét toilet", "køkkenvask"). ALDRIG "hele boligen" medmindre kunden tydeligt siger det.
 - "eneste_toilet" = ja kun hvis kunden eksplicit siger det er det eneste toilet de kan bruge.
-- Telefon = altid ${customerPhone || 'Ikke oplyst'}.
+- Telefon = ${customerPhone || 'Ikke oplyst'} som standard, når kunden bekræfter nummeret de ringer fra.
+- Hvis kunden nævner et andet callback-nummer højt, skal "telefon" være det nye nummer.
 
 PRIORITET:
 - P0 = gas, kulilte, vand ved el med fare, akut personfare, ukontrollerbar sprøjtende lækage
@@ -496,7 +515,10 @@ Returner præcis dette JSON-objekt:
 
   try {
     const info = JSON.parse(response.choices[0].message.content.trim());
-    info.telefon = customerPhone || 'Ikke oplyst';
+    const callerPhone = normalizePhone(customerPhone);
+    const spokenAlternativePhone = getAlternativePhoneFromTranscript(transcript, callerPhone);
+    const modelPhone = normalizePhone(info.telefon);
+    info.telefon = spokenAlternativePhone || (modelPhone && modelPhone !== callerPhone ? modelPhone : callerPhone) || 'Ikke oplyst';
     info.adresse_raw = safe(info.adresse_raw);
     info.vejnavn = safe(info.vejnavn);
     info.husnummer = safe(info.husnummer);
