@@ -367,7 +367,7 @@ export function defaultInfo(customerPhone, saesonKontekst) {
     omfang: 'Ikke oplyst', eneste_toilet: 'nej', toilet_type: 'ikke relevant',
     varmekilde: 'ikke relevant', fejlkode: 'Ikke oplyst',
     startede: 'Ikke oplyst', forsogt: 'Ikke oplyst', kemikalier_brugt: 'nej',
-    vicevaert_relevant: 'nej', forsikring_informeret: 'ikke spurgt',
+    vicevaert_relevant: 'nej', ansvarlig_kontakt: 'Ikke oplyst', forsikring_informeret: 'ikke spurgt',
     tidspunkt: 'Ikke oplyst', adgang: 'Ikke oplyst',
     ekstra_noter: 'Ikke oplyst', saeson_kontekst: saesonKontekst,
   };
@@ -423,6 +423,7 @@ KATEGORI: toilet, afløb, lækage, varme, varmt vand, kedel, radiator, gulvvarme
 
 FÆLLES INSTALLATION: vicevaert_relevant = ja hvis lejlighed + (flere afløb ramt ELLER naboer ramt ELLER toilet stiger uden skyl ELLER hele ejendommen uden vand/varme). Ellers nej.
 Hvis vicevaert_relevant = ja, er det IKKE en direkte VVS-dispatch endnu. Sæt prioritet = "AFVENTER VICEVÆRT" og akut_niveau = "INGEN FARVE", medmindre der også er gas, personfare, kloakvand i boligen eller vand ved el.
+ansvarlig_kontakt = Navn og telefonnummer på vicevært, udlejer, ejerforening eller administrator hvis oplyst af kunden. Format: "Navn: [navn] Tlf: [nummer]". Ellers: Ikke oplyst.
 
 VARMEKILDE: fjernvarme, gasfyr, varmtvandsbeholder, varmepumpe, elvandvarmer, ukendt, ikke relevant
 TOILET_TYPE: væghængt, gulvstående, ukendt, ikke relevant
@@ -469,6 +470,7 @@ Returner præcis dette JSON-objekt:
   "forsogt": "hvad kunden har prøvet eller Ikke oplyst",
   "kemikalier_brugt": "ja eller nej",
   "vicevaert_relevant": "ja eller nej",
+  "ansvarlig_kontakt": "navn og nummer på vicevært/administrator/udlejer/ejerforening hvis oplyst, ellers Ikke oplyst",
   "forsikring_informeret": "ja, nej eller ikke spurgt",
   "tidspunkt": "ønsket tidspunkt eller Ikke oplyst",
   "adgang": "adgang/parkering/portkode eller Ikke oplyst",
@@ -503,6 +505,7 @@ Returner præcis dette JSON-objekt:
     info.fejlkode = safe(info.fejlkode);
     info.kemikalier_brugt = safe(info.kemikalier_brugt, 'nej');
     info.vicevaert_relevant = safe(info.vicevaert_relevant, 'nej');
+    info.ansvarlig_kontakt = safe(info.ansvarlig_kontakt);
     info.forsikring_informeret = safe(info.forsikring_informeret, 'ikke spurgt');
     info.ekstra_noter = safe(info.ekstra_noter);
     info.saeson_kontekst = saesonKontekst;
@@ -532,6 +535,12 @@ export function buildVvsSms(info) {
   if (isVicevaert) {
     linjer.push(``);
     linjer.push(`⚠️ FÆLLES INSTALLATION`);
+    if (safe(info.ansvarlig_kontakt) !== 'Ikke oplyst') {
+      linjer.push(``);
+      linjer.push(`📞 LEAD — RING NU`);
+      linjer.push(safe(info.ansvarlig_kontakt));
+      linjer.push(`Ring og tilbyd at løse det for ejendommen.`);
+    }
     linjer.push(`Kunden er bedt om at kontakte viceværten eller ejerforeningen.`);
     linjer.push(`Intet besøg booket — afventer at viceværten tager kontakt.`);
   } else {
@@ -570,9 +579,9 @@ Tak for din henvendelse til Dansk VVS Teknik.
 Problem: ${safe(info.problem)}
 ${adresseLinje}
 
-Det her lyder som noget på den fælles installation. Husk at give viceværten eller ejerforeningen besked, så de kan sætte arbejdet i gang.
+Det her lyder som noget på den fælles installation.
 
-Vi har noteret din henvendelse og er klar fra vores side, hvis viceværten kontakter os.
+Vi tager kontakt til den ansvarlige for ejendommen og tilbyder at løse det.
 
 Hvis noget ikke passer — svar på denne SMS.
 - Dansk VVS Teknik`;
