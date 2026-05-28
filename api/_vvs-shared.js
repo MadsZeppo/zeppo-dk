@@ -366,6 +366,7 @@ export function defaultInfo(customerPhone, saesonKontekst) {
     problem: 'Ikke oplyst', kategori: 'andet', prioritet: 'P3', akut_niveau: 'GRØN',
     omfang: 'Ikke oplyst', eneste_toilet: 'nej', toilet_type: 'ikke relevant',
     varmekilde: 'ikke relevant', fejlkode: 'Ikke oplyst',
+    anlæg_maerke: 'Ikke oplyst',
     startede: 'Ikke oplyst', forsogt: 'Ikke oplyst', kemikalier_brugt: 'nej',
     vicevaert_relevant: 'nej', ansvarlig_kontakt: 'Ikke oplyst', forsikring_informeret: 'ikke spurgt',
     tidspunkt: 'Ikke oplyst', adgang: 'Ikke oplyst',
@@ -426,6 +427,7 @@ Hvis vicevaert_relevant = ja, er det IKKE en direkte VVS-dispatch endnu. Sæt pr
 ansvarlig_kontakt = Navn og telefonnummer på vicevært, udlejer, ejerforening eller administrator hvis oplyst af kunden. Format: "Navn: [navn] Tlf: [nummer]". Ellers: Ikke oplyst.
 
 VARMEKILDE: fjernvarme, gasfyr, varmtvandsbeholder, varmepumpe, elvandvarmer, ukendt, ikke relevant
+anlæg_maerke = Mærke/model på fjernvarme-unit, gasfyr eller varmepumpe hvis oplyst af kunden (fx "Danfoss", "Viessmann", "Vaillant"). Ellers: Ikke oplyst.
 TOILET_TYPE: væghængt, gulvstående, ukendt, ikke relevant
 
 KEMIKALIER: Hvis kunden nævner kaustisk soda, syre, afløbsrens eller andre kemikalier i forsogt, sæt kemikalier_brugt = ja.
@@ -466,6 +468,7 @@ Returner præcis dette JSON-objekt:
   "toilet_type": "se liste ovenfor",
   "varmekilde": "se liste ovenfor",
   "fejlkode": "fejlkode/display-tekst eller Ikke oplyst",
+  "anlæg_maerke": "mærke/model på anlæg hvis oplyst, ellers Ikke oplyst",
   "startede": "hvornår eller Ikke oplyst",
   "forsogt": "hvad kunden har prøvet eller Ikke oplyst",
   "kemikalier_brugt": "ja eller nej",
@@ -503,6 +506,7 @@ Returner præcis dette JSON-objekt:
     info.toilet_type = safe(info.toilet_type, 'ikke relevant');
     info.varmekilde = safe(info.varmekilde, 'ikke relevant');
     info.fejlkode = safe(info.fejlkode);
+    info.anlæg_maerke = safe(info.anlæg_maerke);
     info.kemikalier_brugt = safe(info.kemikalier_brugt, 'nej');
     info.vicevaert_relevant = safe(info.vicevaert_relevant, 'nej');
     info.ansvarlig_kontakt = safe(info.ansvarlig_kontakt);
@@ -550,6 +554,7 @@ export function buildVvsSms(info) {
   }
 
   if (safe(info.fejlkode) !== 'Ikke oplyst') linjer.push(`Fejlkode: ${safe(info.fejlkode)}`);
+  if (safe(info.anlæg_maerke) !== 'Ikke oplyst') linjer.push(`Anlæg: ${safe(info.anlæg_maerke)}`);
   if (safe(info.forsogt) !== 'Ikke oplyst') linjer.push(`Forsøgt: ${safe(info.forsogt)}`);
   if (info.kemikalier_brugt === 'ja') linjer.push(`⚠️ KEMIKALIER BRUGT`);
   if (safe(info.ekstra_noter) !== 'Ikke oplyst') linjer.push(`Note: ${safe(info.ekstra_noter)}`);
