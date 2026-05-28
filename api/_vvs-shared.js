@@ -50,13 +50,54 @@ function cleanField(value) {
 }
 
 export function getCustomerPhone(message) {
-  return (
-    message?.call?.customer?.number ||
-    message?.call?.phoneNumber ||
-    message?.customer?.number ||
-    message?.phoneNumber ||
-    null
-  );
+  const businessNumbers = [
+    process.env.TWILIO_NUMBER,
+    process.env.VVS_NUMBER,
+  ].map(normalizePhone).filter(Boolean);
+
+  const directCandidates = [
+    message?.call?.customer?.number,
+    message?.call?.customer?.phoneNumber,
+    message?.call?.customer?.sipUri,
+    message?.call?.customerNumber,
+    message?.call?.from,
+    message?.call?.phoneCallProviderDetails?.from,
+    message?.call?.twilio?.from,
+    message?.customer?.number,
+    message?.customer?.phoneNumber,
+    message?.customerNumber,
+    message?.from,
+  ].map(normalizePhone).filter(Boolean);
+
+  const direct = directCandidates.find((number) => !businessNumbers.includes(number));
+  if (direct) return direct;
+
+  const allCandidates = collectPhoneCandidates(message)
+    .map(normalizePhone)
+    .filter(Boolean)
+    .filter((number) => !businessNumbers.includes(number));
+
+  return allCandidates[0] || null;
+}
+
+function normalizePhone(value) {
+  if (!value) return null;
+  const raw = String(value).trim();
+  const match = raw.match(/(?:\+45\s*)?(?:\d[\s-]*){8}|\+\d[\d\s-]{7,18}/);
+  if (!match) return null;
+
+  const cleaned = match[0].replace(/[^\d+]/g, '');
+  if (/^\+45\d{8}$/.test(cleaned)) return cleaned;
+  if (/^\d{8}$/.test(cleaned)) return `+45${cleaned}`;
+  if (/^\+\d{8,18}$/.test(cleaned)) return cleaned;
+  return null;
+}
+
+function collectPhoneCandidates(value, depth = 0) {
+  if (!value || depth > 6) return [];
+  if (typeof value === 'string') return [value];
+  if (typeof value !== 'object') return [];
+  return Object.values(value).flatMap((child) => collectPhoneCandidates(child, depth + 1));
 }
 
 export function getCallId(message) {
@@ -487,25 +528,27 @@ export function buildVvsSms(info) {
     niveau === 'RØD' ? '🚨' :
     niveau === 'GUL' ? '⚠️' : '🔧';
   const adresseLinje = getSmsAddressLine(info);
+  const kategori = safe(info.kategori);
 
   const linjer = [
-    `${emoji} NY VVS SAG`,
+    `${emoji} ZEPPO · NY VVS-SAG`,
+    `${safe(info.prioritet)} · ${niveau} · ${kategori.toUpperCase()}`,
     ``,
-    `${safe(info.prioritet)} · ${niveau} · ${safe(info.kategori)}`,
-    ``,
-    `Kunde: ${safe(info.navn)}`,
-    `Tlf: ${safe(info.telefon)}`,
+    `KUNDE`,
+    `Navn: ${safe(info.navn)}`,
+    `Telefon: ${safe(info.telefon)}`,
     adresseLinje,
+    `Bolig: ${safe(info.boligtype)}`,
   ];
 
-  linjer.push(`Bolig: ${safe(info.boligtype)}`);
-  if (safe(info.bygningsalder) !== 'Ikke oplyst') {
-    linjer.push(`Bygning: ${safe(info.bygningsalder)}`);
-  }
+  pushKnown(linjer, 'Bygning', info.bygningsalder);
 
-  linjer.push(``);
-  linjer.push(`Problem: ${safe(info.problem)}`);
-  linjer.push(`Placering: ${safe(info.omfang)}`);
+  linjer.push(
+    ``,
+    `OPGAVE`,
+    `Problem: ${safe(info.problem)}`,
+    `Omfang: ${safe(info.omfang)}`
+  );
 
   if (info.eneste_toilet === 'ja') linjer.push(`⚠️ Eneste toilet: Ja`);
   if (
@@ -513,7 +556,7 @@ export function buildVvsSms(info) {
     safe(info.toilet_type) !== 'ikke relevant' &&
     safe(info.toilet_type) !== 'ukendt'
   ) {
-    linjer.push(`Toilet-type: ${info.toilet_type}`);
+    linjer.push(`Toilet: ${info.toilet_type}`);
   }
   if (
     safe(info.varmekilde) !== 'Ikke oplyst' &&
@@ -522,29 +565,43 @@ export function buildVvsSms(info) {
   ) {
     linjer.push(`Varmekilde: ${info.varmekilde}`);
   }
-  if (safe(info.fejlkode) !== 'Ikke oplyst') linjer.push(`Fejlkode: ${info.fejlkode}`);
-  if (safe(info.startede) !== 'Ikke oplyst') linjer.push(`Start: ${info.startede}`);
-  if (safe(info.forsogt) !== 'Ikke oplyst') linjer.push(`Forsøgt: ${info.forsogt}`);
+  pushKnown(linjer, 'Fejlkode', info.fejlkode);
+  pushKnown(linjer, 'Startede', info.startede);
+  pushKnown(linjer, 'Kunden har prøvet', info.forsogt);
 
+  const obs = [];
   if (info.kemikalier_brugt === 'ja') {
-    linjer.push(``);
-    linjer.push(`⚠️ KEMIKALIER BRUGT — medbring syrebestandige handsker og briller`);
+    obs.push(`Kemikalier brugt - medbring syrebestandige handsker/briller`);
   }
   if (info.vicevaert_relevant === 'ja') {
-    linjer.push(`⚠️ Mulig fællessag — kunden er bedt om at kontakte vicevært`);
+    obs.push(`Mulig fællessag - kunden er bedt om at kontakte vicevært`);
   }
-  if (safe(info.forsikring_informeret) === 'ja') linjer.push(`Forsikring: Informeret`);
+  if (safe(info.forsikring_informeret) === 'ja') obs.push(`Forsikring er informeret`);
 
   linjer.push(``);
-  linjer.push(`Tid: ${safe(info.tidspunkt)}`);
-  if (safe(info.adgang) !== 'Ikke oplyst') linjer.push(`Adgang: ${info.adgang}`);
+  linjer.push(`PRAKTISK`);
+  linjer.push(`Ønsket tid: ${safe(info.tidspunkt)}`);
+  pushKnown(linjer, 'Adgang', info.adgang);
+
+  if (obs.length > 0) {
+    linjer.push(``);
+    linjer.push(`OBS`);
+    obs.forEach((item) => linjer.push(`⚠️ ${item}`));
+  }
 
   if (safe(info.ekstra_noter) !== 'Ikke oplyst') {
     linjer.push(``);
-    linjer.push(`Noter: ${info.ekstra_noter}`);
+    linjer.push(`NOTE`);
+    linjer.push(safe(info.ekstra_noter));
   }
 
   return linjer.join('\n');
+}
+
+function pushKnown(lines, label, value) {
+  if (safe(value) !== 'Ikke oplyst') {
+    lines.push(`${label}: ${safe(value)}`);
+  }
 }
 
 function getSmsAddressLine(info) {

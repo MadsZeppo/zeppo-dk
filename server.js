@@ -81,13 +81,54 @@ function cleanField(value) {
 }
 
 function getCustomerPhone(message) {
-  return (
-    message?.call?.customer?.number ||
-    message?.call?.phoneNumber ||
-    message?.customer?.number ||
-    message?.phoneNumber ||
-    null
-  );
+  const businessNumbers = [
+    process.env.TWILIO_NUMBER,
+    process.env.VVS_NUMBER,
+  ].map(normalizePhone).filter(Boolean);
+
+  const directCandidates = [
+    message?.call?.customer?.number,
+    message?.call?.customer?.phoneNumber,
+    message?.call?.customer?.sipUri,
+    message?.call?.customerNumber,
+    message?.call?.from,
+    message?.call?.phoneCallProviderDetails?.from,
+    message?.call?.twilio?.from,
+    message?.customer?.number,
+    message?.customer?.phoneNumber,
+    message?.customerNumber,
+    message?.from,
+  ].map(normalizePhone).filter(Boolean);
+
+  const direct = directCandidates.find((number) => !businessNumbers.includes(number));
+  if (direct) return direct;
+
+  const allCandidates = collectPhoneCandidates(message)
+    .map(normalizePhone)
+    .filter(Boolean)
+    .filter((number) => !businessNumbers.includes(number));
+
+  return allCandidates[0] || null;
+}
+
+function normalizePhone(value) {
+  if (!value) return null;
+  const raw = String(value).trim();
+  const match = raw.match(/(?:\+45\s*)?(?:\d[\s-]*){8}|\+\d[\d\s-]{7,18}/);
+  if (!match) return null;
+
+  const cleaned = match[0].replace(/[^\d+]/g, '');
+  if (/^\+45\d{8}$/.test(cleaned)) return cleaned;
+  if (/^\d{8}$/.test(cleaned)) return `+45${cleaned}`;
+  if (/^\+\d{8,18}$/.test(cleaned)) return cleaned;
+  return null;
+}
+
+function collectPhoneCandidates(value, depth = 0) {
+  if (!value || depth > 6) return [];
+  if (typeof value === 'string') return [value];
+  if (typeof value !== 'object') return [];
+  return Object.values(value).flatMap((child) => collectPhoneCandidates(child, depth + 1));
 }
 
 function getCallId(message) {
