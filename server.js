@@ -86,39 +86,19 @@ function getCustomerPhone(message) {
     process.env.VVS_NUMBER,
   ].map(normalizePhone).filter(Boolean);
 
-  const directCandidates = [
+  const orderedCandidates = [
     message?.call?.customer?.number,
-    message?.call?.customer?.phoneNumber,
-    message?.call?.customer?.numberE164,
     message?.customer?.number,
+    message?.call?.customer?.phoneNumber,
     message?.customer?.phoneNumber,
-    message?.customer?.numberE164,
-    message?.call?.customerNumber,
-    message?.customerNumber,
     message?.call?.phoneCallProviderDetails?.from,
-    message?.call?.phoneCallProviderDetails?.caller,
-    message?.call?.phoneCallProviderDetails?.callerNumber,
-    message?.call?.phoneCallProviderDetails?.customerNumber,
     message?.call?.from,
     message?.call?.twilio?.from,
-    message?.call?.twilio?.caller,
     message?.from,
-    message?.call?.customer?.sipUri,
   ].map(normalizePhone).filter(Boolean);
 
-  const direct = directCandidates.find((number) => !businessNumbers.includes(number));
-  if (direct) {
-    console.log('Caller-ID valgt:', { selected: direct, candidates: directCandidates });
-    return direct;
-  }
-
-  const allCandidates = collectPhoneCandidates(message)
-    .map(normalizePhone)
-    .filter(Boolean)
-    .filter((number) => !businessNumbers.includes(number));
-
-  const selected = allCandidates[0] || null;
-  console.log('Caller-ID fallback:', { selected, candidates: allCandidates.slice(0, 10) });
+  const selected = orderedCandidates.find((number) => !businessNumbers.includes(number)) || null;
+  console.log('Caller-ID:', { selected, candidates: orderedCandidates });
   return selected;
 }
 
@@ -140,13 +120,6 @@ function getAlternativePhoneFromTranscript(transcript, callerPhone) {
   const matches = String(transcript || '').match(/(?:\+45\s*)?(?:\d[\s-]*){8}|\+\d[\d\s-]{7,18}/g) || [];
   const phones = matches.map(normalizePhone).filter(Boolean);
   return phones.find((phone) => phone !== caller) || null;
-}
-
-function collectPhoneCandidates(value, depth = 0) {
-  if (!value || depth > 6) return [];
-  if (typeof value === 'string') return [value];
-  if (typeof value !== 'object') return [];
-  return Object.values(value).flatMap((child) => collectPhoneCandidates(child, depth + 1));
 }
 
 function getCallId(message) {
@@ -441,6 +414,7 @@ AKUT_NIVEAU: P0/P1 → RØD, P2 → GUL, P3 → GUL hvis tidskritisk ellers GRØ
 KATEGORI: toilet, afløb, lækage, varme, varmt vand, kedel, radiator, gulvvarme, vandtryk, armatur, installation, gas, frostsprængning, andet
 
 FÆLLES INSTALLATION: vicevaert_relevant = ja hvis lejlighed + (flere afløb ramt ELLER naboer ramt ELLER toilet stiger uden skyl ELLER hele ejendommen uden vand/varme). Ellers nej.
+Hvis vicevaert_relevant = ja, er det IKKE en direkte VVS-dispatch endnu. Sæt prioritet = "AFVENTER VICEVÆRT" og akut_niveau = "INGEN FARVE", medmindre der også er gas, personfare, kloakvand i boligen eller vand ved el.
 
 VARMEKILDE: fjernvarme, gasfyr, varmtvandsbeholder, varmepumpe, elvandvarmer, ukendt, ikke relevant
 TOILET_TYPE: væghængt, gulvstående, ukendt, ikke relevant
@@ -479,8 +453,8 @@ Returner præcis dette JSON-objekt:
 
   "problem": "FYLDIG beskrivelse på 2-4 sætninger med symptomer, omfang, sikkerhedshandlinger og kontekst",
   "kategori": "se liste ovenfor",
-  "prioritet": "P0, P1, P2, P3 eller P4",
-  "akut_niveau": "RØD, GUL eller GRØN",
+  "prioritet": "P0, P1, P2, P3, P4 eller AFVENTER VICEVÆRT",
+  "akut_niveau": "RØD, GUL, GRØN eller INGEN FARVE",
   "omfang": "præcis placering",
   "eneste_toilet": "ja eller nej",
   "toilet_type": "se liste ovenfor",
@@ -564,15 +538,20 @@ function defaultInfo(customerPhone, saesonKontekst) {
  * kunden får selv SMS hvor de bedes rette adressen hvis den er forkert.
  */
 function bygVvsSms(info) {
+  const isVicevaertSag = info.vicevaert_relevant === 'ja';
   const niveau = safe(info.akut_niveau);
   const emoji =
+    isVicevaertSag ? '🏢' :
     niveau === 'RØD' ? '🚨' :
     niveau === 'GUL' ? '⚠️' : '🔧';
+  const statusLinje = isVicevaertSag
+    ? `AFVENTER VICEVÆRT · ${safe(info.kategori).toUpperCase()}`
+    : `${safe(info.prioritet)} · ${niveau} · ${safe(info.kategori)}`;
 
   const linjer = [
     `${emoji} NY VVS SAG`,
     ``,
-    `${safe(info.prioritet)} · ${niveau} · ${safe(info.kategori)}`,
+    statusLinje,
     ``,
     `Kunde: ${safe(info.navn)}`,
     `Tlf: ${safe(info.telefon)}`,
@@ -621,7 +600,13 @@ function bygVvsSms(info) {
   }
 
   linjer.push(``);
-  linjer.push(`Tid: ${safe(info.tidspunkt)}`);
+  linjer.push(`PRAKTISK`);
+  if (info.vicevaert_relevant === 'ja') {
+    linjer.push(`Sagstype: FÆLLES INSTALLATION - vicevært kontaktes af kunden`);
+    linjer.push(`(Ingen besøg booket - afventer viceværten)`);
+  } else {
+    linjer.push(`Ønsket tid: ${safe(info.tidspunkt)}`);
+  }
   if (safe(info.adgang) !== 'Ikke oplyst') linjer.push(`Adgang: ${info.adgang}`);
 
   if (safe(info.ekstra_noter) !== 'Ikke oplyst') {
@@ -638,9 +623,21 @@ function bygVvsSms(info) {
  */
 function bygKundeSms(info) {
   const navn = safe(info.navn) !== 'Ikke oplyst' ? ` ${info.navn}` : '';
-  let extra = '';
+
   if (info.vicevaert_relevant === 'ja') {
-    extra = `\n\nHusk også at give viceværten eller ejerforeningen besked, hvis du ikke allerede har gjort det.`;
+    return `Hej${navn}
+
+Tak for din henvendelse til Dansk VVS Teknik.
+
+Problem: ${safe(info.problem)}
+Adresse: ${safe(info.adresse)}
+
+Det her lyder som noget på den fælles installation. Husk at give viceværten eller ejerforeningen besked, så de kan sætte arbejdet i gang.
+
+Vi har noteret din henvendelse og er klar fra vores side, hvis viceværten kontakter os.
+
+Hvis noget ikke passer — svar på denne SMS.
+- Dansk VVS Teknik`;
   }
 
   return `Hej${navn}
@@ -650,7 +647,7 @@ Din henvendelse til Dansk VVS Teknik er modtaget.
 Problem: ${safe(info.problem)}
 Adresse: ${safe(info.adresse)}
 
-Installatøren ringer dig tilbage og bekræfter tidspunktet.${extra}
+Installatøren ringer dig tilbage og bekræfter tidspunktet.
 
 Hvis adressen eller noget andet ikke passer — svar på denne SMS med rettelsen.
 - Dansk VVS Teknik`;
