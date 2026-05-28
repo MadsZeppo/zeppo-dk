@@ -411,11 +411,12 @@ VIGTIGE REGLER:
 
 PRIORITET:
 - P0 = gas, kulilte, vand ved el med fare, akut personfare, ukontrollerbar sprøjtende lækage
-- P1 = stoppet aktiv lækage med større skade, kloakvand i bolig, mulig faldstamme med overløb, frostsprængning med stort vandtab${erFrost ? ', ingen varme i hele boligen om vinteren ved frost' : ''}
+- P1 = stoppet aktiv lækage med større skade, aktiv lækage der løber/drypper og kan give vandskade, kloakvand i bolig, mulig faldstamme med overløb, frostsprængning med stort vandtab${erFrost ? ', ingen varme i hele boligen om vinteren ved frost' : ''}
 - P2 = eneste toilet ude af drift, intet varmt vand i hele boligen, ${erVinter ? 'ingen varme i hele boligen' : 'ingen varme i hele boligen i kulde'}, dryplækage under kontrol
 - P3 = lokalt varmtvand, enkelt radiator/rum koldt, løbende toilet, dryppende armatur, langsomt afløb, stoppet toilet uden overløb
 - P4 = planlagt installation, montering, udskiftning, tilbud
 - "pludseligt" alene giver IKKE højere prioritet.
+- Lækage-regel: Hvis vand lækker aktivt fra rør, ventil, radiator, loft, væg eller installation og det ikke tydeligt er helt stoppet og ufarligt, skal akut_niveau være RØD og prioritet P1 eller P0 afhængigt af fare.
 - Hvis i tvivl mellem to niveauer: vælg det LAVERE, medmindre der er klar grund til at opgradere.
 
 AKUT_NIVEAU: P0/P1 → RØD, P2 → GUL, P3 → GUL hvis tidskritisk ellers GRØN, P4 → GRØN
@@ -528,13 +529,21 @@ export function buildVvsSms(info) {
   const linjer = [
     `${emoji} NY VVS-SAG`,
     ``,
+  ];
+
+  if (!isVicevaert && niveau === 'RØD') {
+    linjer.push(`🚨 RØD ALARM · AKUT SAG`);
+    linjer.push(``);
+  }
+
+  linjer.push(
     `Navn: ${safe(info.navn)}`,
     `Tlf: ${info.telefon !== 'Ikke oplyst' ? safe(info.telefon) : 'Kunden ringer tilbage'}`,
     `Adresse: ${getSmsAddressLine(info).replace('Adresse: ', '')}`,
     `Bolig: ${safe(info.boligtype)}`,
     ``,
     `Problem: ${safe(info.problem)}`,
-  ];
+  );
 
   if (isVicevaert) {
     linjer.push(``);
