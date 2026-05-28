@@ -68,6 +68,35 @@ export function getCallId(message) {
   );
 }
 
+export function getTranscript(message) {
+  const directTranscript =
+    message?.transcript ||
+    message?.artifact?.transcript ||
+    message?.call?.artifact?.transcript;
+
+  if (typeof directTranscript === 'string' && directTranscript.trim()) {
+    return directTranscript;
+  }
+
+  const messages =
+    message?.messages ||
+    message?.artifact?.messages ||
+    message?.call?.artifact?.messages;
+
+  if (Array.isArray(messages) && messages.length > 0) {
+    return messages
+      .map((item) => {
+        const role = item.role || item.speaker || item.type || 'ukendt';
+        const content = item.message || item.content || item.text || item.transcript || '';
+        return content ? `${role}: ${content}` : '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  return '';
+}
+
 export function validateVapiRequest(req) {
   const secret = process.env.VAPI_SECRET;
   if (!secret) {
@@ -182,7 +211,52 @@ function getRoadNameFromDawaAddress(address) {
   return address?.adgangsadresse?.vejstykke?.navn || address?.vejstykke?.navn || '';
 }
 
+function looksMissing(value) {
+  return safe(value) === 'Ikke oplyst';
+}
+
+function applyTranscriptAddressFallback(info, transcript = '') {
+  const text = String(transcript || '').replace(/\s+/g, ' ').trim();
+  if (!text) return info;
+
+  const postnummer = normalizePostnummerStrict(info.postnummer, transcript);
+  const parsedPostnummer = postnummer !== 'Ikke oplyst'
+    ? postnummer
+    : normalizePostnummerStrict(text.match(/\b[1-9]\d{3}\b/)?.[0], transcript);
+
+  const patterns = [
+    /(?:adresse(?:n)?\s*(?:er|på)?\s*)?([A-ZÆØÅa-zæøå][A-ZÆØÅa-zæøå0-9 .'-]{2,70}?)\s+(\d{1,4}[A-Za-z]?)\s*,?\s*(?:\d{1,2}\.?\s*(?:tv|th|mf|[a-z])\s*)?(?:postnummer\s*)?([1-9]\d{3})\b/i,
+    /(?:adresse(?:n)?\s*(?:er|på)?|jeg bor(?:\s+på)?|bor\s+på)\s+([A-ZÆØÅa-zæøå][A-ZÆØÅa-zæøå0-9 .'-]{2,70}?)\s+(\d{1,4}[A-Za-z]?)/i,
+  ];
+
+  let match = null;
+  for (const pattern of patterns) {
+    match = text.match(pattern);
+    if (match) break;
+  }
+
+  if (!match) return { ...info, postnummer: parsedPostnummer };
+
+  const vejnavn = safe(match[1]).replace(/\b(adresse|adressen|er|på|hedder|jeg bor|bor på)$/i, '').trim();
+  const husnummer = safe(match[2]);
+  const matchPostnummer = normalizePostnummerStrict(match[3], transcript);
+  const finalPostnummer = matchPostnummer !== 'Ikke oplyst' ? matchPostnummer : parsedPostnummer;
+  const adresseRaw = finalPostnummer !== 'Ikke oplyst'
+    ? `${vejnavn} ${husnummer}, ${finalPostnummer}`
+    : `${vejnavn} ${husnummer}`;
+
+  return {
+    ...info,
+    adresse_raw: looksMissing(info.adresse_raw) ? adresseRaw : info.adresse_raw,
+    vejnavn: looksMissing(info.vejnavn) ? vejnavn : info.vejnavn,
+    husnummer: looksMissing(info.husnummer) ? husnummer : info.husnummer,
+    postnummer: looksMissing(info.postnummer) ? finalPostnummer : postnummer,
+    adresse: looksMissing(info.adresse) ? adresseRaw : info.adresse,
+  };
+}
+
 export async function validerAdresseMedDawa(info, transcript = '') {
+  info = applyTranscriptAddressFallback(info, transcript);
   const vejnavn = cleanField(info.vejnavn);
   const husnummer = cleanField(info.husnummer);
   const postnummer = normalizePostnummerStrict(info.postnummer, transcript);
@@ -412,6 +486,7 @@ export function buildVvsSms(info) {
   const emoji =
     niveau === 'RØD' ? '🚨' :
     niveau === 'GUL' ? '⚠️' : '🔧';
+  const adresseLinje = getSmsAddressLine(info);
 
   const linjer = [
     `${emoji} NY VVS SAG`,
@@ -420,7 +495,7 @@ export function buildVvsSms(info) {
     ``,
     `Kunde: ${safe(info.navn)}`,
     `Tlf: ${safe(info.telefon)}`,
-    `Adresse: ${safe(info.adresse)}`,
+    adresseLinje,
   ];
 
   linjer.push(`Bolig: ${safe(info.boligtype)}`);
@@ -472,8 +547,19 @@ export function buildVvsSms(info) {
   return linjer.join('\n');
 }
 
+function getSmsAddressLine(info) {
+  const status = safe(info.adresse_status, 'USIKKER').toUpperCase();
+  const adresse = safe(info.adresse);
+  const adresseRaw = safe(info.adresse_raw, adresse);
+  const smsAdresse = status === 'BEKRÆFTET' || status === 'MULIGT_MATCH'
+    ? adresse
+    : adresseRaw;
+  return `Adresse: ${smsAdresse}`;
+}
+
 export function buildCustomerSms(info) {
   const navn = safe(info.navn) !== 'Ikke oplyst' ? ` ${info.navn}` : '';
+  const adresseLinje = getSmsAddressLine(info);
   let extra = '';
   if (info.vicevaert_relevant === 'ja') {
     extra = `\n\nHusk også at give viceværten eller ejerforeningen besked, hvis du ikke allerede har gjort det.`;
@@ -484,7 +570,7 @@ export function buildCustomerSms(info) {
 Din henvendelse til Dansk VVS Teknik er modtaget.
 
 Problem: ${safe(info.problem)}
-Adresse: ${safe(info.adresse)}
+${adresseLinje}
 
 Installatøren ringer dig tilbage og bekræfter tidspunktet.${extra}
 

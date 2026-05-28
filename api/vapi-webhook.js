@@ -6,6 +6,7 @@ import {
   getCallId,
   getCustomerPhone,
   getSaesonKontekst,
+  getTranscript,
   isCallProcessed,
   markCallProcessed,
   sendSmsSikkert,
@@ -32,7 +33,7 @@ export default async function handler(req, res) {
 
     const message = body.message;
     const callId = getCallId(message);
-    const transcript = message?.transcript || '';
+    const transcript = getTranscript(message);
     const customerPhone = getCustomerPhone(message);
 
     if (callId && isCallProcessed(callId)) {
@@ -42,6 +43,7 @@ export default async function handler(req, res) {
     if (callId) markCallProcessed(callId);
 
     const saesonKontekst = getSaesonKontekst();
+    console.log('Vapi transcript modtaget:', { callId, transcriptLength: transcript.length });
 
     let info;
     try {
