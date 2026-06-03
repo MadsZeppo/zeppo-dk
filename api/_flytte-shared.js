@@ -164,8 +164,11 @@ export function defaultFlytteInfo(customerPhone) {
     antal_vaerelser: 'Ikke oplyst',
     elevator_fra: 'ukendt',
     elevator_til: 'ukendt',
+    parkering: 'ukendt',
+    parkering_detalje: 'Ikke oplyst',
     hvornaar: 'Ikke oplyst',
     special: 'Ikke oplyst',
+    special_vaegt: 'Ikke oplyst',
     ekstra_noter: 'Ikke oplyst',
   };
 }
@@ -193,8 +196,11 @@ FELTER:
 - antal_vaerelser = tal hvis oplyst, ellers Ikke oplyst
 - elevator_fra = ja, nej eller ukendt
 - elevator_til = ja, nej eller ukendt
+- parkering = god, besværlig eller ukendt
+- parkering_detalje = fritekst beskrivelse af parkeringsforhold hvis besværlig, ellers "Ikke oplyst"
 - hvornaar = ønsket dato eller periode
 - special = klaver, tungt, skrøbeligt, opbevaring eller Ikke oplyst
+- special_vaegt = kundens beskrivelse af vægt/størrelse på klaver/pengeskab, ellers "Ikke oplyst"
 - ekstra_noter = vigtige praktiske detaljer, fx etage, adgang, parkering, bæreafstand, kælder, loft, depot, demontering eller Ikke oplyst
 
 ADRESSE-DELE TIL DAWA:
@@ -225,8 +231,11 @@ Returner præcis dette JSON-objekt:
   "antal_vaerelser": "tal eller Ikke oplyst",
   "elevator_fra": "ja, nej eller ukendt",
   "elevator_til": "ja, nej eller ukendt",
+  "parkering": "god, besværlig eller ukendt",
+  "parkering_detalje": "fritekst beskrivelse af parkeringsforhold hvis besværlig, ellers Ikke oplyst",
   "hvornaar": "ønsket dato/periode eller Ikke oplyst",
   "special": "klaver, tungt, skrøbeligt, opbevaring eller Ikke oplyst",
+  "special_vaegt": "kundens beskrivelse af vægt/størrelse på klaver/pengeskab, ellers Ikke oplyst",
   "ekstra_noter": "vigtige praktiske detaljer eller Ikke oplyst"
 }
           `.trim(),
@@ -257,8 +266,11 @@ Returner præcis dette JSON-objekt:
     info.antal_vaerelser = safe(info.antal_vaerelser);
     info.elevator_fra = safe(info.elevator_fra, 'ukendt');
     info.elevator_til = safe(info.elevator_til, 'ukendt');
+    info.parkering = safe(info.parkering, 'ukendt');
+    info.parkering_detalje = safe(info.parkering_detalje);
     info.hvornaar = safe(info.hvornaar);
     info.special = safe(info.special);
+    info.special_vaegt = safe(info.special_vaegt);
     info.ekstra_noter = safe(info.ekstra_noter);
 
     return validateMoveAddresses(info, transcript);
@@ -274,6 +286,13 @@ function formatRooms(value) {
   return `${rooms} værelses`;
 }
 
+function formatWithDetail(label, value, detail) {
+  const main = safe(value);
+  const extra = safe(detail);
+  if (extra === 'Ikke oplyst') return `${label}: ${main}`;
+  return `${label}: ${main} — ${extra}`;
+}
+
 export function buildFlytteSms(info) {
   const linjer = [
     `📦 NY FLYTNING`,
@@ -287,11 +306,14 @@ export function buildFlytteSms(info) {
     `Bolig: ${safe(info.boligtype)}, ${formatRooms(info.antal_vaerelser)}`,
     `Elevator fra: ${safe(info.elevator_fra, 'ukendt')}`,
     `Elevator til: ${safe(info.elevator_til, 'ukendt')}`,
+    formatWithDetail('Parkering', safe(info.parkering, 'ukendt'), info.parkering_detalje),
     ``,
     `Hvornår: ${safe(info.hvornaar)}`,
   ];
 
-  if (safe(info.special) !== 'Ikke oplyst') linjer.push(`Særligt: ${safe(info.special)}`);
+  if (safe(info.special) !== 'Ikke oplyst') {
+    linjer.push(formatWithDetail('Særligt', info.special, info.special_vaegt));
+  }
   if (safe(info.ekstra_noter) !== 'Ikke oplyst') linjer.push(`Note: ${safe(info.ekstra_noter)}`);
 
   return linjer.join('\n');
