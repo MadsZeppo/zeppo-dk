@@ -345,6 +345,7 @@ function locationDetails(info, prefix) {
   const parts = [];
 
   if (isKnown(boligtype)) parts.push(`Bolig: ${boligtype}`);
+  if (prefix === 'fra' && isKnown(info.antal_vaerelser)) parts.push(`Størrelse: ${formatRooms(info.antal_vaerelser)}`);
   if (isKnown(etage)) parts.push(`${etageLabel}: ${etage}`);
   if (isKnown(kaelder)) parts.push(`Kælder: ${kaelder}`);
   if (isKnown(elevator)) parts.push(`Elevator: ${elevator}`);
@@ -371,7 +372,6 @@ export function buildFlytteSms(info) {
   if (tilDetails) linjer.push(tilDetails);
 
   linjer.push(``);
-  if (isKnown(info.antal_vaerelser)) linjer.push(`Størrelse: ${formatRooms(info.antal_vaerelser)}`);
   if (isKnown(info.parkering)) linjer.push(formatWithDetail('Parkering', info.parkering, info.parkering_detalje));
   if (isKnown(info.pakning)) linjer.push(`Pakning: ${safe(info.pakning)}`);
   if (isKnown(info.hvornaar)) linjer.push(`Hvornår: ${safe(info.hvornaar)}`);
