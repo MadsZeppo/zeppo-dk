@@ -6,6 +6,13 @@ import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { appendFile, mkdir, readFile } from 'fs/promises';
+import {
+  buildFlytteCustomerSms,
+  buildFlytteSms,
+  defaultFlytteInfo,
+  extractFlytteInfo,
+} from './api/_flytte-shared.js';
+import { getTranscript as getSharedTranscript } from './api/_vvs-shared.js';
 
 dotenv.config();
 
@@ -633,7 +640,7 @@ app.post('/vapi-webhook', async (req, res) => {
 
     const message = body.message;
     const callId = getCallId(message);
-    const transcript = message?.transcript || '';
+    const transcript = getSharedTranscript(message);
     const customerPhone = getCustomerPhone(message);
 
     if (callId && isCallProcessed(callId)) {
@@ -642,44 +649,35 @@ app.post('/vapi-webhook', async (req, res) => {
     }
     if (callId) markCallProcessed(callId);
 
-    console.log('📞 Opkald sluttede. Behandler...');
+    console.log('📦 Flytteopkald sluttede. Behandler...');
     console.log('🆔 Call ID:', callId || 'ingen');
-
-    const saesonKontekst = getSaesonKontekst();
-    console.log('🗓️  Sæson:', saesonKontekst);
+    console.log('📝 Transcript længde:', transcript.length);
 
     let info;
     try {
-      info = await udtraekBookingInfo(transcript, customerPhone, saesonKontekst);
+      info = await extractFlytteInfo(transcript, customerPhone);
     } catch (err) {
-      console.error('❌ Ekstraktion fejlede:', err.message);
-      info = defaultInfo(customerPhone, saesonKontekst);
-      info.ekstra_noter = `EKSTRAKTION FEJLEDE: ${err.message} — installatør skal ringe kunde manuelt`;
+      console.error('❌ Flytte-ekstraktion fejlede:', err.message);
+      info = defaultFlytteInfo(customerPhone);
+      info.ekstra_noter = `EKSTRAKTION FEJLEDE: ${err.message} - ring kunde manuelt`;
     }
 
-    try {
-      info = await validerAdresseMedDawa(info, transcript);
-    } catch (err) {
-      console.error('❌ DAWA fejlede:', err.message);
-      info.adresse_status = 'USIKKER';
-      info.adresse_note = `DAWA-validering fejlede: ${err.message}`;
-    }
-
-    console.log('📋 Booking:', {
-      prioritet: info.prioritet,
-      akut_niveau: info.akut_niveau,
-      kategori: info.kategori,
-      adresse_status: info.adresse_status,
-      vicevaert: info.vicevaert_relevant,
-      kemikalier: info.kemikalier_brugt,
+    console.log('📋 Flytteopgave:', {
+      navn: info.navn,
+      telefon: info.telefon,
+      flytte_fra_status: info.flytte_fra_status,
+      flytte_til_status: info.flytte_til_status,
+      boligtype: info.boligtype,
+      antal_vaerelser: info.antal_vaerelser,
+      hvornaar: info.hvornaar,
     });
 
-    const vvsSent = await sendSmsSikkert(VVS_NUMBER, bygVvsSms(info), 'VVS-mester');
+    const flytteSent = await sendSmsSikkert(VVS_NUMBER, buildFlytteSms(info), 'Flyttefirma');
     if (customerPhone) {
-      await sendSmsSikkert(customerPhone, bygKundeSms(info), 'Kunde');
+      await sendSmsSikkert(customerPhone, buildFlytteCustomerSms(info), 'Flyttekunde');
     }
 
-    return res.status(200).json({ ok: true, vvsSent });
+    return res.status(200).json({ ok: true, flytteSent });
   } catch (err) {
     console.error('❌ Webhook fejl:', err.message);
     return res.status(200).json({ ok: false, error: err.message });
