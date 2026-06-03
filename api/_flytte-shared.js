@@ -161,14 +161,24 @@ export function defaultFlytteInfo(customerPhone) {
     flytte_til_status: 'USIKKER',
     flytte_til_forslag: 'Ikke oplyst',
     boligtype: 'Ikke oplyst',
+    boligtype_fra: 'ukendt',
+    boligtype_til: 'ukendt',
     antal_vaerelser: 'Ikke oplyst',
+    etage_fra: 'ukendt',
+    etage_til: 'ukendt',
     elevator_fra: 'ukendt',
     elevator_til: 'ukendt',
+    trapper_fra: 'ukendt',
+    trapper_til: 'ukendt',
+    kaelder_fra: 'ukendt',
+    kaelder_til: 'ukendt',
     parkering: 'ukendt',
     parkering_detalje: 'Ikke oplyst',
+    pakning: 'ukendt',
     hvornaar: 'Ikke oplyst',
     special: 'Ikke oplyst',
     special_vaegt: 'Ikke oplyst',
+    kunde_tone: 'standard',
     ekstra_noter: 'Ikke oplyst',
   };
 }
@@ -192,15 +202,24 @@ FELTER:
 - telefon = ${customerPhone || 'Ikke oplyst'} som standard. Hvis kunden nævner et andet callback-nummer højt, skal telefon være det nye nummer.
 - flytte_fra = fuld adresse kunden flytter fra. Medtag vej, nummer, etage/dør, postnummer og by hvis oplyst.
 - flytte_til = fuld adresse kunden flytter til. Medtag vej, nummer, etage/dør, postnummer og by hvis oplyst.
-- boligtype = lejlighed, hus, rækkehus, sommerhus eller Ikke oplyst
+- boligtype_fra = lejlighed, hus, rækkehus, sommerhus eller ukendt
+- boligtype_til = lejlighed, hus, rækkehus, sommerhus eller ukendt
 - antal_vaerelser = tal hvis oplyst, ellers Ikke oplyst
-- elevator_fra = ja, nej eller ukendt
-- elevator_til = ja, nej eller ukendt
+- etage_fra = etage som tal, "stueniveau", "kælder", "1. sal" eller ukendt
+- etage_til = etage som tal, "stueniveau", "kælder", "1. sal" eller ukendt
+- elevator_fra = ja, nej, ikke relevant ved hus eller ukendt
+- elevator_til = ja, nej, ikke relevant ved hus eller ukendt
+- trapper_fra = ja, nej eller ukendt
+- trapper_til = ja, nej eller ukendt
+- kaelder_fra = ja, nej eller ukendt
+- kaelder_til = ja, nej eller ukendt
 - parkering = god, besværlig eller ukendt
 - parkering_detalje = fritekst beskrivelse af parkeringsforhold hvis besværlig, ellers "Ikke oplyst"
+- pakning = selv, hjælp eller ukendt
 - hvornaar = ønsket dato eller periode
-- special = klaver, tungt, skrøbeligt, opbevaring eller Ikke oplyst
+- special = klaver, pengeskab, demontering, skrøbeligt, opbevaring, andet eller Ikke oplyst
 - special_vaegt = kundens beskrivelse af vægt/størrelse på klaver/pengeskab, ellers "Ikke oplyst"
+- kunde_tone = standard, stresset, travl eller sørgende
 - ekstra_noter = vigtige praktiske detaljer, fx etage, adgang, parkering, bæreafstand, kælder, loft, depot, demontering eller Ikke oplyst
 
 ADRESSE-DELE TIL DAWA:
@@ -227,15 +246,24 @@ Returner præcis dette JSON-objekt:
   "flytte_til_vejnavn": "til-vejnavn eller Ikke oplyst",
   "flytte_til_husnummer": "til-husnummer eller Ikke oplyst",
   "flytte_til_postnummer": "til-postnummer eller Ikke oplyst",
-  "boligtype": "lejlighed, hus, rækkehus, sommerhus eller Ikke oplyst",
+  "boligtype_fra": "lejlighed, hus, rækkehus, sommerhus eller ukendt",
+  "boligtype_til": "lejlighed, hus, rækkehus, sommerhus eller ukendt",
   "antal_vaerelser": "tal eller Ikke oplyst",
-  "elevator_fra": "ja, nej eller ukendt",
-  "elevator_til": "ja, nej eller ukendt",
+  "etage_fra": "etage som tal, stueniveau, kælder, 1. sal eller ukendt",
+  "etage_til": "etage som tal, stueniveau, kælder, 1. sal eller ukendt",
+  "elevator_fra": "ja, nej, ikke relevant eller ukendt",
+  "elevator_til": "ja, nej, ikke relevant eller ukendt",
+  "trapper_fra": "ja, nej eller ukendt",
+  "trapper_til": "ja, nej eller ukendt",
+  "kaelder_fra": "ja, nej eller ukendt",
+  "kaelder_til": "ja, nej eller ukendt",
   "parkering": "god, besværlig eller ukendt",
   "parkering_detalje": "fritekst beskrivelse af parkeringsforhold hvis besværlig, ellers Ikke oplyst",
+  "pakning": "selv, hjælp eller ukendt",
   "hvornaar": "ønsket dato/periode eller Ikke oplyst",
-  "special": "klaver, tungt, skrøbeligt, opbevaring eller Ikke oplyst",
+  "special": "klaver, pengeskab, demontering, skrøbeligt, opbevaring, andet eller Ikke oplyst",
   "special_vaegt": "kundens beskrivelse af vægt/størrelse på klaver/pengeskab, ellers Ikke oplyst",
+  "kunde_tone": "standard, stresset, travl eller sørgende",
   "ekstra_noter": "vigtige praktiske detaljer eller Ikke oplyst"
 }
           `.trim(),
@@ -262,15 +290,25 @@ Returner præcis dette JSON-objekt:
     info.flytte_til_vejnavn = safe(info.flytte_til_vejnavn);
     info.flytte_til_husnummer = safe(info.flytte_til_husnummer);
     info.flytte_til_postnummer = safe(info.flytte_til_postnummer);
-    info.boligtype = safe(info.boligtype);
+    info.boligtype_fra = safe(info.boligtype_fra, 'ukendt');
+    info.boligtype_til = safe(info.boligtype_til, 'ukendt');
+    info.boligtype = info.boligtype_fra !== 'ukendt' ? info.boligtype_fra : safe(info.boligtype, 'Ikke oplyst');
     info.antal_vaerelser = safe(info.antal_vaerelser);
+    info.etage_fra = safe(info.etage_fra, 'ukendt');
+    info.etage_til = safe(info.etage_til, 'ukendt');
     info.elevator_fra = safe(info.elevator_fra, 'ukendt');
     info.elevator_til = safe(info.elevator_til, 'ukendt');
+    info.trapper_fra = safe(info.trapper_fra, 'ukendt');
+    info.trapper_til = safe(info.trapper_til, 'ukendt');
+    info.kaelder_fra = safe(info.kaelder_fra, 'ukendt');
+    info.kaelder_til = safe(info.kaelder_til, 'ukendt');
     info.parkering = safe(info.parkering, 'ukendt');
     info.parkering_detalje = safe(info.parkering_detalje);
+    info.pakning = safe(info.pakning, 'ukendt');
     info.hvornaar = safe(info.hvornaar);
     info.special = safe(info.special);
     info.special_vaegt = safe(info.special_vaegt);
+    info.kunde_tone = safe(info.kunde_tone, 'standard');
     info.ekstra_noter = safe(info.ekstra_noter);
 
     return validateMoveAddresses(info, transcript);
@@ -301,12 +339,14 @@ export function buildFlytteSms(info) {
     `Tlf: ${safe(info.telefon)}`,
     ``,
     `Fra: ${safe(info.flytte_fra)}`,
-    `Til: ${safe(info.flytte_til)}`,
+    `Bolig: ${safe(info.boligtype_fra, 'ukendt')} | Etage: ${safe(info.etage_fra, 'ukendt')} | Trapper: ${safe(info.trapper_fra, 'ukendt')} | Elevator: ${safe(info.elevator_fra, 'ukendt')} | Kælder: ${safe(info.kaelder_fra, 'ukendt')}`,
     ``,
-    `Bolig: ${safe(info.boligtype)}, ${formatRooms(info.antal_vaerelser)}`,
-    `Elevator fra: ${safe(info.elevator_fra, 'ukendt')}`,
-    `Elevator til: ${safe(info.elevator_til, 'ukendt')}`,
+    `Til: ${safe(info.flytte_til)}`,
+    `Bolig: ${safe(info.boligtype_til, 'ukendt')} | Etage: ${safe(info.etage_til, 'ukendt')} | Trapper: ${safe(info.trapper_til, 'ukendt')} | Elevator: ${safe(info.elevator_til, 'ukendt')} | Kælder: ${safe(info.kaelder_til, 'ukendt')}`,
+    ``,
+    `Størrelse: ${formatRooms(info.antal_vaerelser)}`,
     formatWithDetail('Parkering', safe(info.parkering, 'ukendt'), info.parkering_detalje),
+    `Pakning: ${safe(info.pakning, 'ukendt')}`,
     ``,
     `Hvornår: ${safe(info.hvornaar)}`,
   ];
@@ -314,6 +354,7 @@ export function buildFlytteSms(info) {
   if (safe(info.special) !== 'Ikke oplyst') {
     linjer.push(formatWithDetail('Særligt', info.special, info.special_vaegt));
   }
+  linjer.push(`Tone: ${safe(info.kunde_tone, 'standard')}`);
   if (safe(info.ekstra_noter) !== 'Ikke oplyst') linjer.push(`Note: ${safe(info.ekstra_noter)}`);
 
   return linjer.join('\n');

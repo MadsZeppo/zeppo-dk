@@ -62,7 +62,8 @@ export default async function handler(req, res) {
       telefon: info.telefon,
       flytte_fra_status: info.flytte_fra_status,
       flytte_til_status: info.flytte_til_status,
-      boligtype: info.boligtype,
+      boligtype_fra: info.boligtype_fra,
+      boligtype_til: info.boligtype_til,
       antal_vaerelser: info.antal_vaerelser,
       hvornaar: info.hvornaar,
     });
