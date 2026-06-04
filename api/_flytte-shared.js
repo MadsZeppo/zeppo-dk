@@ -163,7 +163,7 @@ export function defaultFlytteInfo(customerPhone) {
     boligtype: 'Ikke oplyst',
     boligtype_fra: 'ukendt',
     boligtype_til: 'ukendt',
-    antal_vaerelser: 'Ikke oplyst',
+    kvadratmeter_fra: 'Ikke oplyst',
     etage_fra: 'ukendt',
     etage_til: 'ukendt',
     elevator_fra: 'ukendt',
@@ -204,7 +204,7 @@ FELTER:
 - flytte_til = fuld adresse kunden flytter til. Medtag vej, nummer, etage/dør, postnummer og by hvis oplyst.
 - boligtype_fra = lejlighed, hus, rækkehus, sommerhus eller ukendt
 - boligtype_til = lejlighed, hus, rækkehus, sommerhus eller ukendt
-- antal_vaerelser = tal hvis oplyst, ellers Ikke oplyst
+- kvadratmeter_fra = antal kvadratmeter i fra-boligen hvis oplyst, fx "85", ellers Ikke oplyst
 - etage_fra = etage som tal, "stueniveau", "kælder", "1. sal" eller ukendt
 - etage_til = etage som tal, "stueniveau", "kælder", "1. sal" eller ukendt
 - elevator_fra = ja, nej, ikke relevant ved hus eller ukendt
@@ -248,7 +248,7 @@ Returner præcis dette JSON-objekt:
   "flytte_til_postnummer": "til-postnummer eller Ikke oplyst",
   "boligtype_fra": "lejlighed, hus, rækkehus, sommerhus eller ukendt",
   "boligtype_til": "lejlighed, hus, rækkehus, sommerhus eller ukendt",
-  "antal_vaerelser": "tal eller Ikke oplyst",
+  "kvadratmeter_fra": "antal kvadratmeter i fra-boligen som tal eller Ikke oplyst",
   "etage_fra": "etage som tal, stueniveau, kælder, 1. sal eller ukendt",
   "etage_til": "etage som tal, stueniveau, kælder, 1. sal eller ukendt",
   "elevator_fra": "ja, nej, ikke relevant eller ukendt",
@@ -293,7 +293,7 @@ Returner præcis dette JSON-objekt:
     info.boligtype_fra = safe(info.boligtype_fra, 'ukendt');
     info.boligtype_til = safe(info.boligtype_til, 'ukendt');
     info.boligtype = info.boligtype_fra !== 'ukendt' ? info.boligtype_fra : safe(info.boligtype, 'Ikke oplyst');
-    info.antal_vaerelser = safe(info.antal_vaerelser);
+    info.kvadratmeter_fra = safe(info.kvadratmeter_fra);
     info.etage_fra = safe(info.etage_fra, 'ukendt');
     info.etage_til = safe(info.etage_til, 'ukendt');
     info.elevator_fra = safe(info.elevator_fra, 'ukendt');
@@ -318,10 +318,11 @@ Returner præcis dette JSON-objekt:
   }
 }
 
-function formatRooms(value) {
-  const rooms = safe(value);
-  if (rooms === 'Ikke oplyst') return rooms;
-  return `${rooms} værelses`;
+function formatSquareMeters(value) {
+  const sqm = safe(value);
+  if (sqm === 'Ikke oplyst') return sqm;
+  if (/m2|m²|kvadrat/i.test(sqm)) return sqm;
+  return `${sqm} m²`;
 }
 
 function isKnown(value) {
@@ -345,7 +346,7 @@ function locationDetails(info, prefix) {
   const parts = [];
 
   if (isKnown(boligtype)) parts.push(`Bolig: ${boligtype}`);
-  if (prefix === 'fra' && isKnown(info.antal_vaerelser)) parts.push(`Størrelse: ${formatRooms(info.antal_vaerelser)}`);
+  if (prefix === 'fra' && isKnown(info.kvadratmeter_fra)) parts.push(`Størrelse: ${formatSquareMeters(info.kvadratmeter_fra)}`);
   if (isKnown(etage)) parts.push(`${etageLabel}: ${etage}`);
   if (isKnown(kaelder)) parts.push(`Kælder: ${kaelder}`);
   if (isKnown(elevator)) parts.push(`Elevator: ${elevator}`);
