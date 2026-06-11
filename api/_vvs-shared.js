@@ -615,13 +615,6 @@ Hvis adressen eller noget andet ikke passer — svar på denne SMS med rettelsen
 }
 
 export async function sendSmsSikkert(to, body, label) {
-  try {
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    await client.messages.create({ body, from: process.env.TWILIO_NUMBER, to });
-    console.log(`SMS sendt: ${label} -> ${to}`);
-    return true;
-  } catch (err) {
-    console.error(`SMS fejl (${label} -> ${to}):`, err.message);
-    return false;
-  }
+  console.log(`SMS deaktiveret: ${label} -> ${to}`, { body });
+  return true;
 }

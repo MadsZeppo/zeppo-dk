@@ -611,14 +611,8 @@ Hvis adressen eller noget andet ikke passer — svar på denne SMS med rettelsen
 }
 
 async function sendSmsSikkert(to, body, label) {
-  try {
-    await twilioClient.messages.create({ body, from: TWILIO_NUMBER, to });
-    console.log(`✅ SMS sendt: ${label} → ${to}`);
-    return true;
-  } catch (err) {
-    console.error(`❌ SMS fejl (${label} → ${to}):`, err.message);
-    return false;
-  }
+  console.log(`SMS deaktiveret: ${label} → ${to}`, { body });
+  return true;
 }
 
 /**
