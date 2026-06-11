@@ -7,11 +7,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { appendFile, mkdir, readFile } from 'fs/promises';
 import {
-  buildFlytteCustomerSms,
-  buildFlytteSms,
-  defaultFlytteInfo,
-  extractFlytteInfo,
-} from './api/_flytte-shared.js';
+  buildLaasesmedSms,
+  defaultLaasesmedInfo,
+  extractLaasesmedInfo,
+} from './api/_laasesmed-shared.js';
 import { getTranscript as getSharedTranscript } from './api/_vvs-shared.js';
 
 dotenv.config();
@@ -643,35 +642,31 @@ app.post('/vapi-webhook', async (req, res) => {
     }
     if (callId) markCallProcessed(callId);
 
-    console.log('📦 Flytteopkald sluttede. Behandler...');
+    console.log('🔐 Låsesmed-opkald sluttede. Behandler...');
     console.log('🆔 Call ID:', callId || 'ingen');
     console.log('📝 Transcript længde:', transcript.length);
 
     let info;
     try {
-      info = await extractFlytteInfo(transcript, customerPhone);
+      info = await extractLaasesmedInfo(transcript, customerPhone);
     } catch (err) {
-      console.error('❌ Flytte-ekstraktion fejlede:', err.message);
-      info = defaultFlytteInfo(customerPhone);
+      console.error('❌ Låsesmed-ekstraktion fejlede:', err.message);
+      info = defaultLaasesmedInfo(customerPhone);
       info.ekstra_noter = `EKSTRAKTION FEJLEDE: ${err.message} - ring kunde manuelt`;
     }
 
-    console.log('📋 Flytteopgave:', {
+    console.log('📋 Låsesmed-sag:', {
       navn: info.navn,
       telefon: info.telefon,
-      flytte_fra_status: info.flytte_fra_status,
-      flytte_til_status: info.flytte_til_status,
-      boligtype: info.boligtype,
-      antal_vaerelser: info.antal_vaerelser,
-      hvornaar: info.hvornaar,
+      adresse: info.adresse,
+      by: info.by,
+      kategori: info.kategori,
+      prioritet: info.prioritet,
     });
 
-    const flytteSent = await sendSmsSikkert(VVS_NUMBER, buildFlytteSms(info), 'Flyttefirma');
-    if (customerPhone) {
-      await sendSmsSikkert(customerPhone, buildFlytteCustomerSms(info), 'Flyttekunde');
-    }
+    const leadSent = await sendSmsSikkert(VVS_NUMBER, buildLaasesmedSms(info), 'Låsesmed');
 
-    return res.status(200).json({ ok: true, flytteSent });
+    return res.status(200).json({ ok: true, leadSent });
   } catch (err) {
     console.error('❌ Webhook fejl:', err.message);
     return res.status(200).json({ ok: false, error: err.message });

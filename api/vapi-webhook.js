@@ -1,1 +1,1 @@
-export { default } from './vapi-webhook-flytte.js';
+export { default } from './vapi-webhook-laasesmed.js';
