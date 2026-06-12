@@ -113,6 +113,7 @@ function assertConfig() {
 
 function validateVapiSecret(req) {
   const expected = clean(process.env.VAPI_SECRET);
+  if (clean(process.env.DISABLE_TOOL_SECRET_CHECK) === 'true') return true;
   if (!expected) return true;
 
   const headers = req.headers || {};
