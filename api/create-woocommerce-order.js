@@ -45,10 +45,18 @@ function extractPayload(body) {
   return {};
 }
 
-function authHeader() {
-  const key = clean(process.env.WOOCOMMERCE_CONSUMER_KEY);
-  const secret = clean(process.env.WOOCOMMERCE_CONSUMER_SECRET);
-  return `Basic ${Buffer.from(`${key}:${secret}`).toString('base64')}`;
+function wooCredentials() {
+  return {
+    key: clean(process.env.WOOCOMMERCE_CONSUMER_KEY),
+    secret: clean(process.env.WOOCOMMERCE_CONSUMER_SECRET),
+  };
+}
+
+function withWooCredentials(url) {
+  const { key, secret } = wooCredentials();
+  url.searchParams.set('consumer_key', key);
+  url.searchParams.set('consumer_secret', secret);
+  return url;
 }
 
 function assertConfig() {
@@ -107,12 +115,11 @@ function scoreProduct(product, wantedName) {
 
 async function wooFetch(path, options = {}) {
   const baseUrl = normalizeBaseUrl(process.env.WOOCOMMERCE_URL);
-  const url = new URL(`/wp-json/wc/v3${path}`, baseUrl);
+  const url = withWooCredentials(new URL(`/wp-json/wc/v3${path}`, baseUrl));
 
   const response = await fetch(url, {
     ...options,
     headers: {
-      Authorization: authHeader(),
       Accept: 'application/json',
       'Content-Type': 'application/json',
       ...(options.headers || {}),
@@ -135,14 +142,13 @@ async function findProductByName(productName) {
   if (!query) throw new Error('Produkt mangler');
 
   const baseUrl = normalizeBaseUrl(process.env.WOOCOMMERCE_URL);
-  const url = new URL('/wp-json/wc/v3/products', baseUrl);
+  const url = withWooCredentials(new URL('/wp-json/wc/v3/products', baseUrl));
   url.searchParams.set('search', query);
   url.searchParams.set('per_page', '10');
   url.searchParams.set('status', 'publish');
 
   const response = await fetch(url, {
     headers: {
-      Authorization: authHeader(),
       Accept: 'application/json',
     },
   });
