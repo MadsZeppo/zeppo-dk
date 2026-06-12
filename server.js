@@ -11,6 +11,7 @@ import {
   defaultLaasesmedInfo,
   extractLaasesmedInfo,
 } from './api/_laasesmed-shared.js';
+import createWooCommerceOrderHandler from './api/create-woocommerce-order.js';
 import { getTranscript as getSharedTranscript } from './api/_vvs-shared.js';
 
 dotenv.config();
@@ -672,6 +673,8 @@ app.post('/vapi-webhook', async (req, res) => {
     return res.status(200).json({ ok: false, error: err.message });
   }
 });
+
+app.post('/api/create-woocommerce-order', createWooCommerceOrderHandler);
 
 /**
  * ==================================================
