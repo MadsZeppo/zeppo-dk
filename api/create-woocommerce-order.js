@@ -120,12 +120,31 @@ function scoreProduct(product, wantedName) {
   return overlap * 20;
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timeout efter ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function wooFetch(path, options = {}) {
   const baseUrl = normalizeBaseUrl(process.env.WOOCOMMERCE_URL);
   const url = withWooCredentials(new URL(`/wp-json/wc/v3${path}`, baseUrl));
   const basicAuth = localSiteAuthHeader();
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     ...options,
     headers: {
       ...(basicAuth ? { Authorization: basicAuth } : {}),
@@ -157,7 +176,7 @@ async function findProductByName(productName) {
   url.searchParams.set('status', 'publish');
   const basicAuth = localSiteAuthHeader();
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: {
       ...(basicAuth ? { Authorization: basicAuth } : {}),
       Accept: 'application/json',
