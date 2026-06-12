@@ -52,6 +52,13 @@ function wooCredentials() {
   };
 }
 
+function localSiteAuthHeader() {
+  const user = clean(process.env.WOOCOMMERCE_BASIC_AUTH_USER);
+  const password = clean(process.env.WOOCOMMERCE_BASIC_AUTH_PASSWORD);
+  if (!user || !password) return null;
+  return `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`;
+}
+
 function withWooCredentials(url) {
   const { key, secret } = wooCredentials();
   url.searchParams.set('consumer_key', key);
@@ -116,10 +123,12 @@ function scoreProduct(product, wantedName) {
 async function wooFetch(path, options = {}) {
   const baseUrl = normalizeBaseUrl(process.env.WOOCOMMERCE_URL);
   const url = withWooCredentials(new URL(`/wp-json/wc/v3${path}`, baseUrl));
+  const basicAuth = localSiteAuthHeader();
 
   const response = await fetch(url, {
     ...options,
     headers: {
+      ...(basicAuth ? { Authorization: basicAuth } : {}),
       Accept: 'application/json',
       'Content-Type': 'application/json',
       ...(options.headers || {}),
@@ -146,9 +155,11 @@ async function findProductByName(productName) {
   url.searchParams.set('search', query);
   url.searchParams.set('per_page', '10');
   url.searchParams.set('status', 'publish');
+  const basicAuth = localSiteAuthHeader();
 
   const response = await fetch(url, {
     headers: {
+      ...(basicAuth ? { Authorization: basicAuth } : {}),
       Accept: 'application/json',
     },
   });
@@ -225,6 +236,17 @@ function vapiToolResponse(result) {
   };
 }
 
+function debugInfo() {
+  return {
+    woo_url: normalizeBaseUrl(process.env.WOOCOMMERCE_URL),
+    has_consumer_key: Boolean(clean(process.env.WOOCOMMERCE_CONSUMER_KEY)),
+    has_consumer_secret: Boolean(clean(process.env.WOOCOMMERCE_CONSUMER_SECRET)),
+    basic_auth_user: clean(process.env.WOOCOMMERCE_BASIC_AUTH_USER) || 'Ikke sat',
+    has_basic_auth_password: Boolean(clean(process.env.WOOCOMMERCE_BASIC_AUTH_PASSWORD)),
+    has_vapi_secret: Boolean(clean(process.env.VAPI_SECRET)),
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -266,6 +288,7 @@ export default async function handler(req, res) {
     const result = {
       ok: false,
       error: error.message,
+      debug: debugInfo(),
       toolCallId: req.body?.message?.toolCalls?.[0]?.id || req.body?.toolCallId,
     };
     return res.status(200).json(vapiToolResponse(result));
