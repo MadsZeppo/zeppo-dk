@@ -45,6 +45,28 @@ function extractPayload(body) {
   return {};
 }
 
+function extractCustomerPhone(body, input) {
+  const candidates = [
+    input?.phone,
+    input?.telefon,
+    body?.call?.customer?.number,
+    body?.customer?.number,
+    body?.call?.customer?.phoneNumber,
+    body?.customer?.phoneNumber,
+    body?.call?.phoneCallProviderDetails?.from,
+    body?.call?.from,
+    body?.call?.twilio?.from,
+    body?.from,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizePhone(candidate);
+    if (normalized) return normalized;
+  }
+
+  return '';
+}
+
 function toPositiveQuantity(value) {
   return Math.max(1, Number.parseInt(String(value || '1'), 10) || 1);
 }
@@ -240,9 +262,9 @@ async function findProductByName(productName) {
   return ranked[0].product;
 }
 
-function buildOrderPayload(input, products) {
+function buildOrderPayload(input, products, customerPhone) {
   const name = clean(input.name || input.navn || 'Vapi kunde');
-  const phone = normalizePhone(input.phone || input.telefon);
+  const phone = customerPhone || normalizePhone(input.phone || input.telefon);
   const pickupTime = clean(input.pickup_time || input.afhentningstid || input.tidspunkt);
   const notes = clean(input.notes || input.note || input.besked);
   const deliveryType = clean(input.delivery_type || input.type || 'Afhentning') || 'Afhentning';
@@ -305,13 +327,26 @@ export default async function handler(req, res) {
   }
 
   if (!validateVapiSecret(req)) {
-    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    return res.status(401).json(vapiToolResponse({
+      ok: false,
+      error: 'Unauthorized',
+      debug: {
+        ...debugInfo(),
+        disable_tool_secret_check: clean(process.env.DISABLE_TOOL_SECRET_CHECK) || 'Ikke sat',
+        received_x_vapi_secret: req.headers?.['x-vapi-secret'] ? 'ja' : 'nej',
+        received_x_secret: req.headers?.['x-secret'] ? 'ja' : 'nej',
+        received_vapi_secret: req.headers?.['vapi-secret'] ? 'ja' : 'nej',
+        received_authorization: req.headers?.authorization ? 'ja' : 'nej',
+      },
+      toolCallId: req.body?.message?.toolCalls?.[0]?.id || req.body?.toolCallId,
+    }));
   }
 
   try {
     assertConfig();
 
     const input = extractPayload(req.body || {});
+    const customerPhone = extractCustomerPhone(req.body || {}, input);
     const requestedItems = normalizeOrderItems(input);
     if (requestedItems.length === 0) {
       throw new Error('Ingen produkter fundet i request body');
@@ -327,7 +362,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const orderPayload = buildOrderPayload(input, resolvedProducts);
+    const orderPayload = buildOrderPayload(input, resolvedProducts, customerPhone);
     const order = await wooFetch('/orders', {
       method: 'POST',
       body: JSON.stringify(orderPayload),
