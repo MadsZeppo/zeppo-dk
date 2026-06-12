@@ -45,6 +45,39 @@ function extractPayload(body) {
   return {};
 }
 
+function toPositiveQuantity(value) {
+  return Math.max(1, Number.parseInt(String(value || '1'), 10) || 1);
+}
+
+function normalizeOrderItems(input) {
+  const rawItems = Array.isArray(input.items)
+    ? input.items
+    : Array.isArray(input.line_items)
+      ? input.line_items
+      : null;
+
+  if (rawItems && rawItems.length > 0) {
+    const items = rawItems
+      .map((item) => {
+        const product = clean(item?.product || item?.name || item?.produkt || item?.item || item?.title);
+        const quantity = toPositiveQuantity(item?.quantity || item?.antal || item?.qty);
+        if (!product) return null;
+        return { product, quantity };
+      })
+      .filter(Boolean);
+
+    if (items.length > 0) return items;
+  }
+
+  const singleProduct = clean(input.product || input.produkt || input.item || input.vare);
+  if (!singleProduct) return [];
+
+  return [{
+    product: singleProduct,
+    quantity: toPositiveQuantity(input.quantity || input.antal),
+  }];
+}
+
 function wooCredentials() {
   return {
     key: clean(process.env.WOOCOMMERCE_CONSUMER_KEY),
@@ -206,8 +239,7 @@ async function findProductByName(productName) {
   return ranked[0].product;
 }
 
-function buildOrderPayload(input, product) {
-  const quantity = Math.max(1, Number.parseInt(input.quantity || input.antal || '1', 10) || 1);
+function buildOrderPayload(input, products) {
   const name = clean(input.name || input.navn || 'Vapi kunde');
   const phone = normalizePhone(input.phone || input.telefon);
   const pickupTime = clean(input.pickup_time || input.afhentningstid || input.tidspunkt);
@@ -223,12 +255,11 @@ function buildOrderPayload(input, product) {
       first_name: name,
       phone,
     },
-    line_items: [
-      {
-        product_id: product.id,
-        quantity,
-      },
-    ],
+    line_items: products.map(({ product, quantity, spokenProduct }) => ({
+      product_id: product.id,
+      quantity,
+      name: spokenProduct || product.name,
+    })),
     customer_note: [
       `Bestilt via Vapi agent`,
       `Type: ${deliveryType}`,
@@ -237,7 +268,7 @@ function buildOrderPayload(input, product) {
     ].filter(Boolean).join('\n'),
     meta_data: [
       { key: 'zeppo_source', value: 'vapi' },
-      { key: 'zeppo_product_spoken', value: clean(input.product || input.produkt || input.item) },
+      { key: 'zeppo_items_spoken', value: products.map(({ spokenProduct, quantity }) => `${quantity}x ${spokenProduct}`).join(', ') },
       { key: 'zeppo_pickup_time', value: pickupTime || 'Ikke oplyst' },
     ],
   };
@@ -280,9 +311,22 @@ export default async function handler(req, res) {
     assertConfig();
 
     const input = extractPayload(req.body || {});
-    const productName = clean(input.product || input.produkt || input.item || input.vare);
-    const product = await findProductByName(productName);
-    const orderPayload = buildOrderPayload(input, product);
+    const requestedItems = normalizeOrderItems(input);
+    if (requestedItems.length === 0) {
+      throw new Error('Ingen produkter fundet i request body');
+    }
+
+    const resolvedProducts = [];
+    for (const item of requestedItems) {
+      const product = await findProductByName(item.product);
+      resolvedProducts.push({
+        product,
+        quantity: item.quantity,
+        spokenProduct: item.product,
+      });
+    }
+
+    const orderPayload = buildOrderPayload(input, resolvedProducts);
     const order = await wooFetch('/orders', {
       method: 'POST',
       body: JSON.stringify(orderPayload),
@@ -290,12 +334,15 @@ export default async function handler(req, res) {
 
     const result = {
       ok: true,
-      message: `Ordre #${order.id} er oprettet for ${product.name}.`,
+      message: `Ordre #${order.id} er oprettet for ${resolvedProducts.map(({ product, quantity }) => `${quantity}x ${product.name}`).join(', ')}.`,
       order_id: order.id,
       order_number: order.number,
-      product_id: product.id,
-      product_name: product.name,
-      quantity: orderPayload.line_items[0].quantity,
+      items: resolvedProducts.map(({ product, quantity, spokenProduct }) => ({
+        product_id: product.id,
+        product_name: product.name,
+        spoken_product: spokenProduct,
+        quantity,
+      })),
       status: order.status,
       toolCallId: req.body?.message?.toolCalls?.[0]?.id || req.body?.toolCallId,
     };
