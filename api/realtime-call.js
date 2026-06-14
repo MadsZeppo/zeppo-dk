@@ -29,12 +29,14 @@ export default async function handler(req, res) {
   }
 
   try {
+    const requestUrl = new URL(req.url || '/api/realtime/call', 'http://localhost');
+    const useOpenAiVoice = requestUrl.searchParams.get('voice') === 'openai';
     const sdp = await readRequestBody(req);
     if (!sdp || !sdp.includes('v=0')) {
       return res.status(400).json({ error: 'Missing SDP offer' });
     }
 
-    const session = JSON.stringify({
+    const sessionConfig = {
       type: 'realtime',
       model: REALTIME_MODEL,
       instructions: GODTFOLK_INSTRUCTIONS,
@@ -48,11 +50,16 @@ export default async function handler(req, res) {
             interrupt_response: false,
           },
         },
-        output: {
-          voice: 'cedar',
-        },
       },
-    });
+    };
+
+    if (useOpenAiVoice) {
+      sessionConfig.audio.output = { voice: 'cedar' };
+    } else {
+      sessionConfig.output_modalities = ['text'];
+    }
+
+    const session = JSON.stringify(sessionConfig);
 
     const form = new FormData();
     form.set('sdp', sdp);

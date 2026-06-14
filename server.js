@@ -3,9 +3,11 @@ import twilio from 'twilio';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import http from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { appendFile, mkdir, readFile } from 'fs/promises';
+import WebSocket, { WebSocketServer } from 'ws';
 import {
   buildLaasesmedSms,
   defaultLaasesmedInfo,
@@ -20,6 +22,7 @@ dotenv.config();
 
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const server = http.createServer(app);
 
 /**
  * Vapi sender store payloads — sæt 10MB limit.
@@ -43,6 +46,9 @@ const TWILIO_NUMBER = process.env.TWILIO_NUMBER;
 const VVS_NUMBER = process.env.VVS_NUMBER;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const VAPI_SECRET = process.env.VAPI_SECRET;
+
+const ELEVENLABS_MODEL_ID = process.env.ELEVENLABS_MODEL_ID || 'eleven_v3';
+const ELEVENLABS_OUTPUT_FORMAT = process.env.ELEVENLABS_OUTPUT_FORMAT || 'mp3_44100_128';
 
 /**
  * ==================================================
@@ -780,11 +786,183 @@ app.get('/api/demo-leads', async (_req, res) => {
   }
 });
 
+function createElevenLabsUrl() {
+  const voiceId = clean(process.env.ELEVENLABS_VOICE_ID);
+  if (!voiceId) throw new Error('ELEVENLABS_VOICE_ID not configured');
+
+  const url = new URL(`wss://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream-input`);
+  url.searchParams.set('model_id', ELEVENLABS_MODEL_ID);
+  url.searchParams.set('output_format', ELEVENLABS_OUTPUT_FORMAT);
+  url.searchParams.set('auto_mode', 'true');
+  return url.toString();
+}
+
+function sendJson(ws, data) {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(data));
+  }
+}
+
+function setupElevenLabsTtsProxy(httpServer) {
+  const ttsWss = new WebSocketServer({ noServer: true });
+
+  httpServer.on('upgrade', (req, socket, head) => {
+    const pathname = new URL(req.url, `http://${req.headers.host}`).pathname;
+    if (pathname !== '/api/tts-stream' && pathname !== '/tts') return;
+
+    ttsWss.handleUpgrade(req, socket, head, (client) => {
+      ttsWss.emit('connection', client, req);
+    });
+  });
+
+  ttsWss.on('connection', (client) => {
+    let eleven = null;
+    let elevenReady = false;
+    let closed = false;
+    const pendingText = [];
+
+    function closeEleven() {
+      if (eleven && eleven.readyState === WebSocket.OPEN) {
+        eleven.send(JSON.stringify({ text: '' }));
+        eleven.close();
+      }
+      eleven = null;
+      elevenReady = false;
+    }
+
+    function openEleven() {
+      if (eleven && (eleven.readyState === WebSocket.OPEN || eleven.readyState === WebSocket.CONNECTING)) return;
+
+      const apiKey = clean(process.env.ELEVENLABS_API_KEY);
+      if (!apiKey) {
+        sendJson(client, { type: 'error', error: 'ELEVENLABS_API_KEY not configured' });
+        return;
+      }
+
+      let url;
+      try {
+        url = createElevenLabsUrl();
+      } catch (error) {
+        sendJson(client, { type: 'error', error: error.message });
+        return;
+      }
+
+      eleven = new WebSocket(url, { headers: { 'xi-api-key': apiKey } });
+
+      eleven.on('open', () => {
+        elevenReady = true;
+        sendJson(client, { type: 'ready', model: ELEVENLABS_MODEL_ID, output_format: ELEVENLABS_OUTPUT_FORMAT });
+        eleven.send(JSON.stringify({
+          text: ' ',
+          voice_settings: {
+            stability: 0.35,
+            similarity_boost: 0.86,
+            style: 0.22,
+            use_speaker_boost: true,
+            speed: 1.05,
+          },
+          generation_config: {
+            chunk_length_schedule: [50, 90, 140, 200],
+          },
+          language_code: 'da',
+        }));
+
+        while (pendingText.length > 0) {
+          eleven.send(JSON.stringify({ text: pendingText.shift(), try_trigger_generation: true }));
+        }
+      });
+
+      eleven.on('message', (raw) => {
+        let data;
+        try {
+          data = JSON.parse(raw.toString());
+        } catch {
+          return;
+        }
+
+        if (data.audio) {
+          sendJson(client, { type: 'audio', audio: data.audio, is_final: Boolean(data.isFinal) });
+        }
+
+        if (data.isFinal) {
+          sendJson(client, { type: 'final' });
+        }
+      });
+
+      eleven.on('close', () => {
+        elevenReady = false;
+        if (!closed) sendJson(client, { type: 'closed' });
+      });
+
+      eleven.on('error', (error) => {
+        console.error('ElevenLabs WS error:', error.message);
+        sendJson(client, { type: 'error', error: error.message });
+      });
+    }
+
+    client.on('message', (raw) => {
+      let message;
+      try {
+        message = JSON.parse(raw.toString());
+      } catch {
+        sendJson(client, { type: 'error', error: 'Invalid JSON message' });
+        return;
+      }
+
+      if (message.type === 'start') {
+        closeEleven();
+        openEleven();
+        return;
+      }
+
+      if (message.type === 'text') {
+        const text = clean(message.text);
+        if (!text) return;
+        openEleven();
+        if (elevenReady && eleven?.readyState === WebSocket.OPEN) {
+          eleven.send(JSON.stringify({ text, try_trigger_generation: true }));
+        } else {
+          pendingText.push(text);
+        }
+        return;
+      }
+
+      if (message.type === 'flush') {
+        if (elevenReady && eleven?.readyState === WebSocket.OPEN) {
+          eleven.send(JSON.stringify({ text: ' ', try_trigger_generation: true }));
+        }
+        return;
+      }
+
+      if (message.type === 'cancel') {
+        closeEleven();
+        pendingText.length = 0;
+        sendJson(client, { type: 'cancelled' });
+        return;
+      }
+
+      if (message.type === 'end') {
+        closeEleven();
+        pendingText.length = 0;
+        return;
+      }
+    });
+
+    client.on('close', () => {
+      closed = true;
+      closeEleven();
+    });
+  });
+}
+
+setupElevenLabsTtsProxy(server);
+
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`✅ VVS Backend kører på port ${PORT}`);
   console.log(`📞 Vapi webhook: POST /vapi-webhook`);
   console.log(`📩 SMS indgående: POST /sms-indgaaende`);
+  console.log(`🔊 ElevenLabs TTS WS: /api/tts-stream`);
   console.log(`❤️  Health: GET /health`);
   console.log(`🗓️  Sæson: ${getSaesonKontekst()}`);
   if (!VAPI_SECRET) console.warn('⚠️  VAPI_SECRET ikke sat — sæt den i .env');

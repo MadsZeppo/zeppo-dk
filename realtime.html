@@ -25,6 +25,11 @@ h1{font-size:28px;line-height:1.1;margin-bottom:6px}
 .msg.assistant{border-left-color:var(--green);background:#eef8f2}
 .role{font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:800;color:var(--muted);margin-bottom:5px}
 .text{font-size:14px;line-height:1.5;color:var(--ink);white-space:pre-wrap}
+.debug{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
+.pill{border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--mid);background:#fbfbf8}
+.pill strong{color:var(--ink)}
+.mode{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:13px;color:var(--mid)}
+.mode select{border:1px solid var(--border);border-radius:8px;background:var(--white);padding:8px 10px;color:var(--ink)}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 button{border:0;border-radius:8px;padding:14px 16px;font-size:15px;font-weight:800;color:var(--white);cursor:pointer}
 button:disabled{background:#c8c8c2;cursor:not-allowed}
@@ -32,7 +37,7 @@ button:disabled{background:#c8c8c2;cursor:not-allowed}
 .start:not(:disabled):hover{background:var(--green-dark)}
 .stop{background:var(--red)}
 .hint{font-size:12px;line-height:1.6;color:var(--muted);text-align:center;margin-top:16px}
-@media(max-width:520px){body{padding:12px}.top{align-items:flex-start;flex-direction:column}.content{padding:18px}.actions{grid-template-columns:1fr}.transcript{height:260px}}
+@media(max-width:520px){body{padding:12px}.top{align-items:flex-start;flex-direction:column}.content{padding:18px}.actions,.debug{grid-template-columns:1fr}.transcript{height:260px}}
 </style>
 </head>
 <body>
@@ -46,6 +51,19 @@ button:disabled{background:#c8c8c2;cursor:not-allowed}
   </div>
   <div class="content">
     <div id="status" class="status">Klar til at starte</div>
+    <div class="mode">
+      <span>Voice output</span>
+      <select id="voiceMode">
+        <option value="elevenlabs" selected>ElevenLabs</option>
+        <option value="openai">OpenAI</option>
+      </select>
+    </div>
+    <div class="debug">
+      <div class="pill">OpenAI: <strong id="openaiState">idle</strong></div>
+      <div class="pill">ElevenLabs: <strong id="ttsState">idle</strong></div>
+      <div class="pill">Input: <strong id="listenState">idle</strong></div>
+      <div class="pill">Latency: <strong id="latencyState">-</strong></div>
+    </div>
     <div id="transcript" class="transcript">
       <div class="empty">Samtalen vises her.</div>
     </div>
@@ -62,16 +80,58 @@ const statusEl = document.getElementById('status');
 const transcriptEl = document.getElementById('transcript');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
+const voiceModeEl = document.getElementById('voiceMode');
+const openaiStateEl = document.getElementById('openaiState');
+const ttsStateEl = document.getElementById('ttsState');
+const listenStateEl = document.getElementById('listenState');
+const latencyStateEl = document.getElementById('latencyState');
 
 let pc = null;
 let dc = null;
 let localStream = null;
 let remoteAudio = null;
 let assistantDraft = '';
+let ttsSocket = null;
+let textBuffer = '';
+let audioQueue = [];
+let isPlaying = false;
+let currentAudio = null;
+let latency = {};
+let usingElevenLabs = true;
+let pendingTtsMessages = [];
 
 function setStatus(text, state = '') {
   statusEl.textContent = text;
   statusEl.className = `status ${state}`.trim();
+}
+
+function setDebug(openai, tts, listening) {
+  if (openai) openaiStateEl.textContent = openai;
+  if (tts) ttsStateEl.textContent = tts;
+  if (listening) listenStateEl.textContent = listening;
+}
+
+function markLatency(name) {
+  latency[name] = performance.now();
+  console.log(`[latency] ${name}`, Math.round(latency[name]));
+}
+
+function reportLatency() {
+  const parts = [];
+  if (latency.speechStopped && latency.firstOpenaiText) {
+    parts.push(`speech->text ${Math.round(latency.firstOpenaiText - latency.speechStopped)}ms`);
+  }
+  if (latency.firstOpenaiText && latency.firstElevenAudio) {
+    parts.push(`text->tts ${Math.round(latency.firstElevenAudio - latency.firstOpenaiText)}ms`);
+  }
+  if (latency.firstElevenAudio && latency.playbackStart) {
+    parts.push(`tts->play ${Math.round(latency.playbackStart - latency.firstElevenAudio)}ms`);
+  }
+  if (latency.speechStopped && latency.playbackStart) {
+    parts.push(`total ${Math.round(latency.playbackStart - latency.speechStopped)}ms`);
+  }
+  latencyStateEl.textContent = parts.join(' | ') || '-';
+  if (parts.length) console.log('[latency]', parts.join(' | '));
 }
 
 function clearTranscript() {
@@ -116,19 +176,197 @@ function finishAssistantDraft() {
   assistantDraft = '';
 }
 
+function connectTtsSocket() {
+  if (!usingElevenLabs) return;
+  if (ttsSocket && (ttsSocket.readyState === WebSocket.OPEN || ttsSocket.readyState === WebSocket.CONNECTING)) return;
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ttsSocket = new WebSocket(`${protocol}//${window.location.host}/api/tts-stream`);
+  setDebug(null, 'connecting');
+
+  ttsSocket.onopen = () => {
+    setDebug(null, 'connected');
+    ttsSocket.send(JSON.stringify({ type: 'start' }));
+    while (pendingTtsMessages.length > 0) {
+      ttsSocket.send(JSON.stringify(pendingTtsMessages.shift()));
+    }
+  };
+
+  ttsSocket.onmessage = (message) => {
+    let event;
+    try {
+      event = JSON.parse(message.data);
+    } catch {
+      return;
+    }
+
+    if (event.type === 'ready') {
+      setDebug(null, 'ready');
+      return;
+    }
+
+    if (event.type === 'audio' && event.audio) {
+      if (!latency.firstElevenAudio) {
+        markLatency('firstElevenAudio');
+        reportLatency();
+      }
+      enqueueAudioChunk(event.audio);
+      return;
+    }
+
+    if (event.type === 'error') {
+      setDebug(null, 'error');
+      setStatus(`ElevenLabs fejl: ${event.error}`, 'error');
+      console.error('ElevenLabs error:', event.error);
+    }
+  };
+
+  ttsSocket.onclose = () => setDebug(null, 'closed');
+  ttsSocket.onerror = (error) => {
+    setDebug(null, 'error');
+    console.error('TTS WebSocket error:', error);
+  };
+}
+
+function sendTts(type, payload = {}) {
+  if (!usingElevenLabs) return;
+  const message = { type, ...payload };
+  connectTtsSocket();
+  if (ttsSocket?.readyState === WebSocket.OPEN) {
+    ttsSocket.send(JSON.stringify(message));
+  } else {
+    pendingTtsMessages.push(message);
+  }
+}
+
+function shouldFlushText(value) {
+  const trimmed = value.trim();
+  return /[,.?!:;]\s*$/.test(trimmed) || trimmed.length >= 32 || /^(ja|klart|okay|fint|nej)\.?$/i.test(trimmed);
+}
+
+function sendTextDeltaToTts(delta) {
+  if (!usingElevenLabs || !delta) return;
+  textBuffer += delta;
+
+  if (!latency.firstOpenaiText) {
+    markLatency('firstOpenaiText');
+    reportLatency();
+  }
+
+  if (shouldFlushText(textBuffer)) {
+    const text = textBuffer;
+    textBuffer = '';
+    markLatency('elevenTextSentFirst');
+    sendTts('text', { text });
+    console.log('[tts] text chunk', text);
+  }
+}
+
+function flushTtsText() {
+  if (!usingElevenLabs) return;
+  if (textBuffer.trim()) {
+    sendTts('text', { text: textBuffer });
+    textBuffer = '';
+  }
+  sendTts('flush');
+}
+
+function enqueueAudioChunk(base64Audio) {
+  audioQueue.push(base64Audio);
+  playNextChunk();
+}
+
+function playNextChunk() {
+  if (isPlaying || audioQueue.length === 0) return;
+  isPlaying = true;
+  const base64Audio = audioQueue.shift();
+  const bytes = Uint8Array.from(atob(base64Audio), (char) => char.charCodeAt(0));
+  const blob = new Blob([bytes], { type: 'audio/mpeg' });
+  const url = URL.createObjectURL(blob);
+  currentAudio = new Audio(url);
+
+  currentAudio.onplay = () => {
+    if (!latency.playbackStart) {
+      markLatency('playbackStart');
+      reportLatency();
+    }
+    setDebug(null, 'speaking');
+  };
+  currentAudio.onended = () => {
+    URL.revokeObjectURL(url);
+    isPlaying = false;
+    currentAudio = null;
+    if (audioQueue.length === 0) setDebug(null, 'ready');
+    playNextChunk();
+  };
+  currentAudio.onerror = () => {
+    URL.revokeObjectURL(url);
+    isPlaying = false;
+    currentAudio = null;
+    playNextChunk();
+  };
+  currentAudio.play().catch((error) => {
+    console.error('ElevenLabs playback error:', error);
+    isPlaying = false;
+    currentAudio = null;
+  });
+}
+
+function stopCurrentPlayback() {
+  audioQueue = [];
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.src = '';
+    currentAudio = null;
+  }
+  isPlaying = false;
+  textBuffer = '';
+  pendingTtsMessages = [];
+  sendTts('cancel');
+  setDebug(null, 'ready');
+}
+
 function handleRealtimeEvent(event) {
+  console.log('[openai:event]', event.type, event);
+
+  if (event.type === 'input_audio_buffer.speech_started') {
+    markLatency('speechStarted');
+    setDebug(null, null, 'listening');
+    stopCurrentPlayback();
+    return;
+  }
+
+  if (event.type === 'input_audio_buffer.speech_stopped') {
+    markLatency('speechStopped');
+    setDebug(null, null, 'thinking');
+    return;
+  }
+
   if (event.type === 'conversation.item.input_audio_transcription.completed') {
     addMessage('user', event.transcript);
     return;
   }
 
-  if (event.type === 'response.output_audio_transcript.delta' || event.type === 'response.audio_transcript.delta') {
+  if (
+    event.type === 'response.text.delta' ||
+    event.type === 'response.output_text.delta' ||
+    event.type === 'response.audio_transcript.delta' ||
+    event.type === 'response.output_audio_transcript.delta'
+  ) {
     addAssistantDelta(event.delta);
+    sendTextDeltaToTts(event.delta);
     return;
   }
 
-  if (event.type === 'response.output_audio_transcript.done' || event.type === 'response.audio_transcript.done' || event.type === 'response.done') {
+  if (
+    event.type === 'response.text.done' ||
+    event.type === 'response.output_text.done' ||
+    event.type === 'response.output_audio_transcript.done' ||
+    event.type === 'response.audio_transcript.done' ||
+    event.type === 'response.done'
+  ) {
     finishAssistantDraft();
+    flushTtsText();
     return;
   }
 
@@ -139,18 +377,26 @@ function handleRealtimeEvent(event) {
 
 async function startSession() {
   try {
+    usingElevenLabs = voiceModeEl.value === 'elevenlabs';
     startBtn.disabled = true;
     stopBtn.disabled = false;
     clearTranscript();
+    latency = {};
+    latencyStateEl.textContent = '-';
     setStatus('Forbinder til Anja...', 'loading');
+    setDebug('connecting', usingElevenLabs ? 'connecting' : 'off', 'idle');
+    if (usingElevenLabs) connectTtsSocket();
 
     pc = new RTCPeerConnection();
     remoteAudio = new Audio();
     remoteAudio.autoplay = true;
-
     pc.ontrack = (event) => {
+      if (usingElevenLabs) {
+        console.log('Ignoring OpenAI audio track because ElevenLabs mode is active.');
+        return;
+      }
       remoteAudio.srcObject = event.streams[0];
-      remoteAudio.play().catch((error) => console.log('Playback error:', error));
+      remoteAudio.play().catch((error) => console.log('OpenAI playback error:', error));
     };
 
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -159,6 +405,7 @@ async function startSession() {
     dc = pc.createDataChannel('oai-events');
     dc.onopen = () => {
       setStatus('Forbundet', 'connected');
+      setDebug('connected');
     };
     dc.onmessage = (message) => {
       try {
@@ -171,7 +418,7 @@ async function startSession() {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
 
-    const response = await fetch('/api/realtime/call', {
+    const response = await fetch(`/api/realtime/call?voice=${usingElevenLabs ? 'elevenlabs' : 'openai'}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/sdp' },
       body: offer.sdp,
@@ -192,18 +439,23 @@ async function startSession() {
 }
 
 function stopSession(resetText = true) {
+  sendTts('end');
+  if (ttsSocket) ttsSocket.close();
   if (dc) dc.close();
   if (pc) pc.close();
   if (localStream) localStream.getTracks().forEach((track) => track.stop());
   if (remoteAudio) remoteAudio.pause();
+  stopCurrentPlayback();
 
   dc = null;
   pc = null;
   localStream = null;
   remoteAudio = null;
+  ttsSocket = null;
 
   startBtn.disabled = false;
   stopBtn.disabled = true;
+  setDebug('idle', 'idle', 'idle');
   if (resetText) {
     setStatus('Klar til at starte');
     clearTranscript();

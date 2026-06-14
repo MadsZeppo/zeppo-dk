@@ -21,6 +21,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         type: 'realtime',
         model: 'gpt-realtime',
+        output_modalities: ['text'],
         audio: {
           input: {
             transcription: { model: 'whisper-1', language: 'da' },
@@ -30,9 +31,6 @@ export default async function handler(req, res) {
               create_response: true,
               interrupt_response: false,
             },
-          },
-          output: {
-            voice: 'cedar',
           },
         },
         instructions: GODTFOLK_INSTRUCTIONS,
