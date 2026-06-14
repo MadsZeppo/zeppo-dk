@@ -10,16 +10,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
+    const response = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        type: 'realtime',
         model: 'gpt-4o-mini-realtime-preview-2024-12-17',
-        voice: 'nova',
-        input_audio_transcription: { model: 'whisper-1' },
+        audio: {
+          input: {
+            transcription: { model: 'whisper-1', language: 'da' },
+          },
+          output: {
+            voice: 'marin',
+          },
+        },
         instructions: `KRITISK REGEL: Kald ALDRIG create_woocommerce_order før du har: bestilling, drikkevarer, afhentning/levering, tidspunkt, navn og kundens bekræftelse. Mangler bare ét — vent.
 
 Du er Anja. Du arbejder i telefonen hos Godtfolk Pizzabar. Du er varm, uformel og effektiv. Du lyder som et menneske.
