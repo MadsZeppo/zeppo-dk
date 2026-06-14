@@ -91,6 +91,7 @@ let dc = null;
 let localStream = null;
 let remoteAudio = null;
 let assistantDraft = '';
+let assistantResponseText = '';
 let ttsSocket = null;
 let textBuffer = '';
 let audioQueue = [];
@@ -99,7 +100,7 @@ let currentAudio = null;
 let latency = {};
 let usingElevenLabs = true;
 let pendingTtsMessages = [];
-let ttsTransport = 'ws';
+let ttsTransport = 'http';
 let ttsHttpChain = Promise.resolve();
 let ttsGenerationId = 0;
 
@@ -140,6 +141,7 @@ function reportLatency() {
 function clearTranscript() {
   transcriptEl.innerHTML = '<div class="empty">Samtalen vises her.</div>';
   assistantDraft = '';
+  assistantResponseText = '';
 }
 
 function removeEmptyState() {
@@ -315,6 +317,16 @@ function shouldFlushText(value) {
 
 function sendTextDeltaToTts(delta) {
   if (!usingElevenLabs || !delta) return;
+  assistantResponseText += delta;
+
+  if (ttsTransport === 'http') {
+    if (!latency.firstOpenaiText) {
+      markLatency('firstOpenaiText');
+      reportLatency();
+    }
+    return;
+  }
+
   textBuffer += delta;
 
   if (!latency.firstOpenaiText) {
@@ -333,6 +345,19 @@ function sendTextDeltaToTts(delta) {
 
 function flushTtsText() {
   if (!usingElevenLabs) return;
+
+  if (ttsTransport === 'http') {
+    const text = assistantResponseText.trim();
+    assistantResponseText = '';
+    textBuffer = '';
+    if (text) {
+      markLatency('elevenTextSentFirst');
+      console.log('[tts] full response', text);
+      sendTtsHttp(text);
+    }
+    return;
+  }
+
   if (textBuffer.trim()) {
     sendTts('text', { text: textBuffer });
     textBuffer = '';
@@ -391,6 +416,7 @@ function stopCurrentPlayback() {
   }
   isPlaying = false;
   textBuffer = '';
+  assistantResponseText = '';
   pendingTtsMessages = [];
   if (ttsTransport === 'ws') sendTts('cancel');
   setDebug(null, 'ready');
@@ -452,12 +478,11 @@ async function startSession() {
     stopBtn.disabled = false;
     clearTranscript();
     latency = {};
-    ttsTransport = 'ws';
+    ttsTransport = usingElevenLabs ? 'http' : 'ws';
     ttsGenerationId += 1;
     latencyStateEl.textContent = '-';
     setStatus('Forbinder til Anja...', 'loading');
-    setDebug('connecting', usingElevenLabs ? 'connecting' : 'off', 'idle');
-    if (usingElevenLabs) connectTtsSocket();
+    setDebug('connecting', usingElevenLabs ? 'http' : 'off', 'idle');
 
     pc = new RTCPeerConnection();
     remoteAudio = new Audio();
