@@ -1023,6 +1023,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     let greetingSent = false;
     let greetingResponseActive = false;
     let audioChunkSeenForResponse = false;
+    let ttsTextBuffer = '';
 
     function clientJson(data) {
       sendJson(client, data);
@@ -1155,7 +1156,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           }
           clientJson({ type: 'latency_mark', name: 'firstOpenaiText' });
           clientJson({ type: 'transcript_delta', role: 'assistant', text: delta });
-          sendCartesiaText(delta, true);
+          bufferCartesiaText(delta);
           return;
         }
 
@@ -1266,6 +1267,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     function startCartesiaContext() {
       currentContextId = crypto.randomUUID();
       pendingCartesiaText = [];
+      ttsTextBuffer = '';
     }
 
     function cartesiaBasePayload(contextId) {
@@ -1283,7 +1285,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         context_id: contextId,
         language: 'da',
         add_timestamps: false,
-        max_buffer_delay_ms: 60,
+        max_buffer_delay_ms: 100,
       };
     }
 
@@ -1307,22 +1309,52 @@ function setupCartesiaVoiceAgent(httpServer) {
       }
     }
 
+    function normalizeTtsText(text) {
+      return String(text || '')
+        .replace(/[—–]/g, ',')
+        .replace(/\s+/g, ' ');
+    }
+
+    function shouldFlushCartesiaText(text) {
+      const trimmed = text.trim();
+      return /[.!?]\s*$/.test(trimmed) || /,\s*$/.test(trimmed) || trimmed.length >= 42;
+    }
+
+    function bufferCartesiaText(delta) {
+      ttsTextBuffer += delta;
+      if (!shouldFlushCartesiaText(ttsTextBuffer)) return;
+      const text = normalizeTtsText(ttsTextBuffer);
+      ttsTextBuffer = '';
+      sendCartesiaText(text, true);
+    }
+
     function finishCartesiaContext() {
       if (!currentContextId) return;
       const contextId = currentContextId;
       openCartesia();
+      if (ttsTextBuffer.trim()) {
+        const text = normalizeTtsText(ttsTextBuffer);
+        ttsTextBuffer = '';
+        if (cartesiaReady && cartesiaWs?.readyState === WebSocket.OPEN) {
+          sendCartesiaPayload(text, true, contextId);
+        } else {
+          pendingCartesiaText.push({ text, shouldContinue: true, contextId });
+        }
+      }
       if (cartesiaReady && cartesiaWs?.readyState === WebSocket.OPEN) {
         sendCartesiaPayload('', false, contextId);
       } else {
         pendingCartesiaText.push({ text: '', shouldContinue: false, contextId });
       }
       currentContextId = null;
+      ttsTextBuffer = '';
     }
 
     function cancelCartesiaContext() {
       if (!currentContextId) return;
       const contextId = currentContextId;
       currentContextId = null;
+      ttsTextBuffer = '';
       pendingCartesiaText = pendingCartesiaText.filter((item) => item.contextId !== contextId);
       if (cartesiaWs?.readyState === WebSocket.OPEN) {
         cartesiaWs.send(JSON.stringify({ context_id: contextId, cancel: true }));
