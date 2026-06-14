@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   if (!text) return res.status(400).json({ error: 'Missing text' });
 
   try {
-    const url = new URL(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`);
+    const url = new URL(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`);
     url.searchParams.set('output_format', outputFormat);
 
     const response = await fetch(url, {
