@@ -93,6 +93,10 @@ function safe(value, fallback = 'Ikke oplyst') {
   return String(value).trim();
 }
 
+function clean(value) {
+  return String(value || '').trim();
+}
+
 function cleanField(value) {
   const cleaned = safe(value, '');
   return cleaned === 'Ikke oplyst' ? '' : cleaned;

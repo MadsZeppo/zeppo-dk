@@ -177,6 +177,7 @@ let playerNode = null;
 let connected = false;
 let assistantDraft = null;
 let microphoneStarted = false;
+let startSent = false;
 
 const statusEl = document.getElementById('status');
 const openaiStateEl = document.getElementById('openaiState');
@@ -347,10 +348,6 @@ async function startSession() {
     ws.onopen = async () => {
       connected = true;
       setStatus('Forbundet', 'connected');
-      ws.send(JSON.stringify({
-        type: 'start',
-        outputSampleRate: audioContext.sampleRate,
-      }));
     };
 
     ws.onmessage = (event) => {
@@ -376,6 +373,14 @@ async function startSession() {
       }
       if (message.type === 'ws_connected') {
         console.log('[voice] server_ws_connected');
+        if (!startSent) {
+          startSent = true;
+          console.log('[voice] start_sent');
+          ws.send(JSON.stringify({
+            type: 'start',
+            outputSampleRate: audioContext.sampleRate,
+          }));
+        }
         setStatus('WebSocket forbundet', 'connecting');
       }
       if (message.type === 'openai_status') openaiStateEl.textContent = message.status;
@@ -426,6 +431,7 @@ function cleanup() {
   micSource = null;
   micStream = null;
   microphoneStarted = false;
+  startSent = false;
   audioContext = null;
   playerNode = null;
   startBtn.disabled = false;
