@@ -23,7 +23,7 @@ pre{display:none;margin-top:18px;padding:16px;border-radius:8px;background:#111;
 <main class="wrap">
   <a href="/">Tilbage</a>
   <h1>Godtfolk Pizzabar test</h1>
-  <p>Tryk på knappen for at oprette en OpenAI realtime-session med Anja-prompten.</p>
+  <p>Den gamle testsiden er erstattet af WebRTC-testen.</p>
   <button id="testBtn" type="button">Test</button>
   <pre id="result"></pre>
 </main>
@@ -41,29 +41,7 @@ function show(message, ok = false) {
 btn.addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = 'Tester...';
-  show('Kalder /api/session...');
-
-  try {
-    const response = await fetch('/api/session');
-    const text = await response.text();
-    let data = text;
-
-    try {
-      data = JSON.parse(text);
-    } catch {}
-
-    if (!response.ok) {
-      show(`Fejl ${response.status}\n\n${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}`);
-      return;
-    }
-
-    show(`Session oprettet.\n\n${JSON.stringify(data, null, 2)}`, true);
-  } catch (error) {
-    show(`Kunne ikke kalde API'et.\n\n${error.message}`);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Test';
-  }
+  window.location.href = '/realtime.html';
 });
 </script>
 </body>

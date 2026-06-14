@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anja - Godtfolk Pizzabar</title>
+<style>
+:root{--green:#1a6b3c;--green-dark:#155730;--cream:#f2f2ef;--white:#fff;--ink:#141412;--mid:#5a5a55;--muted:#8a8a82;--border:#deded8;--blue:#1f5eff;--red:#c0392b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;font-family:Arial,sans-serif;background:var(--cream);color:var(--ink);padding:24px;display:grid;place-items:center}
+.app{width:min(620px,100%);background:var(--white);border:1px solid var(--border);border-radius:8px;box-shadow:0 18px 50px rgba(0,0,0,.08);overflow:hidden}
+.top{padding:22px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px}
+.back{font-size:14px;color:var(--green);text-decoration:none;white-space:nowrap}
+h1{font-size:28px;line-height:1.1;margin-bottom:6px}
+.subtitle{font-size:14px;color:var(--mid)}
+.content{padding:24px}
+.status{padding:12px 14px;border-radius:8px;background:#f1f1ee;color:var(--mid);font-size:13px;font-weight:700;text-align:center;margin-bottom:16px}
+.status.loading{background:#fff4d6;color:#846200}
+.status.connected{background:#ddf4e6;color:var(--green)}
+.status.error{background:#ffe3e0;color:var(--red)}
+.transcript{height:300px;overflow:auto;background:#f8f8f5;border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px}
+.empty{height:100%;display:grid;place-items:center;color:var(--muted);font-size:13px;text-align:center}
+.msg{padding:10px 12px;border-radius:8px;margin-bottom:10px;border-left:3px solid var(--border);background:var(--white)}
+.msg.user{border-left-color:var(--blue);background:#eef4ff}
+.msg.assistant{border-left-color:var(--green);background:#eef8f2}
+.role{font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:800;color:var(--muted);margin-bottom:5px}
+.text{font-size:14px;line-height:1.5;color:var(--ink);white-space:pre-wrap}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{border:0;border-radius:8px;padding:14px 16px;font-size:15px;font-weight:800;color:var(--white);cursor:pointer}
+button:disabled{background:#c8c8c2;cursor:not-allowed}
+.start{background:var(--green)}
+.start:not(:disabled):hover{background:var(--green-dark)}
+.stop{background:var(--red)}
+.hint{font-size:12px;line-height:1.6;color:var(--muted);text-align:center;margin-top:16px}
+@media(max-width:520px){body{padding:12px}.top{align-items:flex-start;flex-direction:column}.content{padding:18px}.actions{grid-template-columns:1fr}.transcript{height:260px}}
+</style>
+</head>
+<body>
+<main class="app">
+  <div class="top">
+    <div>
+      <h1>Anja</h1>
+      <p class="subtitle">Godtfolk Pizzabar - OpenAI Realtime</p>
+    </div>
+    <a class="back" href="/">Tilbage til Zeppo</a>
+  </div>
+  <div class="content">
+    <div id="status" class="status">Klar til at starte</div>
+    <div id="transcript" class="transcript">
+      <div class="empty">Samtalen vises her.</div>
+    </div>
+    <div class="actions">
+      <button id="startBtn" class="start" type="button">Start samtale</button>
+      <button id="stopBtn" class="stop" type="button" disabled>Stop</button>
+    </div>
+    <p class="hint">Tryk Start samtale, tillad mikrofon, og tal naturligt til Anja.</p>
+  </div>
+</main>
+
+<script>
+const statusEl = document.getElementById('status');
+const transcriptEl = document.getElementById('transcript');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+
+let pc = null;
+let dc = null;
+let localStream = null;
+let remoteAudio = null;
+let assistantDraft = '';
+
+function setStatus(text, state = '') {
+  statusEl.textContent = text;
+  statusEl.className = `status ${state}`.trim();
+}
+
+function clearTranscript() {
+  transcriptEl.innerHTML = '<div class="empty">Samtalen vises her.</div>';
+  assistantDraft = '';
+}
+
+function removeEmptyState() {
+  const empty = transcriptEl.querySelector('.empty');
+  if (empty) empty.remove();
+}
+
+function addMessage(role, text) {
+  if (!text) return;
+  removeEmptyState();
+  const item = document.createElement('div');
+  item.className = `msg ${role}`;
+  item.innerHTML = `<div class="role">${role === 'user' ? 'Du' : 'Anja'}</div><div class="text"></div>`;
+  item.querySelector('.text').textContent = text;
+  transcriptEl.appendChild(item);
+  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+}
+
+function addAssistantDelta(delta) {
+  if (!delta) return;
+  removeEmptyState();
+  assistantDraft += delta;
+  let current = transcriptEl.querySelector('.msg.assistant.draft');
+  if (!current) {
+    current = document.createElement('div');
+    current.className = 'msg assistant draft';
+    current.innerHTML = '<div class="role">Anja</div><div class="text"></div>';
+    transcriptEl.appendChild(current);
+  }
+  current.querySelector('.text').textContent = assistantDraft;
+  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+}
+
+function finishAssistantDraft() {
+  const current = transcriptEl.querySelector('.msg.assistant.draft');
+  if (current) current.classList.remove('draft');
+  assistantDraft = '';
+}
+
+function handleRealtimeEvent(event) {
+  if (event.type === 'conversation.item.input_audio_transcription.completed') {
+    addMessage('user', event.transcript);
+    return;
+  }
+
+  if (event.type === 'response.output_audio_transcript.delta' || event.type === 'response.audio_transcript.delta') {
+    addAssistantDelta(event.delta);
+    return;
+  }
+
+  if (event.type === 'response.output_audio_transcript.done' || event.type === 'response.audio_transcript.done' || event.type === 'response.done') {
+    finishAssistantDraft();
+    return;
+  }
+
+  if (event.type === 'error') {
+    setStatus(event.error?.message || 'Realtime fejl', 'error');
+  }
+}
+
+async function startSession() {
+  try {
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    clearTranscript();
+    setStatus('Forbinder til Anja...', 'loading');
+
+    pc = new RTCPeerConnection();
+    remoteAudio = new Audio();
+    remoteAudio.autoplay = true;
+
+    pc.ontrack = (event) => {
+      remoteAudio.srcObject = event.streams[0];
+      remoteAudio.play().catch((error) => console.log('Playback error:', error));
+    };
+
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    localStream.getAudioTracks().forEach((track) => pc.addTrack(track, localStream));
+
+    dc = pc.createDataChannel('oai-events');
+    dc.onopen = () => {
+      setStatus('Forbundet', 'connected');
+      addMessage('assistant', 'Godtfolk Pizzabar, hvad må det være?');
+    };
+    dc.onmessage = (message) => {
+      try {
+        handleRealtimeEvent(JSON.parse(message.data));
+      } catch (error) {
+        console.log('Realtime event parse error:', error);
+      }
+    };
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    const response = await fetch('/api/realtime/call', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/sdp' },
+      body: offer.sdp,
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Realtime connection failed: ${response.status} ${text}`);
+    }
+
+    const answer = { type: 'answer', sdp: await response.text() };
+    await pc.setRemoteDescription(answer);
+  } catch (error) {
+    stopSession(false);
+    setStatus(`Fejl: ${error.message}`, 'error');
+    startBtn.disabled = false;
+  }
+}
+
+function stopSession(resetText = true) {
+  if (dc) dc.close();
+  if (pc) pc.close();
+  if (localStream) localStream.getTracks().forEach((track) => track.stop());
+  if (remoteAudio) remoteAudio.pause();
+
+  dc = null;
+  pc = null;
+  localStream = null;
+  remoteAudio = null;
+
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  if (resetText) {
+    setStatus('Klar til at starte');
+    clearTranscript();
+  }
+}
+
+startBtn.addEventListener('click', startSession);
+stopBtn.addEventListener('click', () => stopSession());
+</script>
+</body>
+</html>
