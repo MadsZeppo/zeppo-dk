@@ -41,11 +41,11 @@ export default async function handler(req, res) {
         model_id: modelId,
         language_code: 'da',
         voice_settings: {
-          stability: 0.35,
-          similarity_boost: 0.86,
-          style: 0.22,
+          stability: 0.58,
+          similarity_boost: 0.78,
+          style: 0,
           use_speaker_boost: true,
-          speed: 1.05,
+          speed: 1,
         },
       }),
     });
