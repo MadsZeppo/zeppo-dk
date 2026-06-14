@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         type: 'realtime',
-        model: 'gpt-4o-mini-realtime-preview-2024-12-17',
+        model: 'gpt-realtime',
         audio: {
           input: {
             transcription: { model: 'whisper-1', language: 'da' },

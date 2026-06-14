@@ -1,4 +1,4 @@
-const REALTIME_MODEL = 'gpt-4o-mini-realtime-preview-2024-12-17';
+const REALTIME_MODEL = 'gpt-realtime';
 
 const instructions = `KRITISK REGEL: Kald ALDRIG create_woocommerce_order før du har: bestilling, drikkevarer, afhentning/levering, tidspunkt, navn og kundens bekræftelse. Mangler bare ét — vent.
 
