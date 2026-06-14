@@ -15,6 +15,7 @@ import {
 } from './api/_laasesmed-shared.js';
 import realtimeCallHandler from './api/realtime-call.js';
 import createWooCommerceOrderHandler from './api/create-woocommerce-order.js';
+import createRealtimeOrderHandler from './api/realtime-order-create.js';
 import realtimeSessionHandler from './api/realtime-session.js';
 import ttsHandler from './api/tts.js';
 import { getTranscript as getSharedTranscript } from './api/_vvs-shared.js';
@@ -690,6 +691,7 @@ app.post('/vapi-webhook', async (req, res) => {
 });
 
 app.post('/api/create-woocommerce-order', createWooCommerceOrderHandler);
+app.post('/api/orders/create', createRealtimeOrderHandler);
 app.get('/api/realtime-session', realtimeSessionHandler);
 app.get('/api/session', realtimeSessionHandler);
 app.post('/api/realtime/session', realtimeSessionHandler);
@@ -992,6 +994,7 @@ function setupElevenLabsTtsProxy(httpServer) {
 
 const OPENAI_REALTIME_WS_MODEL = 'gpt-realtime';
 const OPENAI_REALTIME_INPUT_RATE = 24000;
+const OPENAI_MIN_COMMIT_AUDIO_MS = 120;
 const CARTESIA_VERSION = process.env.CARTESIA_VERSION || '2026-03-01';
 const CARTESIA_MODEL_ID = process.env.CARTESIA_MODEL_ID || 'sonic-3.5';
 
@@ -1025,6 +1028,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     let audioChunkSeenForResponse = false;
     let ttsTextBuffer = '';
     let hasUncommittedOpenAiAudio = false;
+    let uncommittedOpenAiAudioMs = 0;
     let manualResponsePending = false;
     let manualCommitPending = false;
     let speechStoppedFallbackTimer = null;
@@ -1054,6 +1058,10 @@ function setupCartesiaVoiceAgent(httpServer) {
       openaiWs = null;
       pendingOpenAiAudio = [];
       greetingSent = false;
+      hasUncommittedOpenAiAudio = false;
+      uncommittedOpenAiAudioMs = 0;
+      manualResponsePending = false;
+      manualCommitPending = false;
     }
 
     function closeCartesia() {
@@ -1158,6 +1166,7 @@ function setupCartesiaVoiceAgent(httpServer) {
 
         if (event.type === 'input_audio_buffer.committed') {
           console.log('[voice] openai_audio_committed');
+          uncommittedOpenAiAudioMs = 0;
           if (manualCommitPending && manualResponsePending && openaiWs?.readyState === WebSocket.OPEN) {
             manualCommitPending = false;
             openaiWs.send(JSON.stringify({
@@ -1211,9 +1220,21 @@ function setupCartesiaVoiceAgent(httpServer) {
 
         if (event.type === 'error') {
           console.error('[voice] openai_error', event.error);
+          const message = event.error?.message || 'OpenAI error';
+          const isEmptyCommitError = /buffer too small|Expected at least 100ms/i.test(message);
+          if (isEmptyCommitError) {
+            console.warn('[voice] openai_empty_audio_commit_ignored', {
+              uncommitted_audio_ms: Math.round(uncommittedOpenAiAudioMs),
+            });
+            manualResponsePending = false;
+            manualCommitPending = false;
+            hasUncommittedOpenAiAudio = false;
+            uncommittedOpenAiAudioMs = 0;
+            return;
+          }
           manualResponsePending = false;
           manualCommitPending = false;
-          clientJson({ type: 'error', error: event.error?.message || 'OpenAI error' });
+          clientJson({ type: 'error', error: message });
         }
       });
 
@@ -1399,15 +1420,29 @@ function setupCartesiaVoiceAgent(httpServer) {
     function startOpenAiResponseFromSpeechEnd(source) {
       if (!sessionStarted || openaiWs?.readyState !== WebSocket.OPEN) return;
       if (!hasUncommittedOpenAiAudio || manualResponsePending || responseActive || greetingResponseActive) return;
+      if (uncommittedOpenAiAudioMs < OPENAI_MIN_COMMIT_AUDIO_MS) {
+        console.warn('[voice] speech_end_ignored_short_audio', {
+          source,
+          uncommitted_audio_ms: Math.round(uncommittedOpenAiAudioMs),
+          minimum_ms: OPENAI_MIN_COMMIT_AUDIO_MS,
+        });
+        hasUncommittedOpenAiAudio = false;
+        uncommittedOpenAiAudioMs = 0;
+        return;
+      }
 
       if (speechStoppedFallbackTimer) {
         clearTimeout(speechStoppedFallbackTimer);
         speechStoppedFallbackTimer = null;
       }
-      console.log('[voice] speech_end_commit', { source });
+      console.log('[voice] speech_end_commit', {
+        source,
+        uncommitted_audio_ms: Math.round(uncommittedOpenAiAudioMs),
+      });
       manualResponsePending = true;
       manualCommitPending = true;
       hasUncommittedOpenAiAudio = false;
+      uncommittedOpenAiAudioMs = 0;
       clientJson({ type: 'latency_mark', name: 'speechStopped' });
       openaiWs.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
       setTimeout(() => {
@@ -1425,6 +1460,10 @@ function setupCartesiaVoiceAgent(httpServer) {
 
     function startOpenAiResponseFromLocalSpeechEnd() {
       startOpenAiResponseFromSpeechEnd('local_speech_end');
+    }
+
+    function getPcm16MonoDurationMs(buffer) {
+      return ((buffer?.byteLength || buffer?.length || 0) / 2 / OPENAI_REALTIME_INPUT_RATE) * 1000;
     }
 
     function startSession(options = {}) {
@@ -1483,6 +1522,8 @@ function setupCartesiaVoiceAgent(httpServer) {
 
       if (!sessionStarted) return;
       const base64Audio = Buffer.from(raw).toString('base64');
+      const audioMs = getPcm16MonoDurationMs(raw);
+      uncommittedOpenAiAudioMs += audioMs;
       if (openaiWs?.readyState === WebSocket.OPEN) {
         hasUncommittedOpenAiAudio = true;
         openaiWs.send(JSON.stringify({
