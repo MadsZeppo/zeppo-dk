@@ -103,6 +103,7 @@ let pendingTtsMessages = [];
 let ttsTransport = 'http';
 let ttsHttpChain = Promise.resolve();
 let ttsGenerationId = 0;
+const TTS_STREAM_URL = 'wss://zeppo-dk.onrender.com/api/tts-stream';
 
 function setStatus(text, state = '') {
   statusEl.textContent = text;
@@ -185,8 +186,7 @@ function connectTtsSocket() {
   if (!usingElevenLabs || ttsTransport === 'http') return;
   if (ttsSocket && (ttsSocket.readyState === WebSocket.OPEN || ttsSocket.readyState === WebSocket.CONNECTING)) return;
 
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  ttsSocket = new WebSocket(`${protocol}//${window.location.host}/api/tts-stream`);
+  ttsSocket = new WebSocket(TTS_STREAM_URL);
   setDebug(null, 'connecting');
 
   ttsSocket.onopen = () => {
@@ -476,11 +476,12 @@ async function startSession() {
     stopBtn.disabled = false;
     clearTranscript();
     latency = {};
-    ttsTransport = usingElevenLabs ? 'http' : 'ws';
+    ttsTransport = usingElevenLabs ? 'ws' : 'off';
     ttsGenerationId += 1;
     latencyStateEl.textContent = '-';
     setStatus('Forbinder til Anja...', 'loading');
-    setDebug('connecting', usingElevenLabs ? 'http' : 'off', 'idle');
+    setDebug('connecting', usingElevenLabs ? 'connecting' : 'off', 'idle');
+    if (usingElevenLabs) connectTtsSocket();
 
     pc = new RTCPeerConnection();
     remoteAudio = new Audio();
