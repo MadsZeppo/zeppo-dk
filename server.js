@@ -1026,6 +1026,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     let ttsTextBuffer = '';
     let hasUncommittedOpenAiAudio = false;
     let manualResponsePending = false;
+    let manualCommitPending = false;
 
     function clientJson(data) {
       sendJson(client, data);
@@ -1135,12 +1136,27 @@ function setupCartesiaVoiceAgent(httpServer) {
             openaiWs.send(JSON.stringify({ type: 'response.cancel' }));
           }
           responseActive = false;
+          greetingResponseActive = false;
           clientJson({ type: 'interrupt' });
           return;
         }
 
         if (event.type === 'input_audio_buffer.speech_stopped') {
           clientJson({ type: 'latency_mark', name: 'speechStopped' });
+          return;
+        }
+
+        if (event.type === 'input_audio_buffer.committed') {
+          console.log('[voice] openai_audio_committed');
+          if (manualCommitPending && manualResponsePending && openaiWs?.readyState === WebSocket.OPEN) {
+            manualCommitPending = false;
+            openaiWs.send(JSON.stringify({
+              type: 'response.create',
+              response: {
+                output_modalities: ['text'],
+              },
+            }));
+          }
           return;
         }
 
@@ -1155,6 +1171,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           if (!responseActive) {
             responseActive = true;
             manualResponsePending = false;
+            manualCommitPending = false;
             audioChunkSeenForResponse = false;
             startCartesiaContext();
           }
@@ -1172,6 +1189,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           if (responseActive) finishCartesiaContext();
           responseActive = false;
           manualResponsePending = false;
+          manualCommitPending = false;
           if (greetingResponseActive) {
             greetingResponseActive = false;
             clientJson({ type: 'transcript_done', role: 'assistant' });
@@ -1184,6 +1202,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         if (event.type === 'error') {
           console.error('[voice] openai_error', event.error);
           manualResponsePending = false;
+          manualCommitPending = false;
           clientJson({ type: 'error', error: event.error?.message || 'OpenAI error' });
         }
       });
@@ -1373,15 +1392,21 @@ function setupCartesiaVoiceAgent(httpServer) {
 
       console.log('[voice] local_speech_end_commit');
       manualResponsePending = true;
+      manualCommitPending = true;
       hasUncommittedOpenAiAudio = false;
       clientJson({ type: 'latency_mark', name: 'speechStopped' });
       openaiWs.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
-      openaiWs.send(JSON.stringify({
-        type: 'response.create',
-        response: {
-          output_modalities: ['text'],
-        },
-      }));
+      setTimeout(() => {
+        if (!manualCommitPending || !manualResponsePending || responseActive || openaiWs?.readyState !== WebSocket.OPEN) return;
+        console.warn('[voice] openai_audio_commit_timeout_starting_response');
+        manualCommitPending = false;
+        openaiWs.send(JSON.stringify({
+          type: 'response.create',
+          response: {
+            output_modalities: ['text'],
+          },
+        }));
+      }, 250);
     }
 
     function startSession(options = {}) {
