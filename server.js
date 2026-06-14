@@ -677,6 +677,7 @@ app.post('/vapi-webhook', async (req, res) => {
 
 app.post('/api/create-woocommerce-order', createWooCommerceOrderHandler);
 app.get('/api/realtime-session', realtimeSessionHandler);
+app.get('/api/session', realtimeSessionHandler);
 
 /**
  * ==================================================
