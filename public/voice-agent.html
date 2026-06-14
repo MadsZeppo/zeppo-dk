@@ -176,6 +176,7 @@ let micProcessor = null;
 let playerNode = null;
 let connected = false;
 let assistantDraft = null;
+let microphoneStarted = false;
 
 const statusEl = document.getElementById('status');
 const openaiStateEl = document.getElementById('openaiState');
@@ -305,6 +306,8 @@ function floatToPcm16(float32) {
 }
 
 async function startMicrophone() {
+  if (microphoneStarted) return;
+  microphoneStarted = true;
   micStream = await navigator.mediaDevices.getUserMedia({
     audio: {
       channelCount: 1,
@@ -336,7 +339,9 @@ async function startSession() {
     clearTranscript();
     await initAudio();
 
-    ws = new WebSocket(getWsUrl());
+    const wsUrl = getWsUrl();
+    console.log('[voice] connecting', wsUrl);
+    ws = new WebSocket(wsUrl);
     ws.binaryType = 'arraybuffer';
 
     ws.onopen = async () => {
@@ -346,7 +351,6 @@ async function startSession() {
         type: 'start',
         outputSampleRate: audioContext.sampleRate,
       }));
-      await startMicrophone();
     };
 
     ws.onmessage = (event) => {
@@ -365,6 +369,10 @@ async function startSession() {
       if (message.type === 'session_started') {
         openaiStateEl.textContent = message.openai_model;
         cartesiaStateEl.textContent = message.cartesia_model;
+        startMicrophone().catch((error) => {
+          console.error('[voice] microphone_error', error);
+          setStatus(`Mikrofon fejl: ${error.message}`, 'error');
+        });
       }
       if (message.type === 'openai_status') openaiStateEl.textContent = message.status;
       if (message.type === 'cartesia_status') cartesiaStateEl.textContent = message.status;
@@ -387,9 +395,14 @@ async function startSession() {
       setStatus('WebSocket fejl', 'error');
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      console.warn('[voice] ws_close', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean,
+      });
       connected = false;
-      setStatus('Forbindelse lukket');
+      setStatus(event.code ? `Forbindelse lukket (${event.code})` : 'Forbindelse lukket');
       cleanup();
     };
   } catch (error) {
@@ -408,6 +421,7 @@ function cleanup() {
   micProcessor = null;
   micSource = null;
   micStream = null;
+  microphoneStarted = false;
   audioContext = null;
   playerNode = null;
   startBtn.disabled = false;
