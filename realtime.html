@@ -159,7 +159,6 @@ async function startSession() {
     dc = pc.createDataChannel('oai-events');
     dc.onopen = () => {
       setStatus('Forbundet', 'connected');
-      addMessage('assistant', 'Godtfolk Pizzabar, hvad må det være?');
     };
     dc.onmessage = (message) => {
       try {
