@@ -1027,6 +1027,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     let hasUncommittedOpenAiAudio = false;
     let manualResponsePending = false;
     let manualCommitPending = false;
+    let speechStoppedFallbackTimer = null;
 
     function clientJson(data) {
       sendJson(client, data);
@@ -1045,6 +1046,10 @@ function setupCartesiaVoiceAgent(httpServer) {
     }
 
     function closeOpenAi() {
+      if (speechStoppedFallbackTimer) {
+        clearTimeout(speechStoppedFallbackTimer);
+        speechStoppedFallbackTimer = null;
+      }
       if (openaiWs && openaiWs.readyState === WebSocket.OPEN) openaiWs.close();
       openaiWs = null;
       pendingOpenAiAudio = [];
@@ -1142,8 +1147,12 @@ function setupCartesiaVoiceAgent(httpServer) {
         }
 
         if (event.type === 'input_audio_buffer.speech_stopped') {
-          clientJson({ type: 'latency_mark', name: 'speechStopped' });
-          startOpenAiResponseFromSpeechEnd('openai_speech_stopped');
+          console.log('[voice] openai_speech_stopped');
+          if (speechStoppedFallbackTimer) clearTimeout(speechStoppedFallbackTimer);
+          speechStoppedFallbackTimer = setTimeout(() => {
+            speechStoppedFallbackTimer = null;
+            startOpenAiResponseFromSpeechEnd('openai_speech_stopped_fallback');
+          }, 1000);
           return;
         }
 
@@ -1391,11 +1400,15 @@ function setupCartesiaVoiceAgent(httpServer) {
       if (!sessionStarted || openaiWs?.readyState !== WebSocket.OPEN) return;
       if (!hasUncommittedOpenAiAudio || manualResponsePending || responseActive || greetingResponseActive) return;
 
+      if (speechStoppedFallbackTimer) {
+        clearTimeout(speechStoppedFallbackTimer);
+        speechStoppedFallbackTimer = null;
+      }
       console.log('[voice] speech_end_commit', { source });
       manualResponsePending = true;
       manualCommitPending = true;
       hasUncommittedOpenAiAudio = false;
-      if (source === 'local_speech_end') clientJson({ type: 'latency_mark', name: 'speechStopped' });
+      clientJson({ type: 'latency_mark', name: 'speechStopped' });
       openaiWs.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
       setTimeout(() => {
         if (!manualCommitPending || !manualResponsePending || responseActive || openaiWs?.readyState !== WebSocket.OPEN) return;

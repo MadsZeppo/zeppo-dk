@@ -169,6 +169,10 @@
 
 <script>
 const INPUT_SAMPLE_RATE = 24000;
+const LOCAL_SPEECH_RMS_THRESHOLD = 0.02;
+const LOCAL_SILENCE_END_MS = 650;
+const LOCAL_TRAILING_SILENCE_MS = 260;
+const LOCAL_MIN_SPEECH_MS = 220;
 
 let ws = null;
 let audioContext = null;
@@ -186,10 +190,12 @@ let assistantSpeaking = false;
 let assistantUnmuteTimer = null;
 let localSpeechActive = false;
 let localLastVoiceAt = 0;
+let localSpeechStartedAt = 0;
 let localSpeechEndMarked = false;
 let localSilenceFramesSentAfterEnd = 0;
 let localSpeechEndSent = false;
 let pendingLocalSpeechEnd = false;
+let awaitingAssistantResponse = false;
 
 const statusEl = document.getElementById('status');
 const openaiStateEl = document.getElementById('openaiState');
@@ -228,24 +234,19 @@ function markLatency(name) {
 function reportLatency() {
   const parts = [];
   const sampleRate = playbackStats.sampleRate || audioContext?.sampleRate || 48000;
+  const pushDuration = (label, start, end) => {
+    if (!start || !end) return;
+    const value = Math.round(end - start);
+    if (value >= 0) parts.push(`${label} ${value}ms`);
+  };
   if (latency.localSpeechEnd && latency.speechStopped) {
-    parts.push(`VAD wait ${Math.round(latency.speechStopped - latency.localSpeechEnd)}ms`);
+    pushDuration('VAD wait', latency.localSpeechEnd, latency.speechStopped);
   }
-  if (latency.speechStopped && latency.firstOpenaiText) {
-    parts.push(`STT/LLM ${Math.round(latency.firstOpenaiText - latency.speechStopped)}ms`);
-  }
-  if (latency.firstOpenaiText && latency.firstCartesiaAudio) {
-    parts.push(`TTS ${Math.round(latency.firstCartesiaAudio - latency.firstOpenaiText)}ms`);
-  }
-  if (latency.firstCartesiaAudio && latency.playbackStart) {
-    parts.push(`play ${Math.round(latency.playbackStart - latency.firstCartesiaAudio)}ms`);
-  }
-  if (latency.speechStopped && latency.playbackStart) {
-    parts.push(`server total ${Math.round(latency.playbackStart - latency.speechStopped)}ms`);
-  }
-  if (latency.localSpeechEnd && latency.playbackStart) {
-    parts.push(`real total ${Math.round(latency.playbackStart - latency.localSpeechEnd)}ms`);
-  }
+  pushDuration('STT/LLM', latency.speechStopped, latency.firstOpenaiText);
+  pushDuration('TTS', latency.firstOpenaiText, latency.firstCartesiaAudio);
+  pushDuration('play', latency.firstCartesiaAudio, latency.playbackStart);
+  pushDuration('server total', latency.speechStopped, latency.playbackStart);
+  pushDuration('real total', latency.localSpeechEnd, latency.playbackStart);
   if (playbackStats.chunks) {
     parts.push(`chunks ${playbackStats.chunks}`);
   }
@@ -260,13 +261,16 @@ function reportLatency() {
 
 function shouldSendMicrophoneFrame(input) {
   const now = performance.now();
+  if (awaitingAssistantResponse && !localSpeechActive) return false;
+
   let sum = 0;
   for (let i = 0; i < input.length; i++) sum += input[i] * input[i];
   const rms = Math.sqrt(sum / Math.max(1, input.length));
 
-  if (rms > 0.018) {
+  if (rms > LOCAL_SPEECH_RMS_THRESHOLD) {
     if (!localSpeechActive) {
       localSpeechActive = true;
+      localSpeechStartedAt = now;
       localSpeechEndMarked = false;
       localSpeechEndSent = false;
       localSilenceFramesSentAfterEnd = 0;
@@ -278,7 +282,14 @@ function shouldSendMicrophoneFrame(input) {
     return true;
   }
 
-  if (localSpeechActive && !localSpeechEndMarked && now - localLastVoiceAt > 280) {
+  const speechDurationMs = now - localSpeechStartedAt;
+  const silenceMs = now - localLastVoiceAt;
+  if (
+    localSpeechActive &&
+    !localSpeechEndMarked &&
+    speechDurationMs >= LOCAL_MIN_SPEECH_MS &&
+    silenceMs > LOCAL_SILENCE_END_MS
+  ) {
     localSpeechEndMarked = true;
     localSpeechActive = false;
     pendingLocalSpeechEnd = true;
@@ -290,7 +301,7 @@ function shouldSendMicrophoneFrame(input) {
 
   localSilenceFramesSentAfterEnd += input.length;
   const extraSilenceMs = (localSilenceFramesSentAfterEnd / (audioContext?.sampleRate || 48000)) * 1000;
-  return extraSilenceMs < 180;
+  return extraSilenceMs < LOCAL_TRAILING_SILENCE_MS;
 }
 
 function clearTranscript() {
@@ -459,6 +470,7 @@ function resetPlayback() {
 
 function playPcmF32(arrayBuffer) {
   if (!playerNode || !arrayBuffer.byteLength) return;
+  awaitingAssistantResponse = false;
   assistantSpeaking = true;
   micStateEl.textContent = 'muted while Anja speaks';
   if (assistantUnmuteTimer) clearTimeout(assistantUnmuteTimer);
@@ -504,6 +516,7 @@ function sendPendingLocalSpeechEnd() {
   if (!pendingLocalSpeechEnd || localSpeechEndSent || ws?.readyState !== WebSocket.OPEN) return;
   pendingLocalSpeechEnd = false;
   localSpeechEndSent = true;
+  awaitingAssistantResponse = true;
   ws.send(JSON.stringify({ type: 'local_speech_end' }));
   console.log('[voice] local_speech_end_sent');
 }
@@ -599,6 +612,7 @@ async function startSession() {
       if (message.type === 'transcript_delta' && message.role === 'assistant') addAssistantDelta(message.text);
       if (message.type === 'transcript_done') finishAssistant();
       if (message.type === 'interrupt') {
+        awaitingAssistantResponse = false;
         resetPlayback();
         audioStateEl.textContent = 'interrupted';
       }
@@ -608,6 +622,7 @@ async function startSession() {
         scheduleMicUnmute();
       }
       if (message.type === 'error') {
+        awaitingAssistantResponse = false;
         console.error('[voice]', message.error);
         setStatus(message.error, 'error');
       }
@@ -646,9 +661,12 @@ function cleanup() {
   micStream = null;
   microphoneStarted = false;
   assistantSpeaking = false;
+  awaitingAssistantResponse = false;
   if (assistantUnmuteTimer) clearTimeout(assistantUnmuteTimer);
   assistantUnmuteTimer = null;
   startSent = false;
+  pendingLocalSpeechEnd = false;
+  localSpeechEndSent = false;
   audioContext = null;
   playerNode = null;
   startBtn.disabled = false;
