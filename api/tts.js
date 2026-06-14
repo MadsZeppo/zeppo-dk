@@ -28,7 +28,6 @@ export default async function handler(req, res) {
   try {
     const url = new URL(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`);
     url.searchParams.set('output_format', outputFormat);
-    url.searchParams.set('optimize_streaming_latency', '2');
 
     const response = await fetch(url, {
       method: 'POST',
