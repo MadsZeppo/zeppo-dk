@@ -1285,7 +1285,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         context_id: contextId,
         language: 'da',
         add_timestamps: false,
-        max_buffer_delay_ms: 100,
+        max_buffer_delay_ms: 70,
       };
     }
 

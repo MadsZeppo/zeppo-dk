@@ -181,8 +181,12 @@ let assistantDraft = null;
 let microphoneStarted = false;
 let startSent = false;
 let latency = {};
+let playbackStats = {};
 let assistantSpeaking = false;
 let assistantUnmuteTimer = null;
+let localSpeechActive = false;
+let localLastVoiceAt = 0;
+let localSpeechEndMarked = false;
 
 const statusEl = document.getElementById('status');
 const openaiStateEl = document.getElementById('openaiState');
@@ -201,6 +205,14 @@ function setStatus(text, state = '') {
 
 function resetLatency() {
   latency = {};
+  playbackStats = {
+    chunks: 0,
+    gapFrames: 0,
+    gapEvents: 0,
+    maxGapFrames: 0,
+    lastGapLoggedFrames: 0,
+    sampleRate: audioContext?.sampleRate || 48000,
+  };
   latencyStateEl.textContent = '-';
 }
 
@@ -212,6 +224,10 @@ function markLatency(name) {
 
 function reportLatency() {
   const parts = [];
+  const sampleRate = playbackStats.sampleRate || audioContext?.sampleRate || 48000;
+  if (latency.localSpeechEnd && latency.speechStopped) {
+    parts.push(`VAD wait ${Math.round(latency.speechStopped - latency.localSpeechEnd)}ms`);
+  }
   if (latency.speechStopped && latency.firstOpenaiText) {
     parts.push(`STT/LLM ${Math.round(latency.firstOpenaiText - latency.speechStopped)}ms`);
   }
@@ -222,10 +238,47 @@ function reportLatency() {
     parts.push(`play ${Math.round(latency.playbackStart - latency.firstCartesiaAudio)}ms`);
   }
   if (latency.speechStopped && latency.playbackStart) {
-    parts.push(`total ${Math.round(latency.playbackStart - latency.speechStopped)}ms`);
+    parts.push(`server total ${Math.round(latency.playbackStart - latency.speechStopped)}ms`);
+  }
+  if (latency.localSpeechEnd && latency.playbackStart) {
+    parts.push(`real total ${Math.round(latency.playbackStart - latency.localSpeechEnd)}ms`);
+  }
+  if (playbackStats.chunks) {
+    parts.push(`chunks ${playbackStats.chunks}`);
+  }
+  if (playbackStats.gapFrames) {
+    const gapMs = Math.round((playbackStats.gapFrames / sampleRate) * 1000);
+    const maxGapMs = Math.round((playbackStats.maxGapFrames / sampleRate) * 1000);
+    parts.push(`audio gaps ${gapMs}ms (${playbackStats.gapEvents}x, max ${maxGapMs}ms)`);
   }
   latencyStateEl.textContent = parts.join(' | ') || '-';
   if (parts.length) console.log('[latency]', latencyStateEl.textContent);
+}
+
+function trackLocalSpeechEnd(input) {
+  const now = performance.now();
+  let sum = 0;
+  for (let i = 0; i < input.length; i++) sum += input[i] * input[i];
+  const rms = Math.sqrt(sum / Math.max(1, input.length));
+
+  if (rms > 0.018) {
+    if (!localSpeechActive) {
+      localSpeechActive = true;
+      localSpeechEndMarked = false;
+      resetLatency();
+      latency.localSpeechStart = now;
+      console.log('[latency] local_speech_started');
+    }
+    localLastVoiceAt = now;
+    return;
+  }
+
+  if (localSpeechActive && !localSpeechEndMarked && now - localLastVoiceAt > 280) {
+    localSpeechEndMarked = true;
+    localSpeechActive = false;
+    markLatency('localSpeechEnd');
+    console.log('[latency] local_speech_ended');
+  }
 }
 
 function clearTranscript() {
@@ -277,16 +330,46 @@ async function initAudio() {
         this.queue = [];
         this.current = null;
         this.index = 0;
+        this.playing = false;
+        this.ending = false;
+        this.started = false;
+        this.gapFrames = 0;
+        this.gapReportedFrames = 0;
         this.port.onmessage = (event) => {
           if (event.data.type === 'chunk') {
             this.queue.push(new Float32Array(event.data.buffer));
+            this.playing = true;
+            this.ending = false;
+            this.port.postMessage({ type: 'buffer', queuedFrames: this.queuedFrames() });
           }
           if (event.data.type === 'reset') {
             this.queue = [];
             this.current = null;
             this.index = 0;
+            this.playing = false;
+            this.ending = false;
+            this.started = false;
+            this.flushGap();
+          }
+          if (event.data.type === 'end') {
+            this.ending = true;
           }
         };
+      }
+      queuedFrames() {
+        const currentFrames = this.current ? Math.max(0, this.current.length - this.index) : 0;
+        return currentFrames + this.queue.reduce((sum, chunk) => sum + chunk.length, 0);
+      }
+      flushGap() {
+        const unreported = this.gapFrames - this.gapReportedFrames;
+        if (unreported <= 0) {
+          this.gapFrames = 0;
+          this.gapReportedFrames = 0;
+          return;
+        }
+        this.port.postMessage({ type: 'underrun', frames: unreported, currentTotalFrames: this.gapFrames, ended: true });
+        this.gapFrames = 0;
+        this.gapReportedFrames = 0;
       }
       process(_inputs, outputs) {
         const out = outputs[0][0];
@@ -294,8 +377,31 @@ async function initAudio() {
           if (!this.current || this.index >= this.current.length) {
             this.current = this.queue.shift() || null;
             this.index = 0;
+            if (this.current) this.flushGap();
           }
-          out[i] = this.current ? this.current[this.index++] : 0;
+          if (this.current) {
+            if (!this.started) {
+              this.started = true;
+              this.port.postMessage({ type: 'playback_started' });
+            }
+            out[i] = this.current[this.index++];
+          } else {
+            out[i] = 0;
+            if (this.playing && !this.ending) {
+              this.gapFrames++;
+              if (this.gapFrames - this.gapReportedFrames >= Math.floor(sampleRate * 0.05)) {
+                const unreported = this.gapFrames - this.gapReportedFrames;
+                this.gapReportedFrames = this.gapFrames;
+                this.port.postMessage({ type: 'underrun', frames: unreported, currentTotalFrames: this.gapFrames, ended: false });
+              }
+            }
+          }
+        }
+        if (this.ending && !this.current && this.queue.length === 0) {
+          this.playing = false;
+          this.ending = false;
+          this.started = false;
+          this.flushGap();
         }
         return true;
       }
@@ -304,6 +410,33 @@ async function initAudio() {
   `], { type: 'application/javascript' })));
 
   playerNode = new AudioWorkletNode(audioContext, 'pcm-player');
+  playerNode.port.onmessage = (event) => {
+    if (event.data.type === 'playback_started') {
+      markLatency('playbackStart');
+      return;
+    }
+    if (event.data.type === 'underrun') {
+      const frames = Number(event.data.frames) || 0;
+      if (!frames) return;
+      const wasInGap = playbackStats.inGap;
+      playbackStats.gapFrames += frames;
+      if (!wasInGap) playbackStats.gapEvents += 1;
+      playbackStats.inGap = !event.data.ended;
+      playbackStats.maxGapFrames = Math.max(playbackStats.maxGapFrames, Number(event.data.currentTotalFrames) || frames);
+      const sampleRate = playbackStats.sampleRate || audioContext?.sampleRate || 48000;
+      const totalGapMs = Math.round((playbackStats.gapFrames / sampleRate) * 1000);
+      if (totalGapMs >= playbackStats.lastGapLoggedFrames + 50) {
+        playbackStats.lastGapLoggedFrames = totalGapMs;
+        console.warn('[audio] underrun', {
+          gapMs: Math.round((frames / sampleRate) * 1000),
+          totalGapMs,
+          events: playbackStats.gapEvents,
+        });
+      }
+      reportLatency();
+      return;
+    }
+  };
   playerNode.connect(audioContext.destination);
   audioStateEl.textContent = `${audioContext.sampleRate} Hz`;
 }
@@ -317,7 +450,8 @@ function playPcmF32(arrayBuffer) {
   assistantSpeaking = true;
   micStateEl.textContent = 'muted while Anja speaks';
   if (assistantUnmuteTimer) clearTimeout(assistantUnmuteTimer);
-  markLatency('playbackStart');
+  playbackStats.chunks += 1;
+  reportLatency();
   const copy = arrayBuffer.slice(0);
   playerNode.port.postMessage({ type: 'chunk', buffer: copy }, [copy]);
 }
@@ -372,6 +506,7 @@ async function startMicrophone() {
     if (!connected || ws?.readyState !== WebSocket.OPEN) return;
     if (assistantSpeaking) return;
     const input = event.inputBuffer.getChannelData(0);
+    trackLocalSpeechEnd(input);
     const downsampled = downsample(input, audioContext.sampleRate, INPUT_SAMPLE_RATE);
     const pcm16 = floatToPcm16(downsampled);
     ws.send(pcm16.buffer);
@@ -436,7 +571,7 @@ async function startSession() {
       if (message.type === 'openai_status') openaiStateEl.textContent = message.status;
       if (message.type === 'cartesia_status') cartesiaStateEl.textContent = message.status;
       if (message.type === 'latency_mark') {
-        if (message.name === 'speechStopped') resetLatency();
+        if (message.name === 'speechStopped' && !latency.localSpeechEnd) resetLatency();
         markLatency(message.name);
       }
       if (message.type === 'transcript' && message.role === 'user') addMessage('user', message.text);
@@ -448,6 +583,7 @@ async function startSession() {
       }
       if (message.type === 'audio_end') {
         audioStateEl.textContent = `${audioContext.sampleRate} Hz`;
+        if (playerNode) playerNode.port.postMessage({ type: 'end' });
         scheduleMicUnmute();
       }
       if (message.type === 'error') {
