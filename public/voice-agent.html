@@ -71,6 +71,7 @@
       color: #5f5a50;
     }
     .pill strong { color: #151515; }
+    .pill.latency { grid-column: 1 / -1; }
     .transcript {
       min-height: 310px;
       max-height: 430px;
@@ -153,6 +154,7 @@
         <div class="pill">Cartesia: <strong id="cartesiaState">idle</strong></div>
         <div class="pill">Mikrofon: <strong id="micState">idle</strong></div>
         <div class="pill">Audio: <strong id="audioState">idle</strong></div>
+        <div class="pill latency">Latency: <strong id="latencyState">-</strong></div>
       </div>
       <div id="transcript" class="transcript">
         <div class="empty">Samtalen vises her.</div>
@@ -178,12 +180,14 @@ let connected = false;
 let assistantDraft = null;
 let microphoneStarted = false;
 let startSent = false;
+let latency = {};
 
 const statusEl = document.getElementById('status');
 const openaiStateEl = document.getElementById('openaiState');
 const cartesiaStateEl = document.getElementById('cartesiaState');
 const micStateEl = document.getElementById('micState');
 const audioStateEl = document.getElementById('audioState');
+const latencyStateEl = document.getElementById('latencyState');
 const transcriptEl = document.getElementById('transcript');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -191,6 +195,35 @@ const stopBtn = document.getElementById('stopBtn');
 function setStatus(text, state = '') {
   statusEl.textContent = text;
   statusEl.className = `status ${state}`.trim();
+}
+
+function resetLatency() {
+  latency = {};
+  latencyStateEl.textContent = '-';
+}
+
+function markLatency(name) {
+  if (latency[name]) return;
+  latency[name] = performance.now();
+  reportLatency();
+}
+
+function reportLatency() {
+  const parts = [];
+  if (latency.speechStopped && latency.firstOpenaiText) {
+    parts.push(`STT/LLM ${Math.round(latency.firstOpenaiText - latency.speechStopped)}ms`);
+  }
+  if (latency.firstOpenaiText && latency.firstCartesiaAudio) {
+    parts.push(`TTS ${Math.round(latency.firstCartesiaAudio - latency.firstOpenaiText)}ms`);
+  }
+  if (latency.firstCartesiaAudio && latency.playbackStart) {
+    parts.push(`play ${Math.round(latency.playbackStart - latency.firstCartesiaAudio)}ms`);
+  }
+  if (latency.speechStopped && latency.playbackStart) {
+    parts.push(`total ${Math.round(latency.playbackStart - latency.speechStopped)}ms`);
+  }
+  latencyStateEl.textContent = parts.join(' | ') || '-';
+  if (parts.length) console.log('[latency]', latencyStateEl.textContent);
 }
 
 function clearTranscript() {
@@ -204,7 +237,7 @@ function removeEmpty() {
 }
 
 function addMessage(role, text) {
-  if (!text) return;
+  if (text == null) return;
   removeEmpty();
   const msg = document.createElement('div');
   msg.className = `msg ${role}`;
@@ -219,6 +252,7 @@ function addAssistantDelta(delta) {
   if (!delta) return;
   removeEmpty();
   if (!assistantDraft) assistantDraft = addMessage('assistant', '');
+  if (!assistantDraft) return;
   assistantDraft.querySelector('.text').textContent += delta;
   transcriptEl.scrollTop = transcriptEl.scrollHeight;
 }
@@ -278,6 +312,7 @@ function resetPlayback() {
 
 function playPcmF32(arrayBuffer) {
   if (!playerNode || !arrayBuffer.byteLength) return;
+  markLatency('playbackStart');
   const copy = arrayBuffer.slice(0);
   playerNode.port.postMessage({ type: 'chunk', buffer: copy }, [copy]);
 }
@@ -338,6 +373,7 @@ async function startSession() {
     stopBtn.disabled = false;
     setStatus('Forbinder...', 'connecting');
     clearTranscript();
+    resetLatency();
     await initAudio();
 
     const wsUrl = getWsUrl();
@@ -385,6 +421,10 @@ async function startSession() {
       }
       if (message.type === 'openai_status') openaiStateEl.textContent = message.status;
       if (message.type === 'cartesia_status') cartesiaStateEl.textContent = message.status;
+      if (message.type === 'latency_mark') {
+        if (message.name === 'speechStopped') resetLatency();
+        markLatency(message.name);
+      }
       if (message.type === 'transcript' && message.role === 'user') addMessage('user', message.text);
       if (message.type === 'transcript_delta' && message.role === 'assistant') addAssistantDelta(message.text);
       if (message.type === 'transcript_done') finishAssistant();

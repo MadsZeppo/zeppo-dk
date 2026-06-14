@@ -1021,6 +1021,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     let pendingCartesiaText = [];
     let sessionStarted = false;
     let greetingSent = false;
+    let audioChunkSeenForResponse = false;
 
     function clientJson(data) {
       sendJson(client, data);
@@ -1132,6 +1133,11 @@ function setupCartesiaVoiceAgent(httpServer) {
           return;
         }
 
+        if (event.type === 'input_audio_buffer.speech_stopped') {
+          clientJson({ type: 'latency_mark', name: 'speechStopped' });
+          return;
+        }
+
         if (event.type === 'conversation.item.input_audio_transcription.completed') {
           clientJson({ type: 'transcript', role: 'user', text: event.transcript || '' });
           return;
@@ -1142,8 +1148,10 @@ function setupCartesiaVoiceAgent(httpServer) {
           if (!delta) return;
           if (!responseActive) {
             responseActive = true;
+            audioChunkSeenForResponse = false;
             startCartesiaContext();
           }
+          clientJson({ type: 'latency_mark', name: 'firstOpenaiText' });
           clientJson({ type: 'transcript_delta', role: 'assistant', text: delta });
           sendCartesiaText(delta, true);
           return;
@@ -1211,6 +1219,10 @@ function setupCartesiaVoiceAgent(httpServer) {
         }
 
         if (message.type === 'chunk' && message.data) {
+          if (!audioChunkSeenForResponse) {
+            audioChunkSeenForResponse = true;
+            clientJson({ type: 'latency_mark', name: 'firstCartesiaAudio' });
+          }
           const audio = Buffer.from(message.data, 'base64');
           if (client.readyState === WebSocket.OPEN) client.send(audio, { binary: true });
           return;
