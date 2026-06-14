@@ -12,6 +12,7 @@ import {
   extractLaasesmedInfo,
 } from './api/_laasesmed-shared.js';
 import createWooCommerceOrderHandler from './api/create-woocommerce-order.js';
+import realtimeSessionHandler from './api/realtime-session.js';
 import { getTranscript as getSharedTranscript } from './api/_vvs-shared.js';
 
 dotenv.config();
@@ -675,6 +676,7 @@ app.post('/vapi-webhook', async (req, res) => {
 });
 
 app.post('/api/create-woocommerce-order', createWooCommerceOrderHandler);
+app.get('/api/realtime-session', realtimeSessionHandler);
 
 /**
  * ==================================================
