@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anja - Godtfolk Pizzabar Voice Agent</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: #f4f1ea;
+      color: #151515;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(720px, 100%);
+      background: #fff;
+      border: 1px solid #dedbd2;
+      border-radius: 8px;
+      box-shadow: 0 24px 70px rgba(21, 21, 21, 0.14);
+      overflow: hidden;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 28px 30px;
+      border-bottom: 1px solid #dedbd2;
+    }
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      letter-spacing: 0;
+    }
+    .subtitle {
+      margin: 6px 0 0;
+      color: #666158;
+      font-size: 16px;
+    }
+    .status {
+      align-self: start;
+      min-width: 132px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 700;
+      background: #ece8df;
+      color: #5f5a50;
+    }
+    .status.connecting { background: #fff2c6; color: #795b00; }
+    .status.connected { background: #dff3e4; color: #17652b; }
+    .status.error { background: #f9d8d4; color: #94281e; }
+    section {
+      padding: 28px 30px 30px;
+    }
+    .debug {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .pill {
+      border: 1px solid #dedbd2;
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #5f5a50;
+    }
+    .pill strong { color: #151515; }
+    .transcript {
+      min-height: 310px;
+      max-height: 430px;
+      overflow: auto;
+      border: 1px solid #dedbd2;
+      border-radius: 8px;
+      background: #fbfaf7;
+      padding: 18px;
+    }
+    .empty {
+      min-height: 270px;
+      display: grid;
+      place-items: center;
+      color: #918b81;
+      font-weight: 600;
+    }
+    .msg {
+      padding: 12px 0;
+      border-bottom: 1px solid #ebe7df;
+    }
+    .msg:last-child { border-bottom: 0; }
+    .role {
+      margin-bottom: 5px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #1c6a33;
+    }
+    .msg.user .role { color: #1f5e9d; }
+    .text {
+      white-space: pre-wrap;
+      line-height: 1.45;
+      font-size: 16px;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 18px;
+    }
+    button {
+      min-height: 56px;
+      border: 0;
+      border-radius: 8px;
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+    #startBtn { background: #1f7a3a; color: #fff; }
+    #stopBtn { background: #c83b2d; color: #fff; }
+    .hint {
+      margin: 16px 0 0;
+      text-align: center;
+      color: #777168;
+      font-size: 14px;
+    }
+    @media (max-width: 620px) {
+      body { padding: 12px; }
+      header, section { padding: 22px; }
+      header, .debug, .controls { grid-template-columns: 1fr; flex-direction: column; }
+      .status { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Anja</h1>
+        <p class="subtitle">Godtfolk Pizzabar - OpenAI Realtime + Cartesia</p>
+      </div>
+      <div id="status" class="status">Klar</div>
+    </header>
+    <section>
+      <div class="debug">
+        <div class="pill">OpenAI: <strong id="openaiState">idle</strong></div>
+        <div class="pill">Cartesia: <strong id="cartesiaState">idle</strong></div>
+        <div class="pill">Mikrofon: <strong id="micState">idle</strong></div>
+        <div class="pill">Audio: <strong id="audioState">idle</strong></div>
+      </div>
+      <div id="transcript" class="transcript">
+        <div class="empty">Samtalen vises her.</div>
+      </div>
+      <div class="controls">
+        <button id="startBtn">Start samtale</button>
+        <button id="stopBtn" disabled>Stop</button>
+      </div>
+      <p class="hint">Tryk Start, tillad mikrofon, og tal naturligt.</p>
+    </section>
+  </main>
+
+<script>
+const INPUT_SAMPLE_RATE = 24000;
+
+let ws = null;
+let audioContext = null;
+let micStream = null;
+let micSource = null;
+let micProcessor = null;
+let playerNode = null;
+let connected = false;
+let assistantDraft = null;
+
+const statusEl = document.getElementById('status');
+const openaiStateEl = document.getElementById('openaiState');
+const cartesiaStateEl = document.getElementById('cartesiaState');
+const micStateEl = document.getElementById('micState');
+const audioStateEl = document.getElementById('audioState');
+const transcriptEl = document.getElementById('transcript');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+
+function setStatus(text, state = '') {
+  statusEl.textContent = text;
+  statusEl.className = `status ${state}`.trim();
+}
+
+function clearTranscript() {
+  assistantDraft = null;
+  transcriptEl.innerHTML = '<div class="empty">Samtalen vises her.</div>';
+}
+
+function removeEmpty() {
+  const empty = transcriptEl.querySelector('.empty');
+  if (empty) empty.remove();
+}
+
+function addMessage(role, text) {
+  if (!text) return;
+  removeEmpty();
+  const msg = document.createElement('div');
+  msg.className = `msg ${role}`;
+  msg.innerHTML = `<div class="role">${role === 'user' ? 'Du' : 'Anja'}</div><div class="text"></div>`;
+  msg.querySelector('.text').textContent = text;
+  transcriptEl.appendChild(msg);
+  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+  return msg;
+}
+
+function addAssistantDelta(delta) {
+  if (!delta) return;
+  removeEmpty();
+  if (!assistantDraft) assistantDraft = addMessage('assistant', '');
+  assistantDraft.querySelector('.text').textContent += delta;
+  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+}
+
+function finishAssistant() {
+  assistantDraft = null;
+}
+
+function getWsUrl() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${location.host}/api/voice-agent`;
+}
+
+async function initAudio() {
+  audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  await audioContext.audioWorklet.addModule(URL.createObjectURL(new Blob([`
+    class PCMPlayerProcessor extends AudioWorkletProcessor {
+      constructor() {
+        super();
+        this.queue = [];
+        this.current = null;
+        this.index = 0;
+        this.port.onmessage = (event) => {
+          if (event.data.type === 'chunk') {
+            this.queue.push(new Float32Array(event.data.buffer));
+          }
+          if (event.data.type === 'reset') {
+            this.queue = [];
+            this.current = null;
+            this.index = 0;
+          }
+        };
+      }
+      process(_inputs, outputs) {
+        const out = outputs[0][0];
+        for (let i = 0; i < out.length; i++) {
+          if (!this.current || this.index >= this.current.length) {
+            this.current = this.queue.shift() || null;
+            this.index = 0;
+          }
+          out[i] = this.current ? this.current[this.index++] : 0;
+        }
+        return true;
+      }
+    }
+    registerProcessor('pcm-player', PCMPlayerProcessor);
+  `], { type: 'application/javascript' })));
+
+  playerNode = new AudioWorkletNode(audioContext, 'pcm-player');
+  playerNode.connect(audioContext.destination);
+  audioStateEl.textContent = `${audioContext.sampleRate} Hz`;
+}
+
+function resetPlayback() {
+  if (playerNode) playerNode.port.postMessage({ type: 'reset' });
+}
+
+function playPcmF32(arrayBuffer) {
+  if (!playerNode || !arrayBuffer.byteLength) return;
+  const copy = arrayBuffer.slice(0);
+  playerNode.port.postMessage({ type: 'chunk', buffer: copy }, [copy]);
+}
+
+function downsample(input, inputRate, outputRate) {
+  if (inputRate === outputRate) return input;
+  const ratio = inputRate / outputRate;
+  const outputLength = Math.floor(input.length / ratio);
+  const output = new Float32Array(outputLength);
+  for (let i = 0; i < outputLength; i++) {
+    const start = Math.floor(i * ratio);
+    const end = Math.min(Math.floor((i + 1) * ratio), input.length);
+    let sum = 0;
+    for (let j = start; j < end; j++) sum += input[j];
+    output[i] = sum / Math.max(1, end - start);
+  }
+  return output;
+}
+
+function floatToPcm16(float32) {
+  const pcm16 = new Int16Array(float32.length);
+  for (let i = 0; i < float32.length; i++) {
+    const sample = Math.max(-1, Math.min(1, float32[i]));
+    pcm16[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+  }
+  return pcm16;
+}
+
+async function startMicrophone() {
+  micStream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      channelCount: 1,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+  });
+  micSource = audioContext.createMediaStreamSource(micStream);
+  micProcessor = audioContext.createScriptProcessor(2048, 1, 1);
+  micProcessor.onaudioprocess = (event) => {
+    event.outputBuffer.getChannelData(0).fill(0);
+    if (!connected || ws?.readyState !== WebSocket.OPEN) return;
+    const input = event.inputBuffer.getChannelData(0);
+    const downsampled = downsample(input, audioContext.sampleRate, INPUT_SAMPLE_RATE);
+    const pcm16 = floatToPcm16(downsampled);
+    ws.send(pcm16.buffer);
+  };
+  micSource.connect(micProcessor);
+  micProcessor.connect(audioContext.destination);
+  micStateEl.textContent = 'listening';
+}
+
+async function startSession() {
+  try {
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    setStatus('Forbinder...', 'connecting');
+    clearTranscript();
+    await initAudio();
+
+    ws = new WebSocket(getWsUrl());
+    ws.binaryType = 'arraybuffer';
+
+    ws.onopen = async () => {
+      connected = true;
+      setStatus('Forbundet', 'connected');
+      ws.send(JSON.stringify({
+        type: 'start',
+        outputSampleRate: audioContext.sampleRate,
+      }));
+      await startMicrophone();
+    };
+
+    ws.onmessage = (event) => {
+      if (event.data instanceof ArrayBuffer) {
+        playPcmF32(event.data);
+        return;
+      }
+
+      let message;
+      try {
+        message = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+
+      if (message.type === 'session_started') {
+        openaiStateEl.textContent = message.openai_model;
+        cartesiaStateEl.textContent = message.cartesia_model;
+      }
+      if (message.type === 'openai_status') openaiStateEl.textContent = message.status;
+      if (message.type === 'cartesia_status') cartesiaStateEl.textContent = message.status;
+      if (message.type === 'transcript' && message.role === 'user') addMessage('user', message.text);
+      if (message.type === 'transcript_delta' && message.role === 'assistant') addAssistantDelta(message.text);
+      if (message.type === 'transcript_done') finishAssistant();
+      if (message.type === 'interrupt') {
+        resetPlayback();
+        audioStateEl.textContent = 'interrupted';
+      }
+      if (message.type === 'audio_end') audioStateEl.textContent = `${audioContext.sampleRate} Hz`;
+      if (message.type === 'error') {
+        console.error('[voice]', message.error);
+        setStatus(message.error, 'error');
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('[voice] ws_error', error);
+      setStatus('WebSocket fejl', 'error');
+    };
+
+    ws.onclose = () => {
+      connected = false;
+      setStatus('Forbindelse lukket');
+      cleanup();
+    };
+  } catch (error) {
+    console.error('[voice] start_error', error);
+    setStatus(`Fejl: ${error.message}`, 'error');
+    cleanup();
+  }
+}
+
+function cleanup() {
+  connected = false;
+  if (micProcessor) micProcessor.disconnect();
+  if (micSource) micSource.disconnect();
+  if (micStream) micStream.getTracks().forEach((track) => track.stop());
+  if (audioContext && audioContext.state !== 'closed') audioContext.close();
+  micProcessor = null;
+  micSource = null;
+  micStream = null;
+  audioContext = null;
+  playerNode = null;
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  micStateEl.textContent = 'idle';
+}
+
+function stopSession() {
+  if (ws?.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'stop' }));
+    ws.close();
+  }
+  cleanup();
+}
+
+startBtn.addEventListener('click', startSession);
+stopBtn.addEventListener('click', stopSession);
+window.addEventListener('beforeunload', () => {
+  if (ws) ws.close();
+  cleanup();
+});
+</script>
+</body>
+</html>

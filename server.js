@@ -18,6 +18,7 @@ import createWooCommerceOrderHandler from './api/create-woocommerce-order.js';
 import realtimeSessionHandler from './api/realtime-session.js';
 import ttsHandler from './api/tts.js';
 import { getTranscript as getSharedTranscript } from './api/_vvs-shared.js';
+import { GODTFOLK_INSTRUCTIONS } from './api/_godtfolk-prompt.js';
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ app.use(express.urlencoded({
   verify: (req, _res, buf) => { req.rawBody = buf.toString('utf8'); }
 }));
 app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -984,7 +986,392 @@ function setupElevenLabsTtsProxy(httpServer) {
   });
 }
 
+const OPENAI_REALTIME_WS_MODEL = 'gpt-realtime';
+const OPENAI_REALTIME_INPUT_RATE = 24000;
+const CARTESIA_VERSION = process.env.CARTESIA_VERSION || '2026-03-01';
+const CARTESIA_MODEL_ID = process.env.CARTESIA_MODEL_ID || 'sonic-3.5';
+
+function setupCartesiaVoiceAgent(httpServer) {
+  const voiceWss = new WebSocketServer({ noServer: true });
+
+  httpServer.on('upgrade', (req, socket, head) => {
+    const pathname = new URL(req.url, `http://${req.headers.host}`).pathname;
+    if (pathname !== '/api/voice-agent') return;
+
+    voiceWss.handleUpgrade(req, socket, head, (client) => {
+      voiceWss.emit('connection', client, req);
+    });
+  });
+
+  voiceWss.on('connection', (client) => {
+    console.log('[voice] client_connected');
+
+    let openaiWs = null;
+    let cartesiaWs = null;
+    let cartesiaReady = false;
+    let cartesiaOutputRate = 48000;
+    let currentContextId = null;
+    let responseActive = false;
+    let pendingOpenAiAudio = [];
+    let pendingCartesiaText = [];
+    let sessionStarted = false;
+    let greetingSent = false;
+
+    function clientJson(data) {
+      sendJson(client, data);
+    }
+
+    function ensureEnv() {
+      const missing = [];
+      if (!clean(process.env.OPENAI_API_KEY)) missing.push('OPENAI_API_KEY');
+      if (!clean(process.env.CARTESIA_API_KEY)) missing.push('CARTESIA_API_KEY');
+      if (!clean(process.env.CARTESIA_VOICE_ID)) missing.push('CARTESIA_VOICE_ID');
+      if (missing.length) {
+        clientJson({ type: 'error', error: `Missing environment variables: ${missing.join(', ')}` });
+        return false;
+      }
+      return true;
+    }
+
+    function closeOpenAi() {
+      if (openaiWs && openaiWs.readyState === WebSocket.OPEN) openaiWs.close();
+      openaiWs = null;
+      pendingOpenAiAudio = [];
+      greetingSent = false;
+    }
+
+    function closeCartesia() {
+      if (cartesiaWs && cartesiaWs.readyState === WebSocket.OPEN) cartesiaWs.close();
+      cartesiaWs = null;
+      cartesiaReady = false;
+      currentContextId = null;
+      pendingCartesiaText = [];
+    }
+
+    function openOpenAi() {
+      if (openaiWs && (openaiWs.readyState === WebSocket.OPEN || openaiWs.readyState === WebSocket.CONNECTING)) return;
+
+      function sendInitialGreeting() {
+        if (greetingSent || openaiWs?.readyState !== WebSocket.OPEN) return;
+        greetingSent = true;
+        openaiWs.send(JSON.stringify({
+          type: 'response.create',
+          response: {
+            output_modalities: ['text'],
+            instructions: 'Sig præcis denne ene sætning og intet andet: "Hej og velkommen til Godtfolk Pizzabar, hvad kan jeg hjælpe med?"',
+          },
+        }));
+      }
+
+      openaiWs = new WebSocket(`wss://api.openai.com/v1/realtime?model=${OPENAI_REALTIME_WS_MODEL}`, {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+      });
+
+      openaiWs.on('open', () => {
+        console.log('[voice] openai_ws_open');
+        clientJson({ type: 'openai_status', status: 'connected' });
+        openaiWs.send(JSON.stringify({
+          type: 'session.update',
+          session: {
+            type: 'realtime',
+            instructions: GODTFOLK_INSTRUCTIONS,
+            output_modalities: ['text'],
+            audio: {
+              input: {
+                format: { type: 'audio/pcm', rate: OPENAI_REALTIME_INPUT_RATE },
+                transcription: { model: 'whisper-1', language: 'da' },
+                turn_detection: {
+                  type: 'semantic_vad',
+                  eagerness: 'low',
+                  create_response: true,
+                  interrupt_response: true,
+                },
+              },
+            },
+          },
+        }));
+
+        while (pendingOpenAiAudio.length > 0) {
+          openaiWs.send(JSON.stringify({
+            type: 'input_audio_buffer.append',
+            audio: pendingOpenAiAudio.shift(),
+          }));
+        }
+      });
+
+      openaiWs.on('message', (raw) => {
+        let event;
+        try {
+          event = JSON.parse(raw.toString());
+        } catch {
+          console.warn('[voice] openai_parse_error');
+          return;
+        }
+
+        if (event.type === 'session.updated') {
+          console.log('[voice] openai_session_updated');
+          sendInitialGreeting();
+          return;
+        }
+
+        if (event.type === 'input_audio_buffer.speech_started') {
+          console.log('[voice] user_speech_started');
+          cancelCartesiaContext();
+          if (responseActive && openaiWs?.readyState === WebSocket.OPEN) {
+            openaiWs.send(JSON.stringify({ type: 'response.cancel' }));
+          }
+          responseActive = false;
+          clientJson({ type: 'interrupt' });
+          return;
+        }
+
+        if (event.type === 'conversation.item.input_audio_transcription.completed') {
+          clientJson({ type: 'transcript', role: 'user', text: event.transcript || '' });
+          return;
+        }
+
+        if (event.type === 'response.output_text.delta' || event.type === 'response.text.delta') {
+          const delta = event.delta || '';
+          if (!delta) return;
+          if (!responseActive) {
+            responseActive = true;
+            startCartesiaContext();
+          }
+          clientJson({ type: 'transcript_delta', role: 'assistant', text: delta });
+          sendCartesiaText(delta, true);
+          return;
+        }
+
+        if (
+          event.type === 'response.output_text.done' ||
+          event.type === 'response.text.done' ||
+          event.type === 'response.done'
+        ) {
+          if (responseActive) finishCartesiaContext();
+          responseActive = false;
+          clientJson({ type: 'transcript_done', role: 'assistant' });
+          return;
+        }
+
+        if (event.type === 'error') {
+          console.error('[voice] openai_error', event.error);
+          clientJson({ type: 'error', error: event.error?.message || 'OpenAI error' });
+        }
+      });
+
+      openaiWs.on('error', (error) => {
+        console.error('[voice] openai_ws_error', error.message);
+        clientJson({ type: 'error', error: `OpenAI WebSocket error: ${error.message}` });
+      });
+
+      openaiWs.on('close', (code, reason) => {
+        console.warn('[voice] openai_ws_close', { code, reason: reason?.toString() || '' });
+        clientJson({ type: 'openai_status', status: 'closed', code, reason: reason?.toString() || '' });
+      });
+    }
+
+    function openCartesia() {
+      if (cartesiaWs && (cartesiaWs.readyState === WebSocket.OPEN || cartesiaWs.readyState === WebSocket.CONNECTING)) return;
+
+      const url = `wss://api.cartesia.ai/tts/websocket?cartesia_version=${encodeURIComponent(CARTESIA_VERSION)}`;
+      cartesiaWs = new WebSocket(url, {
+        headers: {
+          'X-API-Key': process.env.CARTESIA_API_KEY,
+        },
+      });
+
+      cartesiaWs.on('open', () => {
+        console.log('[voice] cartesia_ws_open', { model: CARTESIA_MODEL_ID, output_rate: cartesiaOutputRate });
+        cartesiaReady = true;
+        clientJson({
+          type: 'cartesia_status',
+          status: 'connected',
+          output_format: { container: 'raw', encoding: 'pcm_f32le', sample_rate: cartesiaOutputRate },
+        });
+        while (pendingCartesiaText.length > 0) {
+          const { text, shouldContinue, contextId } = pendingCartesiaText.shift();
+          sendCartesiaPayload(text, shouldContinue, contextId);
+        }
+      });
+
+      cartesiaWs.on('message', (raw) => {
+        let message;
+        try {
+          message = JSON.parse(raw.toString());
+        } catch {
+          console.warn('[voice] cartesia_parse_error');
+          return;
+        }
+
+        if (message.type === 'chunk' && message.data) {
+          const audio = Buffer.from(message.data, 'base64');
+          if (client.readyState === WebSocket.OPEN) client.send(audio, { binary: true });
+          return;
+        }
+
+        if (message.type === 'done') {
+          clientJson({ type: 'audio_end', context_id: message.context_id });
+          return;
+        }
+
+        if (message.type === 'flush_done') {
+          clientJson({ type: 'cartesia_flush_done', context_id: message.context_id, flush_id: message.flush_id });
+          return;
+        }
+
+        if (message.type === 'error') {
+          console.error('[voice] cartesia_error', message);
+          clientJson({ type: 'error', error: message.message || message.title || 'Cartesia error' });
+        }
+      });
+
+      cartesiaWs.on('error', (error) => {
+        console.error('[voice] cartesia_ws_error', error.message);
+        clientJson({ type: 'error', error: `Cartesia WebSocket error: ${error.message}` });
+      });
+
+      cartesiaWs.on('close', (code, reason) => {
+        console.warn('[voice] cartesia_ws_close', { code, reason: reason?.toString() || '' });
+        cartesiaReady = false;
+        clientJson({ type: 'cartesia_status', status: 'closed', code, reason: reason?.toString() || '' });
+      });
+    }
+
+    function startCartesiaContext() {
+      currentContextId = crypto.randomUUID();
+      pendingCartesiaText = [];
+    }
+
+    function cartesiaBasePayload(contextId) {
+      return {
+        model_id: CARTESIA_MODEL_ID,
+        voice: {
+          mode: 'id',
+          id: process.env.CARTESIA_VOICE_ID,
+        },
+        output_format: {
+          container: 'raw',
+          encoding: 'pcm_f32le',
+          sample_rate: cartesiaOutputRate,
+        },
+        context_id: contextId,
+        language: 'da',
+        add_timestamps: false,
+        max_buffer_delay_ms: 160,
+      };
+    }
+
+    function sendCartesiaPayload(text, shouldContinue, contextId) {
+      if (!contextId) return;
+      const payload = {
+        ...cartesiaBasePayload(contextId),
+        transcript: text,
+        continue: shouldContinue,
+      };
+      cartesiaWs.send(JSON.stringify(payload));
+    }
+
+    function sendCartesiaText(text, shouldContinue) {
+      if (!text || !currentContextId) return;
+      openCartesia();
+      if (cartesiaReady && cartesiaWs?.readyState === WebSocket.OPEN) {
+        sendCartesiaPayload(text, shouldContinue, currentContextId);
+      } else {
+        pendingCartesiaText.push({ text, shouldContinue, contextId: currentContextId });
+      }
+    }
+
+    function finishCartesiaContext() {
+      if (!currentContextId) return;
+      const contextId = currentContextId;
+      openCartesia();
+      if (cartesiaReady && cartesiaWs?.readyState === WebSocket.OPEN) {
+        sendCartesiaPayload('', false, contextId);
+      } else {
+        pendingCartesiaText.push({ text: '', shouldContinue: false, contextId });
+      }
+      currentContextId = null;
+    }
+
+    function cancelCartesiaContext() {
+      if (!currentContextId) return;
+      const contextId = currentContextId;
+      currentContextId = null;
+      pendingCartesiaText = pendingCartesiaText.filter((item) => item.contextId !== contextId);
+      if (cartesiaWs?.readyState === WebSocket.OPEN) {
+        cartesiaWs.send(JSON.stringify({ context_id: contextId, cancel: true }));
+      }
+    }
+
+    function startSession(options = {}) {
+      if (sessionStarted) return;
+      if (!ensureEnv()) return;
+      sessionStarted = true;
+      greetingSent = false;
+      cartesiaOutputRate = Number(options.outputSampleRate) || 48000;
+      clientJson({
+        type: 'session_started',
+        openai_model: OPENAI_REALTIME_WS_MODEL,
+        cartesia_model: CARTESIA_MODEL_ID,
+        openai_input_rate: OPENAI_REALTIME_INPUT_RATE,
+        cartesia_output_rate: cartesiaOutputRate,
+      });
+      openCartesia();
+      openOpenAi();
+    }
+
+    client.on('message', (raw, isBinary) => {
+      if (!isBinary) {
+        let message;
+        try {
+          message = JSON.parse(raw.toString());
+        } catch {
+          clientJson({ type: 'error', error: 'Invalid JSON message' });
+          return;
+        }
+
+        if (message.type === 'start') {
+          startSession(message);
+          return;
+        }
+
+        if (message.type === 'stop') {
+          closeOpenAi();
+          closeCartesia();
+          sessionStarted = false;
+          return;
+        }
+        return;
+      }
+
+      if (!sessionStarted) return;
+      const base64Audio = Buffer.from(raw).toString('base64');
+      if (openaiWs?.readyState === WebSocket.OPEN) {
+        openaiWs.send(JSON.stringify({
+          type: 'input_audio_buffer.append',
+          audio: base64Audio,
+        }));
+      } else {
+        pendingOpenAiAudio.push(base64Audio);
+      }
+    });
+
+    client.on('close', (code, reason) => {
+      console.warn('[voice] client_close', { code, reason: reason?.toString() || '' });
+      closeOpenAi();
+      closeCartesia();
+    });
+
+    client.on('error', (error) => {
+      console.error('[voice] client_error', error.message);
+    });
+  });
+}
+
 setupElevenLabsTtsProxy(server);
+setupCartesiaVoiceAgent(server);
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
@@ -992,6 +1379,7 @@ server.listen(PORT, () => {
   console.log(`📞 Vapi webhook: POST /vapi-webhook`);
   console.log(`📩 SMS indgående: POST /sms-indgaaende`);
   console.log(`🔊 ElevenLabs TTS WS: /api/tts-stream`);
+  console.log(`🍕 Cartesia voice agent WS: /api/voice-agent`);
   console.log(`❤️  Health: GET /health`);
   console.log(`🗓️  Sæson: ${getSaesonKontekst()}`);
   if (!VAPI_SECRET) console.warn('⚠️  VAPI_SECRET ikke sat — sæt den i .env');
