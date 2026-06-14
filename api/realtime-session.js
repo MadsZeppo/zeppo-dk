@@ -24,7 +24,7 @@ export default async function handler(req, res) {
             transcription: { model: 'whisper-1', language: 'da' },
           },
           output: {
-            voice: 'marin',
+            voice: 'cedar',
           },
         },
         instructions: `KRITISK REGEL: Kald ALDRIG create_woocommerce_order før du har: bestilling, drikkevarer, afhentning/levering, tidspunkt, navn og kundens bekræftelse. Mangler bare ét — vent.

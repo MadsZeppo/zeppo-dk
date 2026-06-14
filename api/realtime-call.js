@@ -76,7 +76,7 @@ export default async function handler(req, res) {
           transcription: { model: 'whisper-1', language: 'da' },
         },
         output: {
-          voice: 'marin',
+          voice: 'cedar',
         },
       },
     });
