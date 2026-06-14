@@ -1066,7 +1066,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           type: 'response.create',
           response: {
             output_modalities: ['text'],
-            instructions: 'Sig præcis denne ene sætning og intet andet: "Hej og velkommen til Godtfolk Pizzabar, hvad kan jeg hjælpe med?"',
+            instructions: 'Sig præcis denne ene sætning og intet andet: "Hej og velkommen til Godtfolk Pizzabar, hvad kan jeg hjælpe med?" Udtal Godtfolk som ét sammenhængende ord, ikke "godt ... folk".',
           },
         }));
       }
@@ -1092,7 +1092,7 @@ function setupCartesiaVoiceAgent(httpServer) {
                 transcription: { model: 'whisper-1', language: 'da' },
                 turn_detection: {
                   type: 'semantic_vad',
-                  eagerness: 'high',
+                  eagerness: 'medium',
                   create_response: true,
                   interrupt_response: true,
                 },

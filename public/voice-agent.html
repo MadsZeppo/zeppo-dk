@@ -181,6 +181,8 @@ let assistantDraft = null;
 let microphoneStarted = false;
 let startSent = false;
 let latency = {};
+let assistantSpeaking = false;
+let assistantUnmuteTimer = null;
 
 const statusEl = document.getElementById('status');
 const openaiStateEl = document.getElementById('openaiState');
@@ -312,9 +314,20 @@ function resetPlayback() {
 
 function playPcmF32(arrayBuffer) {
   if (!playerNode || !arrayBuffer.byteLength) return;
+  assistantSpeaking = true;
+  micStateEl.textContent = 'muted while Anja speaks';
+  if (assistantUnmuteTimer) clearTimeout(assistantUnmuteTimer);
   markLatency('playbackStart');
   const copy = arrayBuffer.slice(0);
   playerNode.port.postMessage({ type: 'chunk', buffer: copy }, [copy]);
+}
+
+function scheduleMicUnmute(delayMs = 250) {
+  if (assistantUnmuteTimer) clearTimeout(assistantUnmuteTimer);
+  assistantUnmuteTimer = setTimeout(() => {
+    assistantSpeaking = false;
+    if (microphoneStarted) micStateEl.textContent = 'listening';
+  }, delayMs);
 }
 
 function downsample(input, inputRate, outputRate) {
@@ -357,6 +370,7 @@ async function startMicrophone() {
   micProcessor.onaudioprocess = (event) => {
     event.outputBuffer.getChannelData(0).fill(0);
     if (!connected || ws?.readyState !== WebSocket.OPEN) return;
+    if (assistantSpeaking) return;
     const input = event.inputBuffer.getChannelData(0);
     const downsampled = downsample(input, audioContext.sampleRate, INPUT_SAMPLE_RATE);
     const pcm16 = floatToPcm16(downsampled);
@@ -432,7 +446,10 @@ async function startSession() {
         resetPlayback();
         audioStateEl.textContent = 'interrupted';
       }
-      if (message.type === 'audio_end') audioStateEl.textContent = `${audioContext.sampleRate} Hz`;
+      if (message.type === 'audio_end') {
+        audioStateEl.textContent = `${audioContext.sampleRate} Hz`;
+        scheduleMicUnmute();
+      }
       if (message.type === 'error') {
         console.error('[voice]', message.error);
         setStatus(message.error, 'error');
@@ -471,6 +488,9 @@ function cleanup() {
   micSource = null;
   micStream = null;
   microphoneStarted = false;
+  assistantSpeaking = false;
+  if (assistantUnmuteTimer) clearTimeout(assistantUnmuteTimer);
+  assistantUnmuteTimer = null;
   startSent = false;
   audioContext = null;
   playerNode = null;
