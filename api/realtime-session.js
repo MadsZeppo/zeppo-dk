@@ -21,7 +21,6 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         type: 'realtime',
         model: 'gpt-realtime',
-        temperature: 0.8,
         output_modalities: ['text'],
         audio: {
           input: {

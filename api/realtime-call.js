@@ -39,7 +39,6 @@ export default async function handler(req, res) {
     const sessionConfig = {
       type: 'realtime',
       model: REALTIME_MODEL,
-      temperature: 0.8,
       instructions: GODTFOLK_INSTRUCTIONS,
       audio: {
         input: {
