@@ -825,6 +825,7 @@ function setupElevenLabsTtsProxy(httpServer) {
 
     function closeEleven() {
       if (eleven && eleven.readyState === WebSocket.OPEN) {
+        console.log('[tts] eleven_ws_end');
         eleven.send(JSON.stringify({ text: '' }));
         eleven.close();
       }
@@ -852,6 +853,7 @@ function setupElevenLabsTtsProxy(httpServer) {
       eleven = new WebSocket(url);
 
       eleven.on('open', () => {
+        console.log('[tts] eleven_ws_open');
         elevenReady = true;
         sendJson(client, { type: 'ready', model: ELEVENLABS_MODEL_ID, output_format: ELEVENLABS_OUTPUT_FORMAT });
         eleven.send(JSON.stringify({
@@ -871,7 +873,9 @@ function setupElevenLabsTtsProxy(httpServer) {
         }));
 
         while (pendingText.length > 0) {
-          eleven.send(JSON.stringify({ text: pendingText.shift(), try_trigger_generation: true }));
+          const text = pendingText.shift();
+          console.log('[tts] text chunk', text);
+          eleven.send(JSON.stringify({ text, try_trigger_generation: true }));
         }
       });
 
@@ -884,6 +888,10 @@ function setupElevenLabsTtsProxy(httpServer) {
         }
 
         if (data.audio) {
+          console.log('[tts] eleven_ws_audio_chunk', {
+            is_final: Boolean(data.isFinal),
+            chars: data.audio.length,
+          });
           sendJson(client, { type: 'audio', audio: data.audio, is_final: Boolean(data.isFinal) });
         }
 
@@ -894,6 +902,10 @@ function setupElevenLabsTtsProxy(httpServer) {
 
       eleven.on('close', (code, reason) => {
         elevenReady = false;
+        console.warn('[tts] eleven_ws_close', {
+          code,
+          reason: reason?.toString() || '',
+        });
         if (!closed) {
           sendJson(client, {
             type: 'closed',
@@ -904,7 +916,7 @@ function setupElevenLabsTtsProxy(httpServer) {
       });
 
       eleven.on('error', (error) => {
-        console.error('ElevenLabs WS error:', error.message);
+        console.error('[tts] eleven_ws_error', error.message);
         sendJson(client, { type: 'error', error: error.message });
       });
     }
@@ -929,6 +941,7 @@ function setupElevenLabsTtsProxy(httpServer) {
         if (!text) return;
         openEleven();
         if (elevenReady && eleven?.readyState === WebSocket.OPEN) {
+          console.log('[tts] text chunk', text);
           eleven.send(JSON.stringify({ text, try_trigger_generation: true }));
         } else {
           pendingText.push(text);
@@ -938,12 +951,14 @@ function setupElevenLabsTtsProxy(httpServer) {
 
       if (message.type === 'flush') {
         if (elevenReady && eleven?.readyState === WebSocket.OPEN) {
+          console.log('[tts] eleven_ws_flush');
           eleven.send(JSON.stringify({ text: ' ', try_trigger_generation: true }));
         }
         return;
       }
 
       if (message.type === 'cancel') {
+        console.log('[tts] eleven_ws_cancel');
         closeEleven();
         pendingText.length = 0;
         sendJson(client, { type: 'cancelled' });
@@ -951,13 +966,18 @@ function setupElevenLabsTtsProxy(httpServer) {
       }
 
       if (message.type === 'end') {
+        console.log('[tts] client_ws_end');
         closeEleven();
         pendingText.length = 0;
         return;
       }
     });
 
-    client.on('close', () => {
+    client.on('close', (code, reason) => {
+      console.warn('[tts] client_ws_close', {
+        code,
+        reason: reason?.toString() || '',
+      });
       closed = true;
       closeEleven();
     });

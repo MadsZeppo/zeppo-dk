@@ -122,6 +122,7 @@ function setDebug(openai, tts, listening) {
 }
 
 function markLatency(name) {
+  if (latency[name]) return;
   latency[name] = performance.now();
   console.log(`[latency] ${name}`, Math.round(latency[name]));
 }
@@ -142,6 +143,17 @@ function reportLatency() {
   }
   latencyStateEl.textContent = parts.join(' | ') || '-';
   if (parts.length) console.log('[latency]', parts.join(' | '));
+}
+
+function resetTurnLatency() {
+  latency = {};
+  latencyStateEl.textContent = '-';
+}
+
+function markElevenTextSentFirst() {
+  if (latency.elevenTextSentFirst) return;
+  markLatency('elevenTextSentFirst');
+  console.log('[tts] eleven_ws_text_sent_first');
 }
 
 function clearTranscript() {
@@ -195,6 +207,7 @@ function connectTtsSocket() {
   setDebug(null, 'connecting');
 
   ttsSocket.onopen = () => {
+    console.log('[tts] client_ws_open', TTS_STREAM_URL);
     setDebug(null, 'connected');
     ttsSocket.send(JSON.stringify({ type: 'start' }));
     while (pendingTtsMessages.length > 0) {
@@ -211,6 +224,7 @@ function connectTtsSocket() {
     }
 
     if (event.type === 'ready') {
+      console.log('[tts] eleven_ws_open', event);
       setDebug(null, 'ready');
       return;
     }
@@ -218,6 +232,7 @@ function connectTtsSocket() {
     if (event.type === 'audio' && event.audio) {
       if (!latency.firstElevenAudio) {
         markLatency('firstElevenAudio');
+        console.log('[tts] eleven_ws_audio_first');
         reportLatency();
       }
       enqueueAudioChunk(event.audio);
@@ -230,7 +245,10 @@ function connectTtsSocket() {
     }
 
     if (event.type === 'closed') {
-      console.warn('ElevenLabs upstream closed:', event);
+      console.warn('[tts] eleven_ws_close', {
+        code: event.code,
+        reason: event.reason,
+      });
       setDebug(null, 'closed');
       return;
     }
@@ -238,19 +256,25 @@ function connectTtsSocket() {
     if (event.type === 'error') {
       setDebug(null, 'error');
       setStatus(`ElevenLabs fejl: ${event.error}`, 'error');
-      console.error('ElevenLabs error:', event.error);
+      console.error('[tts] eleven_ws_error', event);
     }
   };
 
-  ttsSocket.onclose = () => {
+  ttsSocket.onclose = (event) => {
+    console.warn('[tts] client_ws_close', {
+      code: event.code,
+      reason: event.reason,
+      wasClean: event.wasClean,
+    });
     if (usingElevenLabs && ttsTransport === 'ws') {
-      fallbackToHttpTts('WebSocket closed');
+      setDebug(null, 'closed');
+      setStatus(`ElevenLabs WebSocket lukket (${event.code || 'unknown'}). Se console.`, 'error');
     } else {
       setDebug(null, 'closed');
     }
   };
   ttsSocket.onerror = (error) => {
-    console.error('TTS WebSocket error:', error);
+    console.error('[tts] client_ws_error', error);
     fallbackToHttpTts('WebSocket failed');
   };
 }
@@ -274,9 +298,10 @@ function sendTts(type, payload = {}) {
 
 function fallbackToHttpTts(reason) {
   if (ttsTransport === 'http') return;
-  console.warn(`[tts] Falling back to HTTP TTS: ${reason}`);
+  console.warn('[tts] fallback_http_started', { reason });
   ttsTransport = 'http';
   setDebug(null, 'http fallback');
+  setStatus(`ElevenLabs WebSocket fejl: ${reason}. Bruger HTTP fallback.`, 'error');
 
   const queued = pendingTtsMessages;
   pendingTtsMessages = [];
@@ -311,6 +336,7 @@ function sendTtsHttp(text) {
         reportLatency();
       }
 
+      console.log('[tts] fallback_http_audio_received');
       enqueueAudioBlob(await response.blob());
     })
     .catch((error) => {
@@ -347,7 +373,7 @@ function sendTextDeltaToTts(delta) {
   if (shouldFlushText(textBuffer)) {
     const text = textBuffer;
     textBuffer = '';
-    markLatency('elevenTextSentFirst');
+    markElevenTextSentFirst();
     sendTts('text', { text });
     console.log('[tts] text chunk', text);
   }
@@ -369,6 +395,8 @@ function flushTtsText() {
   }
 
   if (textBuffer.trim()) {
+    markElevenTextSentFirst();
+    console.log('[tts] text chunk', textBuffer);
     sendTts('text', { text: textBuffer });
     textBuffer = '';
   }
@@ -506,7 +534,6 @@ function stopCurrentPlayback() {
   textBuffer = '';
   assistantResponseText = '';
   pendingTtsMessages = [];
-  if (ttsTransport === 'ws') sendTts('cancel');
   setDebug(null, 'ready');
 }
 
@@ -521,6 +548,7 @@ function handleRealtimeEvent(event) {
   }
 
   if (event.type === 'input_audio_buffer.speech_stopped') {
+    resetTurnLatency();
     markLatency('speechStopped');
     setDebug(null, null, 'thinking');
     return;
