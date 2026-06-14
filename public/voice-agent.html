@@ -189,6 +189,7 @@ let localLastVoiceAt = 0;
 let localSpeechEndMarked = false;
 let localSilenceFramesSentAfterEnd = 0;
 let localSpeechEndSent = false;
+let pendingLocalSpeechEnd = false;
 
 const statusEl = document.getElementById('status');
 const openaiStateEl = document.getElementById('openaiState');
@@ -280,12 +281,8 @@ function shouldSendMicrophoneFrame(input) {
   if (localSpeechActive && !localSpeechEndMarked && now - localLastVoiceAt > 280) {
     localSpeechEndMarked = true;
     localSpeechActive = false;
+    pendingLocalSpeechEnd = true;
     markLatency('localSpeechEnd');
-    if (!localSpeechEndSent && ws?.readyState === WebSocket.OPEN) {
-      localSpeechEndSent = true;
-      ws.send(JSON.stringify({ type: 'local_speech_end' }));
-      console.log('[voice] local_speech_end_sent');
-    }
     console.log('[latency] local_speech_ended');
   }
 
@@ -503,6 +500,14 @@ function floatToPcm16(float32) {
   return pcm16;
 }
 
+function sendPendingLocalSpeechEnd() {
+  if (!pendingLocalSpeechEnd || localSpeechEndSent || ws?.readyState !== WebSocket.OPEN) return;
+  pendingLocalSpeechEnd = false;
+  localSpeechEndSent = true;
+  ws.send(JSON.stringify({ type: 'local_speech_end' }));
+  console.log('[voice] local_speech_end_sent');
+}
+
 async function startMicrophone() {
   if (microphoneStarted) return;
   microphoneStarted = true;
@@ -525,6 +530,7 @@ async function startMicrophone() {
     const downsampled = downsample(input, audioContext.sampleRate, INPUT_SAMPLE_RATE);
     const pcm16 = floatToPcm16(downsampled);
     ws.send(pcm16.buffer);
+    sendPendingLocalSpeechEnd();
   };
   micSource.connect(micProcessor);
   micProcessor.connect(audioContext.destination);
