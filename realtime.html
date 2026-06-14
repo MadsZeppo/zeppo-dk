@@ -99,6 +99,9 @@ let currentAudio = null;
 let latency = {};
 let usingElevenLabs = true;
 let pendingTtsMessages = [];
+let ttsTransport = 'ws';
+let ttsHttpChain = Promise.resolve();
+let ttsGenerationId = 0;
 
 function setStatus(text, state = '') {
   statusEl.textContent = text;
@@ -177,7 +180,7 @@ function finishAssistantDraft() {
 }
 
 function connectTtsSocket() {
-  if (!usingElevenLabs) return;
+  if (!usingElevenLabs || ttsTransport === 'http') return;
   if (ttsSocket && (ttsSocket.readyState === WebSocket.OPEN || ttsSocket.readyState === WebSocket.CONNECTING)) return;
 
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -221,22 +224,88 @@ function connectTtsSocket() {
     }
   };
 
-  ttsSocket.onclose = () => setDebug(null, 'closed');
+  ttsSocket.onclose = () => {
+    if (usingElevenLabs && ttsTransport === 'ws') {
+      fallbackToHttpTts('WebSocket closed');
+    } else {
+      setDebug(null, 'closed');
+    }
+  };
   ttsSocket.onerror = (error) => {
-    setDebug(null, 'error');
     console.error('TTS WebSocket error:', error);
+    fallbackToHttpTts('WebSocket failed');
   };
 }
 
 function sendTts(type, payload = {}) {
   if (!usingElevenLabs) return;
   const message = { type, ...payload };
+
+  if (ttsTransport === 'http') {
+    if (type === 'text') sendTtsHttp(payload.text);
+    return;
+  }
+
   connectTtsSocket();
   if (ttsSocket?.readyState === WebSocket.OPEN) {
     ttsSocket.send(JSON.stringify(message));
   } else {
     pendingTtsMessages.push(message);
   }
+}
+
+function fallbackToHttpTts(reason) {
+  if (ttsTransport === 'http') return;
+  console.warn(`[tts] Falling back to HTTP TTS: ${reason}`);
+  ttsTransport = 'http';
+  setDebug(null, 'http fallback');
+
+  const queued = pendingTtsMessages;
+  pendingTtsMessages = [];
+  queued.forEach((message) => {
+    if (message.type === 'text') sendTtsHttp(message.text);
+  });
+}
+
+function sendTtsHttp(text) {
+  const cleanText = (text || '').trim();
+  if (!cleanText) return;
+  const generation = ttsGenerationId;
+
+  ttsHttpChain = ttsHttpChain
+    .catch(() => {})
+    .then(async () => {
+      setDebug(null, 'http');
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: cleanText }),
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(`HTTP TTS failed ${response.status}: ${detail}`);
+      }
+
+      if (generation !== ttsGenerationId) return;
+      if (!latency.firstElevenAudio) {
+        markLatency('firstElevenAudio');
+        reportLatency();
+      }
+
+      const buffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      bytes.forEach((byte) => {
+        binary += String.fromCharCode(byte);
+      });
+      enqueueAudioChunk(btoa(binary));
+    })
+    .catch((error) => {
+      setDebug(null, 'error');
+      setStatus(`ElevenLabs fejl: ${error.message}`, 'error');
+      console.error('HTTP TTS error:', error);
+    });
 }
 
 function shouldFlushText(value) {
@@ -313,6 +382,7 @@ function playNextChunk() {
 }
 
 function stopCurrentPlayback() {
+  ttsGenerationId += 1;
   audioQueue = [];
   if (currentAudio) {
     currentAudio.pause();
@@ -322,7 +392,7 @@ function stopCurrentPlayback() {
   isPlaying = false;
   textBuffer = '';
   pendingTtsMessages = [];
-  sendTts('cancel');
+  if (ttsTransport === 'ws') sendTts('cancel');
   setDebug(null, 'ready');
 }
 
@@ -382,6 +452,8 @@ async function startSession() {
     stopBtn.disabled = false;
     clearTranscript();
     latency = {};
+    ttsTransport = 'ws';
+    ttsGenerationId += 1;
     latencyStateEl.textContent = '-';
     setStatus('Forbinder til Anja...', 'loading');
     setDebug('connecting', usingElevenLabs ? 'connecting' : 'off', 'idle');

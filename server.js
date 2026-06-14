@@ -16,6 +16,7 @@ import {
 import realtimeCallHandler from './api/realtime-call.js';
 import createWooCommerceOrderHandler from './api/create-woocommerce-order.js';
 import realtimeSessionHandler from './api/realtime-session.js';
+import ttsHandler from './api/tts.js';
 import { getTranscript as getSharedTranscript } from './api/_vvs-shared.js';
 
 dotenv.config();
@@ -687,6 +688,7 @@ app.get('/api/realtime-session', realtimeSessionHandler);
 app.get('/api/session', realtimeSessionHandler);
 app.post('/api/realtime/session', realtimeSessionHandler);
 app.post('/api/realtime/call', express.text({ type: ['application/sdp', 'text/plain'], limit: '1mb' }), realtimeCallHandler);
+app.post('/api/tts', ttsHandler);
 
 /**
  * ==================================================
