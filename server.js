@@ -849,13 +849,14 @@ function setupElevenLabsTtsProxy(httpServer) {
         return;
       }
 
-      eleven = new WebSocket(url, { headers: { 'xi-api-key': apiKey } });
+      eleven = new WebSocket(url);
 
       eleven.on('open', () => {
         elevenReady = true;
         sendJson(client, { type: 'ready', model: ELEVENLABS_MODEL_ID, output_format: ELEVENLABS_OUTPUT_FORMAT });
         eleven.send(JSON.stringify({
           text: ' ',
+          xi_api_key: apiKey,
           voice_settings: {
             stability: 0.35,
             similarity_boost: 0.86,
@@ -891,9 +892,15 @@ function setupElevenLabsTtsProxy(httpServer) {
         }
       });
 
-      eleven.on('close', () => {
+      eleven.on('close', (code, reason) => {
         elevenReady = false;
-        if (!closed) sendJson(client, { type: 'closed' });
+        if (!closed) {
+          sendJson(client, {
+            type: 'closed',
+            code,
+            reason: reason?.toString() || '',
+          });
+        }
       });
 
       eleven.on('error', (error) => {

@@ -97,6 +97,11 @@ let textBuffer = '';
 let audioQueue = [];
 let isPlaying = false;
 let currentAudio = null;
+let streamingAudio = null;
+let streamingMediaSource = null;
+let streamingSourceBuffer = null;
+let streamingQueue = [];
+let streamingFinal = false;
 let latency = {};
 let usingElevenLabs = true;
 let pendingTtsMessages = [];
@@ -219,6 +224,17 @@ function connectTtsSocket() {
       return;
     }
 
+    if (event.type === 'final') {
+      finishStreamingAudio();
+      return;
+    }
+
+    if (event.type === 'closed') {
+      console.warn('ElevenLabs upstream closed:', event);
+      setDebug(null, 'closed');
+      return;
+    }
+
     if (event.type === 'error') {
       setDebug(null, 'error');
       setStatus(`ElevenLabs fejl: ${event.error}`, 'error');
@@ -306,7 +322,7 @@ function sendTtsHttp(text) {
 
 function shouldFlushText(value) {
   const trimmed = value.trim();
-  return /[,.?!:;]\s*$/.test(trimmed) || trimmed.length >= 32 || /^(ja|klart|okay|fint|nej)\.?$/i.test(trimmed);
+  return /[.?!]\s*$/.test(trimmed) || trimmed.length >= 80;
 }
 
 function sendTextDeltaToTts(delta) {
@@ -361,8 +377,80 @@ function flushTtsText() {
 
 function enqueueAudioChunk(base64Audio) {
   const bytes = Uint8Array.from(atob(base64Audio), (char) => char.charCodeAt(0));
+  if (ttsTransport === 'ws' && 'MediaSource' in window && MediaSource.isTypeSupported('audio/mpeg')) {
+    appendStreamingAudio(bytes);
+    return;
+  }
   audioQueue.push(new Blob([bytes], { type: 'audio/mpeg' }));
   playNextChunk();
+}
+
+function appendStreamingAudio(bytes) {
+  if (!streamingAudio) startStreamingAudio();
+  streamingQueue.push(bytes);
+  pumpStreamingAudio();
+}
+
+function startStreamingAudio() {
+  streamingFinal = false;
+  streamingQueue = [];
+  streamingMediaSource = new MediaSource();
+  streamingAudio = new Audio(URL.createObjectURL(streamingMediaSource));
+  currentAudio = streamingAudio;
+
+  streamingAudio.onplay = () => {
+    if (!latency.playbackStart) {
+      markLatency('playbackStart');
+      reportLatency();
+    }
+    setDebug(null, 'speaking');
+  };
+  streamingAudio.onended = () => {
+    cleanupStreamingAudio();
+    setDebug(null, 'ready');
+  };
+  streamingAudio.onerror = () => {
+    cleanupStreamingAudio();
+    playNextChunk();
+  };
+  streamingMediaSource.addEventListener('sourceopen', () => {
+    streamingSourceBuffer = streamingMediaSource.addSourceBuffer('audio/mpeg');
+    streamingSourceBuffer.mode = 'sequence';
+    streamingSourceBuffer.addEventListener('updateend', pumpStreamingAudio);
+    pumpStreamingAudio();
+  }, { once: true });
+  streamingAudio.play().catch((error) => {
+    console.error('ElevenLabs streaming playback error:', error);
+  });
+}
+
+function pumpStreamingAudio() {
+  if (!streamingSourceBuffer || streamingSourceBuffer.updating) return;
+  if (streamingQueue.length > 0) {
+    streamingSourceBuffer.appendBuffer(streamingQueue.shift());
+    return;
+  }
+  if (streamingFinal && streamingMediaSource?.readyState === 'open') {
+    try {
+      streamingMediaSource.endOfStream();
+    } catch {}
+  }
+}
+
+function finishStreamingAudio() {
+  streamingFinal = true;
+  pumpStreamingAudio();
+}
+
+function cleanupStreamingAudio() {
+  const audio = streamingAudio;
+  if (audio?.src) URL.revokeObjectURL(audio.src);
+  streamingAudio = null;
+  streamingMediaSource = null;
+  streamingSourceBuffer = null;
+  streamingQueue = [];
+  streamingFinal = false;
+  if (currentAudio === audio) currentAudio = null;
 }
 
 function enqueueAudioBlob(blob) {
@@ -407,11 +495,13 @@ function playNextChunk() {
 function stopCurrentPlayback() {
   ttsGenerationId += 1;
   audioQueue = [];
+  if (streamingAudio) streamingAudio.pause();
   if (currentAudio) {
     currentAudio.pause();
     currentAudio.src = '';
     currentAudio = null;
   }
+  cleanupStreamingAudio();
   isPlaying = false;
   textBuffer = '';
   assistantResponseText = '';
