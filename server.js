@@ -1024,6 +1024,8 @@ function setupCartesiaVoiceAgent(httpServer) {
     let greetingResponseActive = false;
     let audioChunkSeenForResponse = false;
     let ttsTextBuffer = '';
+    let hasUncommittedOpenAiAudio = false;
+    let manualResponsePending = false;
 
     function clientJson(data) {
       sendJson(client, data);
@@ -1094,7 +1096,7 @@ function setupCartesiaVoiceAgent(httpServer) {
                 turn_detection: {
                   type: 'semantic_vad',
                   eagerness: 'high',
-                  create_response: true,
+                  create_response: false,
                   interrupt_response: true,
                 },
               },
@@ -1103,6 +1105,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         }));
 
         while (pendingOpenAiAudio.length > 0) {
+          hasUncommittedOpenAiAudio = true;
           openaiWs.send(JSON.stringify({
             type: 'input_audio_buffer.append',
             audio: pendingOpenAiAudio.shift(),
@@ -1151,6 +1154,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           if (!delta) return;
           if (!responseActive) {
             responseActive = true;
+            manualResponsePending = false;
             audioChunkSeenForResponse = false;
             startCartesiaContext();
           }
@@ -1167,6 +1171,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         ) {
           if (responseActive) finishCartesiaContext();
           responseActive = false;
+          manualResponsePending = false;
           if (greetingResponseActive) {
             greetingResponseActive = false;
             clientJson({ type: 'transcript_done', role: 'assistant' });
@@ -1178,6 +1183,7 @@ function setupCartesiaVoiceAgent(httpServer) {
 
         if (event.type === 'error') {
           console.error('[voice] openai_error', event.error);
+          manualResponsePending = false;
           clientJson({ type: 'error', error: event.error?.message || 'OpenAI error' });
         }
       });
@@ -1361,6 +1367,23 @@ function setupCartesiaVoiceAgent(httpServer) {
       }
     }
 
+    function startOpenAiResponseFromLocalSpeechEnd() {
+      if (!sessionStarted || openaiWs?.readyState !== WebSocket.OPEN) return;
+      if (!hasUncommittedOpenAiAudio || manualResponsePending || responseActive || greetingResponseActive) return;
+
+      console.log('[voice] local_speech_end_commit');
+      manualResponsePending = true;
+      hasUncommittedOpenAiAudio = false;
+      clientJson({ type: 'latency_mark', name: 'speechStopped' });
+      openaiWs.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
+      openaiWs.send(JSON.stringify({
+        type: 'response.create',
+        response: {
+          output_modalities: ['text'],
+        },
+      }));
+    }
+
     function startSession(options = {}) {
       if (sessionStarted) return;
       if (!ensureEnv()) return;
@@ -1400,6 +1423,11 @@ function setupCartesiaVoiceAgent(httpServer) {
           return;
         }
 
+        if (message.type === 'local_speech_end') {
+          startOpenAiResponseFromLocalSpeechEnd();
+          return;
+        }
+
         if (message.type === 'stop') {
           console.log('[voice] client_stop');
           closeOpenAi();
@@ -1413,11 +1441,13 @@ function setupCartesiaVoiceAgent(httpServer) {
       if (!sessionStarted) return;
       const base64Audio = Buffer.from(raw).toString('base64');
       if (openaiWs?.readyState === WebSocket.OPEN) {
+        hasUncommittedOpenAiAudio = true;
         openaiWs.send(JSON.stringify({
           type: 'input_audio_buffer.append',
           audio: base64Audio,
         }));
       } else {
+        hasUncommittedOpenAiAudio = true;
         pendingOpenAiAudio.push(base64Audio);
       }
     });

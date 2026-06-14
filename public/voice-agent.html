@@ -188,6 +188,7 @@ let localSpeechActive = false;
 let localLastVoiceAt = 0;
 let localSpeechEndMarked = false;
 let localSilenceFramesSentAfterEnd = 0;
+let localSpeechEndSent = false;
 
 const statusEl = document.getElementById('status');
 const openaiStateEl = document.getElementById('openaiState');
@@ -266,6 +267,7 @@ function shouldSendMicrophoneFrame(input) {
     if (!localSpeechActive) {
       localSpeechActive = true;
       localSpeechEndMarked = false;
+      localSpeechEndSent = false;
       localSilenceFramesSentAfterEnd = 0;
       resetLatency();
       latency.localSpeechStart = now;
@@ -279,6 +281,11 @@ function shouldSendMicrophoneFrame(input) {
     localSpeechEndMarked = true;
     localSpeechActive = false;
     markLatency('localSpeechEnd');
+    if (!localSpeechEndSent && ws?.readyState === WebSocket.OPEN) {
+      localSpeechEndSent = true;
+      ws.send(JSON.stringify({ type: 'local_speech_end' }));
+      console.log('[voice] local_speech_end_sent');
+    }
     console.log('[latency] local_speech_ended');
   }
 
