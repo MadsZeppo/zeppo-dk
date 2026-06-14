@@ -374,6 +374,10 @@ async function startSession() {
           setStatus(`Mikrofon fejl: ${error.message}`, 'error');
         });
       }
+      if (message.type === 'ws_connected') {
+        console.log('[voice] server_ws_connected');
+        setStatus('WebSocket forbundet', 'connecting');
+      }
       if (message.type === 'openai_status') openaiStateEl.textContent = message.status;
       if (message.type === 'cartesia_status') cartesiaStateEl.textContent = message.status;
       if (message.type === 'transcript' && message.role === 'user') addMessage('user', message.text);

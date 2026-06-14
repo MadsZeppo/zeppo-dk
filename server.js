@@ -1005,6 +1005,7 @@ function setupCartesiaVoiceAgent(httpServer) {
 
   voiceWss.on('connection', (client) => {
     console.log('[voice] client_connected');
+    sendJson(client, { type: 'ws_connected' });
 
     let openaiWs = null;
     let cartesiaWs = null;
@@ -1323,6 +1324,10 @@ function setupCartesiaVoiceAgent(httpServer) {
     }
 
     client.on('message', (raw, isBinary) => {
+      console.log('[voice] client_message', {
+        isBinary,
+        bytes: raw?.length || raw?.byteLength || 0,
+      });
       if (!isBinary) {
         let message;
         try {
@@ -1333,11 +1338,15 @@ function setupCartesiaVoiceAgent(httpServer) {
         }
 
         if (message.type === 'start') {
+          console.log('[voice] client_start', {
+            outputSampleRate: message.outputSampleRate,
+          });
           startSession(message);
           return;
         }
 
         if (message.type === 'stop') {
+          console.log('[voice] client_stop');
           closeOpenAi();
           closeCartesia();
           sessionStarted = false;
