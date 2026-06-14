@@ -1021,6 +1021,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     let pendingCartesiaText = [];
     let sessionStarted = false;
     let greetingSent = false;
+    let greetingResponseActive = false;
     let audioChunkSeenForResponse = false;
 
     function clientJson(data) {
@@ -1060,6 +1061,7 @@ function setupCartesiaVoiceAgent(httpServer) {
       function sendInitialGreeting() {
         if (greetingSent || openaiWs?.readyState !== WebSocket.OPEN) return;
         greetingSent = true;
+        greetingResponseActive = true;
         openaiWs.send(JSON.stringify({
           type: 'response.create',
           response: {
@@ -1090,7 +1092,7 @@ function setupCartesiaVoiceAgent(httpServer) {
                 transcription: { model: 'whisper-1', language: 'da' },
                 turn_detection: {
                   type: 'semantic_vad',
-                  eagerness: 'low',
+                  eagerness: 'high',
                   create_response: true,
                   interrupt_response: true,
                 },
@@ -1164,6 +1166,11 @@ function setupCartesiaVoiceAgent(httpServer) {
         ) {
           if (responseActive) finishCartesiaContext();
           responseActive = false;
+          if (greetingResponseActive) {
+            greetingResponseActive = false;
+            clientJson({ type: 'transcript_done', role: 'assistant' });
+            return;
+          }
           clientJson({ type: 'transcript_done', role: 'assistant' });
           return;
         }
@@ -1276,7 +1283,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         context_id: contextId,
         language: 'da',
         add_timestamps: false,
-        max_buffer_delay_ms: 160,
+        max_buffer_delay_ms: 60,
       };
     }
 
