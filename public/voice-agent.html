@@ -170,9 +170,10 @@
 <script>
 const INPUT_SAMPLE_RATE = 24000;
 const LOCAL_SPEECH_RMS_THRESHOLD = 0.02;
-const LOCAL_SILENCE_END_MS = 650;
-const LOCAL_TRAILING_SILENCE_MS = 260;
-const LOCAL_MIN_SPEECH_MS = 220;
+const LOCAL_SILENCE_END_MS = 580;
+const LOCAL_TRAILING_SILENCE_MS = 220;
+const LOCAL_MIN_SPEECH_MS = 320;
+const LOCAL_MIN_SENT_AUDIO_MS = 140;
 
 let ws = null;
 let audioContext = null;
@@ -196,6 +197,7 @@ let localSilenceFramesSentAfterEnd = 0;
 let localSpeechEndSent = false;
 let pendingLocalSpeechEnd = false;
 let awaitingAssistantResponse = false;
+let localSentAudioFrames = 0;
 
 const statusEl = document.getElementById('status');
 const openaiStateEl = document.getElementById('openaiState');
@@ -274,6 +276,7 @@ function shouldSendMicrophoneFrame(input) {
       localSpeechEndMarked = false;
       localSpeechEndSent = false;
       localSilenceFramesSentAfterEnd = 0;
+      localSentAudioFrames = 0;
       resetLatency();
       latency.localSpeechStart = now;
       console.log('[latency] local_speech_started');
@@ -514,6 +517,13 @@ function floatToPcm16(float32) {
 
 function sendPendingLocalSpeechEnd() {
   if (!pendingLocalSpeechEnd || localSpeechEndSent || ws?.readyState !== WebSocket.OPEN) return;
+  const sentAudioMs = (localSentAudioFrames / INPUT_SAMPLE_RATE) * 1000;
+  if (sentAudioMs < LOCAL_MIN_SENT_AUDIO_MS) {
+    pendingLocalSpeechEnd = false;
+    localSpeechEndSent = true;
+    console.warn('[voice] local_speech_end_ignored_short_audio', { sentAudioMs: Math.round(sentAudioMs) });
+    return;
+  }
   pendingLocalSpeechEnd = false;
   localSpeechEndSent = true;
   awaitingAssistantResponse = true;
@@ -543,6 +553,7 @@ async function startMicrophone() {
     const downsampled = downsample(input, audioContext.sampleRate, INPUT_SAMPLE_RATE);
     const pcm16 = floatToPcm16(downsampled);
     ws.send(pcm16.buffer);
+    localSentAudioFrames += downsampled.length;
     sendPendingLocalSpeechEnd();
   };
   micSource.connect(micProcessor);
