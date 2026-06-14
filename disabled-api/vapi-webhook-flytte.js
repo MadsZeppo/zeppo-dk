@@ -6,12 +6,13 @@ import {
   markCallProcessed,
   sendSmsSikkert,
   validateVapiRequest,
-} from './_vvs-shared.js';
+} from '../api/_vvs-shared.js';
 import {
-  buildLaasesmedSms,
-  defaultLaasesmedInfo,
-  extractLaasesmedInfo,
-} from './_laasesmed-shared.js';
+  buildFlytteCustomerSms,
+  buildFlytteSms,
+  defaultFlytteInfo,
+  extractFlytteInfo,
+} from '../api/_flytte-shared.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
   }
 
   if (!validateVapiRequest(req)) {
-    console.warn('Låsesmed webhook afvist - ugyldig eller manglende secret');
+    console.warn('Flytte webhook afvist - ugyldig eller manglende secret');
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -36,12 +37,12 @@ export default async function handler(req, res) {
     const customerPhone = getCustomerPhone(message);
 
     if (callId && isCallProcessed(callId)) {
-      console.log(`Låsesmed duplikat - call ${callId} allerede behandlet`);
+      console.log(`Flytte duplikat - call ${callId} allerede behandlet`);
       return res.status(200).json({ ok: true, duplicate: true });
     }
     if (callId) markCallProcessed(callId);
 
-    console.log('Låsesmed webhook modtaget:', {
+    console.log('Flytte webhook modtaget:', {
       callId,
       transcriptLength: transcript.length,
       customerPhone,
@@ -49,27 +50,32 @@ export default async function handler(req, res) {
 
     let info;
     try {
-      info = await extractLaasesmedInfo(transcript, customerPhone);
+      info = await extractFlytteInfo(transcript, customerPhone);
     } catch (err) {
-      console.error('Låsesmed-ekstraktion fejlede:', err.message);
-      info = defaultLaasesmedInfo(customerPhone);
+      console.error('Flytte-ekstraktion fejlede:', err.message);
+      info = defaultFlytteInfo(customerPhone);
       info.ekstra_noter = `EKSTRAKTION FEJLEDE: ${err.message} - ring kunde manuelt`;
     }
 
-    console.log('Låsesmed-sag:', {
+    console.log('Flytteopgave:', {
       navn: info.navn,
       telefon: info.telefon,
-      adresse: info.adresse,
-      by: info.by,
-      kategori: info.kategori,
-      prioritet: info.prioritet,
+      flytte_fra_status: info.flytte_fra_status,
+      flytte_til_status: info.flytte_til_status,
+      boligtype_fra: info.boligtype_fra,
+      boligtype_til: info.boligtype_til,
+      kvadratmeter_fra: info.kvadratmeter_fra,
+      hvornaar: info.hvornaar,
     });
 
-    const leadSent = await sendSmsSikkert(process.env.VVS_NUMBER, buildLaasesmedSms(info), 'Låsesmed');
+    const leadSent = await sendSmsSikkert(process.env.VVS_NUMBER, buildFlytteSms(info), 'Flyttefirma');
+    if (customerPhone) {
+      await sendSmsSikkert(customerPhone, buildFlytteCustomerSms(info), 'Flyttekunde');
+    }
 
     return res.status(200).json({ ok: true, leadSent });
   } catch (err) {
-    console.error('Låsesmed webhook fejl:', err.message);
+    console.error('Flytte webhook fejl:', err.message);
     return res.status(200).json({ ok: false, error: err.message });
   }
 }

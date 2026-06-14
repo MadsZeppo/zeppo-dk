@@ -1,5 +1,5 @@
 import twilio from 'twilio';
-import { sendSmsSikkert } from './_vvs-shared.js';
+import { sendSmsSikkert } from '../api/_vvs-shared.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
