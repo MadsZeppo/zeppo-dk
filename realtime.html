@@ -620,6 +620,12 @@ async function startSession() {
     dc.onopen = () => {
       setStatus('Forbundet', 'connected');
       setDebug('connected');
+      dc.send(JSON.stringify({
+        type: 'response.create',
+        response: {
+          instructions: 'Start samtalen nu med præcis én kort velkomst på dansk.',
+        },
+      }));
     };
     dc.onmessage = (message) => {
       try {
