@@ -1093,7 +1093,7 @@ function setupCartesiaVoiceAgent(httpServer) {
                 transcription: { model: 'whisper-1', language: 'da' },
                 turn_detection: {
                   type: 'semantic_vad',
-                  eagerness: 'medium',
+                  eagerness: 'high',
                   create_response: true,
                   interrupt_response: true,
                 },

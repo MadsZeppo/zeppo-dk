@@ -187,6 +187,7 @@ let assistantUnmuteTimer = null;
 let localSpeechActive = false;
 let localLastVoiceAt = 0;
 let localSpeechEndMarked = false;
+let localSilenceFramesSentAfterEnd = 0;
 
 const statusEl = document.getElementById('status');
 const openaiStateEl = document.getElementById('openaiState');
@@ -255,7 +256,7 @@ function reportLatency() {
   if (parts.length) console.log('[latency]', latencyStateEl.textContent);
 }
 
-function trackLocalSpeechEnd(input) {
+function shouldSendMicrophoneFrame(input) {
   const now = performance.now();
   let sum = 0;
   for (let i = 0; i < input.length; i++) sum += input[i] * input[i];
@@ -265,12 +266,13 @@ function trackLocalSpeechEnd(input) {
     if (!localSpeechActive) {
       localSpeechActive = true;
       localSpeechEndMarked = false;
+      localSilenceFramesSentAfterEnd = 0;
       resetLatency();
       latency.localSpeechStart = now;
       console.log('[latency] local_speech_started');
     }
     localLastVoiceAt = now;
-    return;
+    return true;
   }
 
   if (localSpeechActive && !localSpeechEndMarked && now - localLastVoiceAt > 280) {
@@ -279,6 +281,12 @@ function trackLocalSpeechEnd(input) {
     markLatency('localSpeechEnd');
     console.log('[latency] local_speech_ended');
   }
+
+  if (!localSpeechEndMarked) return true;
+
+  localSilenceFramesSentAfterEnd += input.length;
+  const extraSilenceMs = (localSilenceFramesSentAfterEnd / (audioContext?.sampleRate || 48000)) * 1000;
+  return extraSilenceMs < 180;
 }
 
 function clearTranscript() {
@@ -506,7 +514,7 @@ async function startMicrophone() {
     if (!connected || ws?.readyState !== WebSocket.OPEN) return;
     if (assistantSpeaking) return;
     const input = event.inputBuffer.getChannelData(0);
-    trackLocalSpeechEnd(input);
+    if (!shouldSendMicrophoneFrame(input)) return;
     const downsampled = downsample(input, audioContext.sampleRate, INPUT_SAMPLE_RATE);
     const pcm16 = floatToPcm16(downsampled);
     ws.send(pcm16.buffer);
