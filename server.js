@@ -1033,6 +1033,9 @@ function setupCartesiaVoiceAgent(httpServer) {
     const handledToolCallIds = new Set();
     let latestUserTranscript = '';
     let knownCustomerName = '';
+    let assistantResponseText = '';
+    let awaitingOrderConfirmation = false;
+    let orderConfirmationAnswered = false;
 
     function clientJson(data) {
       sendJson(client, data);
@@ -1223,6 +1226,15 @@ function setupCartesiaVoiceAgent(httpServer) {
         if (event.type === 'conversation.item.input_audio_transcription.completed') {
           latestUserTranscript = event.transcript || '';
           updateKnownCustomerName(latestUserTranscript);
+          if (awaitingOrderConfirmation) {
+            orderConfirmationAnswered = true;
+            if (!isClearDanishConfirmation(latestUserTranscript)) {
+              awaitingOrderConfirmation = false;
+              console.log('[voice] order_confirmation_rejected_or_unclear', {
+                latest_user_transcript: latestUserTranscript,
+              });
+            }
+          }
           clientJson({ type: 'transcript', role: 'user', text: latestUserTranscript });
           return;
         }
@@ -1266,8 +1278,10 @@ function setupCartesiaVoiceAgent(httpServer) {
             manualResponsePending = false;
             manualCommitPending = false;
             audioChunkSeenForResponse = false;
+            assistantResponseText = '';
             startCartesiaContext();
           }
+          assistantResponseText += delta;
           clientJson({ type: 'latency_mark', name: 'firstOpenaiText' });
           clientJson({ type: 'transcript_delta', role: 'assistant', text: delta });
           bufferCartesiaText(delta);
@@ -1287,6 +1301,13 @@ function setupCartesiaVoiceAgent(httpServer) {
             greetingResponseActive = false;
             clientJson({ type: 'transcript_done', role: 'assistant' });
             return;
+          }
+          if (/lyder det rigtigt\??/i.test(assistantResponseText)) {
+            awaitingOrderConfirmation = true;
+            orderConfirmationAnswered = false;
+            console.log('[voice] order_confirmation_prompt_seen', {
+              text: assistantResponseText.slice(0, 240),
+            });
           }
           clientJson({ type: 'transcript_done', role: 'assistant' });
           return;
@@ -1473,6 +1494,22 @@ function setupCartesiaVoiceAgent(httpServer) {
       return /^(ja|jo|jep|yep|korrekt|det er korrekt|det er rigtigt|den er god|det passer|helt rigtigt|super|perfekt|fint|ja tak)(\b|$)/.test(normalized);
     }
 
+    function orderResultInstructions(result) {
+      if (result?.ok) {
+        return 'Sig kort til kunden at ordren er lagt ind. Nævn ordrenummeret hvis det findes.';
+      }
+      if (result?.code === 'ORDER_CONFIRMATION_PROMPT_REQUIRED') {
+        return 'Du forsøgte at oprette ordren før du havde opsummeret og spurgt "Lyder det rigtigt?". Fortsæt flowet fra næste manglende trin. Hvis alle oplysninger er kendt, opsummer ordren og spørg: "Lyder det rigtigt?"';
+      }
+      if (result?.code === 'CUSTOMER_CONFIRMATION_REQUIRED') {
+        return 'Kunden bekræftede ikke tydeligt eller sagde nej. Sig kun: "Okay, hvad skal jeg rette?"';
+      }
+      if (result?.message_for_agent) {
+        return `Sig kort præcis dette til kunden: "${result.message_for_agent}"`;
+      }
+      return 'Sig kort: "Der driller noget i systemet, men jeg har ordren og giver den videre."';
+    }
+
     async function handleFunctionCall({ callId, name, argumentsJson }) {
       if (!callId || name !== 'create_woocommerce_order') return;
       if (handledToolCallIds.has(callId)) return;
@@ -1484,11 +1521,25 @@ function setupCartesiaVoiceAgent(httpServer) {
         delivery_type: args.delivery_type,
         confirmed_by_customer: args.confirmed_by_customer,
         latest_user_transcript: latestUserTranscript,
+        awaiting_order_confirmation: awaitingOrderConfirmation,
+        order_confirmation_answered: orderConfirmationAnswered,
       });
 
       let result;
       try {
+        if (!awaitingOrderConfirmation || !orderConfirmationAnswered) {
+          const error = new Error('Ordren må ikke oprettes før opsummering og kundens bekræftelse');
+          error.body = {
+            ok: false,
+            error: error.message,
+            code: 'ORDER_CONFIRMATION_PROMPT_REQUIRED',
+            message_for_agent: 'Jeg skal lige opsummere ordren først og høre om det lyder rigtigt.',
+          };
+          throw error;
+        }
+
         if (!isClearDanishConfirmation(latestUserTranscript)) {
+          awaitingOrderConfirmation = false;
           const error = new Error('Kundens seneste svar var ikke en tydelig bekræftelse');
           error.body = {
             ok: false,
@@ -1514,6 +1565,8 @@ function setupCartesiaVoiceAgent(httpServer) {
           pickup_time_text: args.pickup_time_text || '',
           notes: args.notes || '',
         });
+        awaitingOrderConfirmation = false;
+        orderConfirmationAnswered = false;
       } catch (error) {
         result = error.body || {
           ok: false,
@@ -1542,9 +1595,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         type: 'response.create',
         response: {
           output_modalities: ['text'],
-          instructions: result.ok
-            ? 'Sig kort til kunden at ordren er lagt ind. Nævn ordrenummeret hvis det findes.'
-            : 'Sig kort: "Der driller noget i systemet, men jeg har ordren og giver den videre."',
+          instructions: orderResultInstructions(result),
         },
       }));
     }
