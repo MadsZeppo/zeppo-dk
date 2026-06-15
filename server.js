@@ -1214,6 +1214,10 @@ function setupCartesiaVoiceAgent(httpServer) {
           uncommittedOpenAiAudioMs = 0;
           if (manualCommitPending && manualResponsePending && openaiWs?.readyState === WebSocket.OPEN) {
             manualCommitPending = false;
+            if (awaitingOrderConfirmation && !orderConfirmationAnswered) {
+              console.log('[voice] deferring_response_until_confirmation_transcript');
+              return;
+            }
             openaiWs.send(JSON.stringify(createOpenAiResponsePayload()));
           }
           return;
@@ -1243,6 +1247,9 @@ function setupCartesiaVoiceAgent(httpServer) {
             }
           }
           clientJson({ type: 'transcript', role: 'user', text: latestUserTranscript });
+          if (manualResponsePending && !manualCommitPending && !responseActive && openaiWs?.readyState === WebSocket.OPEN) {
+            openaiWs.send(JSON.stringify(createOpenAiResponsePayload()));
+          }
           return;
         }
 
@@ -1563,7 +1570,8 @@ function setupCartesiaVoiceAgent(httpServer) {
         .trim();
       if (!normalized) return false;
       if (isClearDanishConfirmation(normalized)) return false;
-      return /\b(nej|ikke|forkert|ret|rettelse|ændr|skift|vent|stop)\b/.test(normalized);
+      if (/\b(forkert|ret|rettelse|ændr|skift|vent|stop)\b/.test(normalized)) return true;
+      return /^nej\b.*\b(ikke|forkert|ret|rettelse|ændr|skift|pepperoni|margherita|kebab|durum|pepsi|minut|minutter|time|timer|lever|levering|hent|henter|afhentning)\b/.test(normalized);
     }
 
     function orderResultInstructions(result) {
@@ -1796,6 +1804,10 @@ function setupCartesiaVoiceAgent(httpServer) {
       openaiWs.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
       setTimeout(() => {
         if (!manualCommitPending || !manualResponsePending || responseActive || openaiWs?.readyState !== WebSocket.OPEN) return;
+        if (awaitingOrderConfirmation && !orderConfirmationAnswered) {
+          console.log('[voice] openai_audio_commit_timeout_waiting_for_confirmation_transcript');
+          return;
+        }
         console.warn('[voice] openai_audio_commit_timeout_starting_response');
         manualCommitPending = false;
         openaiWs.send(JSON.stringify(createOpenAiResponsePayload()));
