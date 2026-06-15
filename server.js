@@ -1446,6 +1446,8 @@ function setupCartesiaVoiceAgent(httpServer) {
         'Hvis kunden beder om calzone, svar præcis: "Vi har desværre ikke calzone på kortet. Kan jeg byde på noget andet?"',
         'Spørg aldrig "hvor mange" efter én almindelig vare. Hvis kunden siger en Pepperoni eller en Margherita, antag antal 1.',
         'Beskriv aldrig ingredienser, smag eller at en vare er lækker.',
+        'Opsummer aldrig hele den aktuelle bestilling midt i flowet. Bekræft kun det kunden lige sagde, og opsummer først i det afsluttende "Lyder det rigtigt?"-trin.',
+        'Sig aldrig "så har jeg", "nu har du", "jeg noterer", "jeg tilføjer" eller "til din bestilling".',
       ];
       if (knownCustomerName) {
         rules.unshift(`Kundens navn er ${knownCustomerName}. Spørg ikke efter navn igen. Hvis du opsummerer ordren, brug navnet kort og naturligt.`);
