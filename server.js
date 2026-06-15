@@ -1036,6 +1036,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     let assistantResponseText = '';
     let awaitingOrderConfirmation = false;
     let orderConfirmationAnswered = false;
+    let awaitingCustomerName = false;
 
     function clientJson(data) {
       sendJson(client, data);
@@ -1225,7 +1226,8 @@ function setupCartesiaVoiceAgent(httpServer) {
 
         if (event.type === 'conversation.item.input_audio_transcription.completed') {
           latestUserTranscript = event.transcript || '';
-          updateKnownCustomerName(latestUserTranscript);
+          updateKnownCustomerName(latestUserTranscript, { afterNameQuestion: awaitingCustomerName });
+          if (knownCustomerName) awaitingCustomerName = false;
           if (awaitingOrderConfirmation) {
             orderConfirmationAnswered = true;
             if (!isClearDanishConfirmation(latestUserTranscript)) {
@@ -1308,6 +1310,10 @@ function setupCartesiaVoiceAgent(httpServer) {
             console.log('[voice] order_confirmation_prompt_seen', {
               text: assistantResponseText.slice(0, 240),
             });
+          }
+          if (/(må jeg få dit navn|hvad er dit navn|hvad hedder du|og hvad hedder du)/i.test(assistantResponseText)) {
+            awaitingCustomerName = true;
+            console.log('[voice] customer_name_prompt_seen');
           }
           clientJson({ type: 'transcript_done', role: 'assistant' });
           return;
@@ -1443,11 +1449,12 @@ function setupCartesiaVoiceAgent(httpServer) {
       return cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
     }
 
-    function updateKnownCustomerName(transcript) {
+    function updateKnownCustomerName(transcript, options = {}) {
       if (knownCustomerName) return;
       const text = String(transcript || '').trim();
       const patterns = [
-        /\b(?:jeg hedder|mit navn er|du snakker(?: jo)? med)\s+([A-Za-zÆØÅæøå'-]{2,28})\b/i,
+        /\b(?:jeg hedder|mit navn er|min navn er|du snakker(?: jo)? med)\s+([A-Za-zÆØÅæøå'-]{2,28})\b/i,
+        /\b(?:er du|du)?\s*snakke(?:r)?(?: jo)?\s+med\s+([A-Za-zÆØÅæøå'-]{2,28})\b/i,
         /\b([A-Za-zÆØÅæøå'-]{2,28})\s+her\b/i,
       ];
       for (const pattern of patterns) {
@@ -1457,6 +1464,18 @@ function setupCartesiaVoiceAgent(httpServer) {
         knownCustomerName = name;
         console.log('[voice] customer_name_detected', { name: knownCustomerName });
         return;
+      }
+      if (options.afterNameQuestion) {
+        const simpleName = text
+          .replace(/[.!?,;:]/g, ' ')
+          .trim()
+          .split(/\s+/)
+          .map(normalizeDanishName)
+          .find(Boolean);
+        if (simpleName) {
+          knownCustomerName = simpleName;
+          console.log('[voice] customer_name_detected_after_prompt', { name: knownCustomerName });
+        }
       }
     }
 
