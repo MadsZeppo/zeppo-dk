@@ -14,7 +14,7 @@ import createRealtimeOrderHandler from './api/realtime-order-create.js';
 import realtimeSessionHandler from './api/realtime-session.js';
 import ttsHandler from './api/tts.js';
 import { getTranscript as getSharedTranscript } from './api/_vvs-shared.js';
-import { GODTFOLK_INSTRUCTIONS } from './api/_godtfolk-prompt.js';
+import { GODTFOLK_INSTRUCTIONS } from './lib/godtfolk-prompt.js';
 
 dotenv.config();
 

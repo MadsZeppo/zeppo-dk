@@ -1,4 +1,4 @@
-import { GODTFOLK_INSTRUCTIONS } from './_godtfolk-prompt.js';
+import { GODTFOLK_INSTRUCTIONS } from '../lib/godtfolk-prompt.js';
 
 const REALTIME_MODEL = 'gpt-realtime';
 
