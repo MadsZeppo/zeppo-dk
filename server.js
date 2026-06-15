@@ -989,7 +989,7 @@ function setupElevenLabsTtsProxy(httpServer) {
 
 const OPENAI_REALTIME_WS_MODEL = 'gpt-realtime';
 const OPENAI_REALTIME_INPUT_RATE = 24000;
-const OPENAI_MIN_COMMIT_AUDIO_MS = 105;
+const OPENAI_MIN_COMMIT_AUDIO_MS = 100;
 const CARTESIA_VERSION = process.env.CARTESIA_VERSION || '2026-03-01';
 const CARTESIA_MODEL_ID = process.env.CARTESIA_MODEL_ID || 'sonic-3.5';
 
@@ -1015,6 +1015,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     let cartesiaOutputRate = 48000;
     let currentContextId = null;
     let responseActive = false;
+    let responseCreatePending = false;
     let pendingOpenAiAudio = [];
     let pendingCartesiaText = [];
     let sessionStarted = false;
@@ -1069,6 +1070,7 @@ function setupCartesiaVoiceAgent(httpServer) {
       uncommittedOpenAiAudioMs = 0;
       manualResponsePending = false;
       manualCommitPending = false;
+      responseCreatePending = false;
     }
 
     function closeCartesia() {
@@ -1190,10 +1192,11 @@ function setupCartesiaVoiceAgent(httpServer) {
         if (event.type === 'input_audio_buffer.speech_started') {
           console.log('[voice] user_speech_started');
           cancelCartesiaContext();
-          if (responseActive && openaiWs?.readyState === WebSocket.OPEN) {
+          if ((responseActive || responseCreatePending) && openaiWs?.readyState === WebSocket.OPEN) {
             openaiWs.send(JSON.stringify({ type: 'response.cancel' }));
           }
           responseActive = false;
+          responseCreatePending = false;
           greetingResponseActive = false;
           clientJson({ type: 'interrupt' });
           return;
@@ -1218,7 +1221,7 @@ function setupCartesiaVoiceAgent(httpServer) {
               console.log('[voice] deferring_response_until_confirmation_transcript');
               return;
             }
-            openaiWs.send(JSON.stringify(createOpenAiResponsePayload()));
+            sendOpenAiResponseCreate('audio_committed');
           }
           return;
         }
@@ -1247,8 +1250,14 @@ function setupCartesiaVoiceAgent(httpServer) {
             }
           }
           clientJson({ type: 'transcript', role: 'user', text: latestUserTranscript });
-          if (manualResponsePending && !manualCommitPending && !responseActive && openaiWs?.readyState === WebSocket.OPEN) {
-            openaiWs.send(JSON.stringify(createOpenAiResponsePayload()));
+          if (
+            manualResponsePending &&
+            !manualCommitPending &&
+            !responseActive &&
+            !responseCreatePending &&
+            openaiWs?.readyState === WebSocket.OPEN
+          ) {
+            sendOpenAiResponseCreate('transcript_ready');
           }
           return;
         }
@@ -1289,6 +1298,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           if (!delta) return;
           if (!responseActive) {
             responseActive = true;
+            responseCreatePending = false;
             manualResponsePending = false;
             manualCommitPending = false;
             audioChunkSeenForResponse = false;
@@ -1309,6 +1319,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         ) {
           if (responseActive) finishCartesiaContext();
           responseActive = false;
+          responseCreatePending = false;
           manualResponsePending = false;
           manualCommitPending = false;
           if (greetingResponseActive) {
@@ -1336,6 +1347,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           console.error('[voice] openai_error', event.error);
           const message = event.error?.message || 'OpenAI error';
           const isEmptyCommitError = /buffer too small|Expected at least 100ms/i.test(message);
+          const isActiveResponseError = /Conversation already has an active response/i.test(message);
           if (isEmptyCommitError) {
             console.warn('[voice] openai_empty_audio_commit_ignored', {
               uncommitted_audio_ms: Math.round(uncommittedOpenAiAudioMs),
@@ -1346,8 +1358,16 @@ function setupCartesiaVoiceAgent(httpServer) {
             uncommittedOpenAiAudioMs = 0;
             return;
           }
+          if (isActiveResponseError) {
+            console.warn('[voice] openai_active_response_ignored', { message });
+            manualResponsePending = false;
+            manualCommitPending = false;
+            responseCreatePending = true;
+            return;
+          }
           manualResponsePending = false;
           manualCommitPending = false;
+          responseCreatePending = false;
           clientJson({ type: 'error', error: message });
         }
       });
@@ -1550,6 +1570,16 @@ function setupCartesiaVoiceAgent(httpServer) {
       };
     }
 
+    function sendOpenAiResponseCreate(reason) {
+      if (openaiWs?.readyState !== WebSocket.OPEN || responseActive || responseCreatePending) return false;
+      manualResponsePending = false;
+      manualCommitPending = false;
+      responseCreatePending = true;
+      console.log('[voice] response_create_sent', { reason });
+      openaiWs.send(JSON.stringify(createOpenAiResponsePayload()));
+      return true;
+    }
+
     function isClearDanishConfirmation(text) {
       const normalized = String(text || '')
         .toLowerCase()
@@ -1698,7 +1728,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         context_id: contextId,
         language: 'da',
         add_timestamps: false,
-        max_buffer_delay_ms: 20,
+        max_buffer_delay_ms: 10,
       };
     }
 
@@ -1730,7 +1760,7 @@ function setupCartesiaVoiceAgent(httpServer) {
 
     function shouldFlushCartesiaText(text) {
       const trimmed = text.trim();
-      return /[.!?]\s*$/.test(trimmed) || /,\s*$/.test(trimmed) || trimmed.length >= 24;
+      return /[.!?]\s*$/.test(trimmed) || /,\s*$/.test(trimmed) || trimmed.length >= 20;
     }
 
     function bufferCartesiaText(delta) {
@@ -1776,7 +1806,7 @@ function setupCartesiaVoiceAgent(httpServer) {
 
     function startOpenAiResponseFromSpeechEnd(source) {
       if (!sessionStarted || openaiWs?.readyState !== WebSocket.OPEN) return;
-      if (!hasUncommittedOpenAiAudio || manualResponsePending || responseActive || greetingResponseActive) return;
+      if (!hasUncommittedOpenAiAudio || manualResponsePending || responseActive || responseCreatePending || greetingResponseActive) return;
       if (uncommittedOpenAiAudioMs < OPENAI_MIN_COMMIT_AUDIO_MS) {
         console.warn('[voice] speech_end_ignored_short_audio', {
           source,
@@ -1803,15 +1833,15 @@ function setupCartesiaVoiceAgent(httpServer) {
       clientJson({ type: 'latency_mark', name: 'speechStopped' });
       openaiWs.send(JSON.stringify({ type: 'input_audio_buffer.commit' }));
       setTimeout(() => {
-        if (!manualCommitPending || !manualResponsePending || responseActive || openaiWs?.readyState !== WebSocket.OPEN) return;
+        if (!manualCommitPending || !manualResponsePending || responseActive || responseCreatePending || openaiWs?.readyState !== WebSocket.OPEN) return;
         if (awaitingOrderConfirmation && !orderConfirmationAnswered) {
           console.log('[voice] openai_audio_commit_timeout_waiting_for_confirmation_transcript');
           return;
         }
         console.warn('[voice] openai_audio_commit_timeout_starting_response');
         manualCommitPending = false;
-        openaiWs.send(JSON.stringify(createOpenAiResponsePayload()));
-      }, 150);
+        sendOpenAiResponseCreate('commit_timeout');
+      }, 100);
     }
 
     function startOpenAiResponseFromLocalSpeechEnd() {
