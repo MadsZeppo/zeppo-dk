@@ -1497,7 +1497,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         'Sig aldrig "så har jeg", "nu har du", "jeg noterer", "jeg tilføjer" eller "til din bestilling".',
         'Sig aldrig "Er der mere, du gerne vil have?", "Er der andet, du gerne vil have?", "Er der ellers noget, du ønsker?", "lad os lige få det bekræftet" eller "Du har bestilt" midt i flowet.',
         'Sig aldrig "Lyder det rigtigt:" med kolon, "Lad mig lige opsummere igen", "Lad os lige tage opsummeringen igen", "Bekræfter du" eller "Lyder det helt korrekt?".',
-        'Opsummeringen skal have formen: "Så det er [ordre] til [afhentning/levering] om [tid]. Lyder det rigtigt?"',
+        'Opsummeringen skal have formen: "Okay [navn]. Så det er [ordre], [afhentning/levering] om [tid]. Lyder det rigtigt?"',
         'Efter kunden har sagt tydeligt ja til opsummeringen, må du aldrig opsummere igen. Kald create_woocommerce_order.',
         'Gå aldrig til bekræftelse før mad, drikkevarer eller nej til drikkevarer, afhentning eller levering, tidspunkt og navn er kendt.',
         'Hvis kunden lige valgte en drik efter maden, spørg kun: "Skal vi levere den eller henter du selv?"',
@@ -1510,7 +1510,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         'Hvis kunden spørger "har du snakket med..." eller nævner andre pizzarianavne, vælg aldrig produkt. Spørg kun: "Ja, hvad må det være?"',
       ];
       if (knownCustomerName) {
-        rules.unshift(`Kundens navn er ${knownCustomerName}. Spørg ikke efter navn igen. Hvis du opsummerer ordren, brug navnet kort og naturligt.`);
+        rules.unshift(`Kundens navn er ${knownCustomerName}. Spørg ikke efter navn igen. Spring navnetrinnet over. Hvis du opsummerer ordren, start med "Okay ${knownCustomerName}."`);
       }
       return rules.join(' ');
     }
