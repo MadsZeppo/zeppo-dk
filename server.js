@@ -1448,6 +1448,10 @@ function setupCartesiaVoiceAgent(httpServer) {
         'Beskriv aldrig ingredienser, smag eller at en vare er lækker.',
         'Opsummer aldrig hele den aktuelle bestilling midt i flowet. Bekræft kun det kunden lige sagde, og opsummer først i det afsluttende "Lyder det rigtigt?"-trin.',
         'Sig aldrig "så har jeg", "nu har du", "jeg noterer", "jeg tilføjer" eller "til din bestilling".',
+        'Sig aldrig "Er der mere, du gerne vil have?", "Er der andet, du gerne vil have?", "Er der ellers noget, du ønsker?", "lad os lige få det bekræftet" eller "Du har bestilt" midt i flowet.',
+        'Gå aldrig til bekræftelse før mad, drikkevarer eller nej til drikkevarer, afhentning eller levering, tidspunkt og navn er kendt.',
+        'Hvis kunden lige valgte en drik efter maden, spørg kun: "Skal vi levere den eller henter du selv?"',
+        'Hvis kunden lige ændrede maden, nævn kun ændringen og stil næste manglende flowspørgsmål.',
       ];
       if (knownCustomerName) {
         rules.unshift(`Kundens navn er ${knownCustomerName}. Spørg ikke efter navn igen. Hvis du opsummerer ordren, brug navnet kort og naturligt.`);
