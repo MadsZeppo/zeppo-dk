@@ -14,7 +14,7 @@ import createRealtimeOrderHandler, { createRealtimeOrder } from './api/realtime-
 import realtimeSessionHandler from './api/realtime-session.js';
 import ttsHandler from './api/tts.js';
 import { getTranscript as getSharedTranscript } from './api/_vvs-shared.js';
-import { GODTFOLK_INSTRUCTIONS } from './lib/godtfolk-prompt.js';
+import { GODTFOLK_FAST_INSTRUCTIONS } from './lib/godtfolk-prompt.js';
 
 dotenv.config();
 
@@ -1110,7 +1110,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           type: 'session.update',
           session: {
             type: 'realtime',
-            instructions: GODTFOLK_INSTRUCTIONS,
+            instructions: GODTFOLK_FAST_INSTRUCTIONS,
             output_modalities: ['text'],
             audio: {
               input: {

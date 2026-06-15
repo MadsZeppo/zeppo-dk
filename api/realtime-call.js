@@ -1,4 +1,4 @@
-import { GODTFOLK_INSTRUCTIONS } from '../lib/godtfolk-prompt.js';
+import { GODTFOLK_FAST_INSTRUCTIONS } from '../lib/godtfolk-prompt.js';
 
 const REALTIME_MODEL = 'gpt-realtime';
 
@@ -39,15 +39,15 @@ export default async function handler(req, res) {
     const sessionConfig = {
       type: 'realtime',
       model: REALTIME_MODEL,
-      instructions: GODTFOLK_INSTRUCTIONS,
+      instructions: GODTFOLK_FAST_INSTRUCTIONS,
       audio: {
         input: {
           transcription: { model: 'whisper-1', language: 'da' },
           turn_detection: {
             type: 'semantic_vad',
-            eagerness: 'low',
+            eagerness: 'high',
             create_response: true,
-            interrupt_response: false,
+            interrupt_response: true,
           },
         },
       },

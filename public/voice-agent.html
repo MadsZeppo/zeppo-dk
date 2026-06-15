@@ -172,9 +172,9 @@
 <script>
 const INPUT_SAMPLE_RATE = 24000;
 const LOCAL_SPEECH_RMS_THRESHOLD = 0.02;
-const LOCAL_SILENCE_END_MS = 300;
-const LOCAL_TRAILING_SILENCE_MS = 60;
-const LOCAL_MIN_SPEECH_MS = 220;
+const LOCAL_SILENCE_END_MS = 240;
+const LOCAL_TRAILING_SILENCE_MS = 45;
+const LOCAL_MIN_SPEECH_MS = 180;
 const LOCAL_MIN_SENT_AUDIO_MS = 105;
 const TARGET_LATENCY_MS = 500;
 const VOICE_AGENT_BACKEND_HOST = 'zeppo-dk.onrender.com';
@@ -564,7 +564,7 @@ async function startMicrophone() {
     },
   });
   micSource = audioContext.createMediaStreamSource(micStream);
-  micProcessor = audioContext.createScriptProcessor(1024, 1, 1);
+  micProcessor = audioContext.createScriptProcessor(512, 1, 1);
   micProcessor.onaudioprocess = (event) => {
     event.outputBuffer.getChannelData(0).fill(0);
     if (!connected || ws?.readyState !== WebSocket.OPEN) return;
