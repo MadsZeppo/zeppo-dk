@@ -167,6 +167,54 @@ function successResponse(order, resolvedItems, extra = {}) {
   };
 }
 
+export async function createRealtimeOrder(input) {
+  const validationError = validateInput(input);
+  if (validationError) {
+    const error = new Error(validationError.body.error);
+    error.status = validationError.status;
+    error.body = validationError.body;
+    throw error;
+  }
+
+  const normalizedItems = input.items.map((item) => ({
+    product: clean(item.product),
+    quantity: toPositiveInteger(item.quantity),
+  }));
+  const resolvedItems = resolveOrderItems(normalizedItems);
+  const failedItem = resolvedItems.find((item) => !item.ok);
+  if (failedItem) {
+    const error = new Error('Kunne ikke matche produkt');
+    error.status = 400;
+    error.body = {
+      ok: false,
+      error: 'Kunne ikke matche produkt',
+      code: 'NO_MENU_MATCH',
+      spoken_product: failedItem.spokenProduct,
+      message_for_agent: 'Jeg er ikke helt sikker på hvilken vare du mener. Kan du sige den igen?',
+    };
+    throw error;
+  }
+
+  const sessionId = clean(input.session_id);
+  const existing = await findOrderBySessionId(sessionId);
+  if (existing) {
+    return successResponse(existing.wooOrder || existing, resolvedItems, { idempotent: true });
+  }
+
+  const wooPayload = buildWooCommerceOrder(input, resolvedItems);
+  const wooOrder = await createWooCommerceOrder(wooPayload);
+  await saveOrderMapping(sessionId, wooOrder);
+
+  console.log('[orders] woo_order_created', {
+    session_id: sessionId,
+    order_id: wooOrder.id,
+    order_number: wooOrder.number,
+    item_count: resolvedItems.length,
+  });
+
+  return successResponse(wooOrder, resolvedItems);
+}
+
 export default async function createRealtimeOrderHandler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -189,44 +237,13 @@ export default async function createRealtimeOrderHandler(req, res) {
 
   try {
     const input = req.body || {};
-    const validationError = validateInput(input);
-    if (validationError) return res.status(validationError.status).json(validationError.body);
-
-    const normalizedItems = input.items.map((item) => ({
-      product: clean(item.product),
-      quantity: toPositiveInteger(item.quantity),
-    }));
-    const resolvedItems = resolveOrderItems(normalizedItems);
-    const failedItem = resolvedItems.find((item) => !item.ok);
-    if (failedItem) {
-      return res.status(400).json({
-        ok: false,
-        error: 'Kunne ikke matche produkt',
-        code: 'NO_MENU_MATCH',
-        spoken_product: failedItem.spokenProduct,
-        message_for_agent: 'Jeg er ikke helt sikker på hvilken vare du mener. Kan du sige den igen?',
-      });
-    }
-
-    const sessionId = clean(input.session_id);
-    const existing = await findOrderBySessionId(sessionId);
-    if (existing) {
-      return res.status(200).json(successResponse(existing.wooOrder || existing, resolvedItems, { idempotent: true }));
-    }
-
-    const wooPayload = buildWooCommerceOrder(input, resolvedItems);
-    const wooOrder = await createWooCommerceOrder(wooPayload);
-    await saveOrderMapping(sessionId, wooOrder);
-
-    console.log('[orders] woo_order_created', {
-      session_id: sessionId,
-      order_id: wooOrder.id,
-      order_number: wooOrder.number,
-      item_count: resolvedItems.length,
-    });
-
-    return res.status(200).json(successResponse(wooOrder, resolvedItems));
+    const result = await createRealtimeOrder(input);
+    return res.status(200).json(result);
   } catch (error) {
+    if (error.body && error.status) {
+      return res.status(error.status).json(error.body);
+    }
+
     if (error.code === 'CONFIG_MISSING') {
       return res.status(500).json({
         ok: false,

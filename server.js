@@ -10,7 +10,7 @@ import { appendFile, mkdir, readFile } from 'fs/promises';
 import WebSocket, { WebSocketServer } from 'ws';
 import realtimeCallHandler from './api/realtime-call.js';
 import createWooCommerceOrderHandler from './api/create-woocommerce-order.js';
-import createRealtimeOrderHandler from './api/realtime-order-create.js';
+import createRealtimeOrderHandler, { createRealtimeOrder } from './api/realtime-order-create.js';
 import realtimeSessionHandler from './api/realtime-session.js';
 import ttsHandler from './api/tts.js';
 import { getTranscript as getSharedTranscript } from './api/_vvs-shared.js';
@@ -1027,6 +1027,10 @@ function setupCartesiaVoiceAgent(httpServer) {
     let manualResponsePending = false;
     let manualCommitPending = false;
     let speechStoppedFallbackTimer = null;
+    let binaryFrameLogCount = 0;
+    const voiceSessionId = crypto.randomUUID();
+    const pendingToolCalls = new Map();
+    const handledToolCallIds = new Set();
 
     function clientJson(data) {
       sendJson(client, data);
@@ -1110,6 +1114,45 @@ function setupCartesiaVoiceAgent(httpServer) {
                 },
               },
             },
+            tools: [
+              {
+                type: 'function',
+                name: 'create_woocommerce_order',
+                description: 'Opretter en bekræftet Godtfolk Pizzabar ordre i WooCommerce. Må kun kaldes efter kunden tydeligt har bekræftet opsummeringen.',
+                parameters: {
+                  type: 'object',
+                  additionalProperties: false,
+                  properties: {
+                    confirmed_by_customer: {
+                      type: 'boolean',
+                      description: 'Skal være true, og kun hvis kunden lige har bekræftet opsummeringen.',
+                    },
+                    name: { type: 'string' },
+                    phone: { type: 'string' },
+                    items: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        additionalProperties: false,
+                        properties: {
+                          product: { type: 'string' },
+                          quantity: { type: 'integer', minimum: 1 },
+                        },
+                        required: ['product', 'quantity'],
+                      },
+                    },
+                    delivery_type: { type: 'string', enum: ['pickup', 'delivery'] },
+                    pickup_time_text: { type: 'string' },
+                    address: { type: 'string' },
+                    city: { type: 'string' },
+                    postcode: { type: 'string' },
+                    notes: { type: 'string' },
+                  },
+                  required: ['confirmed_by_customer', 'name', 'items', 'delivery_type', 'pickup_time_text'],
+                },
+              },
+            ],
+            tool_choice: 'auto',
           },
         }));
 
@@ -1176,6 +1219,37 @@ function setupCartesiaVoiceAgent(httpServer) {
 
         if (event.type === 'conversation.item.input_audio_transcription.completed') {
           clientJson({ type: 'transcript', role: 'user', text: event.transcript || '' });
+          return;
+        }
+
+        if (event.type === 'response.function_call_arguments.delta') {
+          const callId = event.call_id || event.item_id;
+          if (!callId) return;
+          const existing = pendingToolCalls.get(callId) || { name: event.name || '', arguments: '' };
+          existing.name = existing.name || event.name || '';
+          existing.arguments += event.delta || '';
+          pendingToolCalls.set(callId, existing);
+          return;
+        }
+
+        if (event.type === 'response.function_call_arguments.done') {
+          const callId = event.call_id || event.item_id;
+          const existing = pendingToolCalls.get(callId) || {};
+          handleFunctionCall({
+            callId,
+            name: event.name || existing.name,
+            argumentsJson: event.arguments || existing.arguments || '{}',
+          });
+          pendingToolCalls.delete(callId);
+          return;
+        }
+
+        if (event.type === 'response.output_item.done' && event.item?.type === 'function_call') {
+          handleFunctionCall({
+            callId: event.item.call_id,
+            name: event.item.name,
+            argumentsJson: event.item.arguments || '{}',
+          });
           return;
         }
 
@@ -1321,6 +1395,80 @@ function setupCartesiaVoiceAgent(httpServer) {
       ttsTextBuffer = '';
     }
 
+    function parseToolArguments(argumentsJson) {
+      if (!argumentsJson || typeof argumentsJson !== 'string') return {};
+      try {
+        return JSON.parse(argumentsJson);
+      } catch (error) {
+        console.error('[voice] tool_args_parse_error', error.message, argumentsJson);
+        return {};
+      }
+    }
+
+    async function handleFunctionCall({ callId, name, argumentsJson }) {
+      if (!callId || name !== 'create_woocommerce_order') return;
+      if (handledToolCallIds.has(callId)) return;
+      handledToolCallIds.add(callId);
+      const args = parseToolArguments(argumentsJson);
+      console.log('[voice] create_woocommerce_order_requested', {
+        call_id: callId,
+        item_count: Array.isArray(args.items) ? args.items.length : 0,
+        delivery_type: args.delivery_type,
+        confirmed_by_customer: args.confirmed_by_customer,
+      });
+
+      let result;
+      try {
+        result = await createRealtimeOrder({
+          session_id: voiceSessionId,
+          confirmed_by_customer: args.confirmed_by_customer === true,
+          customer: {
+            name: args.name || '',
+            phone: args.phone || process.env.VOICE_AGENT_DEFAULT_PHONE || '00000000',
+            address: args.address || '',
+            city: args.city || '',
+            postcode: args.postcode || '',
+          },
+          items: Array.isArray(args.items) ? args.items : [],
+          delivery_type: args.delivery_type,
+          pickup_time_text: args.pickup_time_text || '',
+          notes: args.notes || '',
+        });
+      } catch (error) {
+        result = error.body || {
+          ok: false,
+          error: error.message || 'Order creation failed',
+          code: error.code || 'ORDER_CREATE_FAILED',
+          message_for_agent: 'Der driller noget i systemet, men jeg har ordren og giver den videre.',
+        };
+      }
+
+      console.log('[voice] create_woocommerce_order_result', {
+        ok: result.ok,
+        order_id: result.order_id,
+        code: result.code,
+      });
+
+      if (openaiWs?.readyState !== WebSocket.OPEN) return;
+      openaiWs.send(JSON.stringify({
+        type: 'conversation.item.create',
+        item: {
+          type: 'function_call_output',
+          call_id: callId,
+          output: JSON.stringify(result),
+        },
+      }));
+      openaiWs.send(JSON.stringify({
+        type: 'response.create',
+        response: {
+          output_modalities: ['text'],
+          instructions: result.ok
+            ? 'Sig kort til kunden at ordren er lagt ind. Nævn ordrenummeret hvis det findes.'
+            : 'Sig kort: "Der driller noget i systemet, men jeg har ordren og giver den videre."',
+        },
+      }));
+    }
+
     function cartesiaBasePayload(contextId) {
       return {
         model_id: CARTESIA_MODEL_ID,
@@ -1336,7 +1484,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         context_id: contextId,
         language: 'da',
         add_timestamps: false,
-        max_buffer_delay_ms: 70,
+        max_buffer_delay_ms: 35,
       };
     }
 
@@ -1368,7 +1516,7 @@ function setupCartesiaVoiceAgent(httpServer) {
 
     function shouldFlushCartesiaText(text) {
       const trimmed = text.trim();
-      return /[.!?]\s*$/.test(trimmed) || /,\s*$/.test(trimmed) || trimmed.length >= 42;
+      return /[.!?]\s*$/.test(trimmed) || /,\s*$/.test(trimmed) || trimmed.length >= 34;
     }
 
     function bufferCartesiaText(delta) {
@@ -1479,10 +1627,20 @@ function setupCartesiaVoiceAgent(httpServer) {
     }
 
     client.on('message', (raw, isBinary) => {
-      console.log('[voice] client_message', {
-        isBinary,
-        bytes: raw?.length || raw?.byteLength || 0,
-      });
+      if (isBinary) {
+        binaryFrameLogCount += 1;
+        if (binaryFrameLogCount % 100 === 1) {
+          console.log('[voice] client_audio_frames', {
+            frames: binaryFrameLogCount,
+            bytes: raw?.length || raw?.byteLength || 0,
+          });
+        }
+      } else {
+        console.log('[voice] client_message', {
+          isBinary,
+          bytes: raw?.length || raw?.byteLength || 0,
+        });
+      }
       if (!isBinary) {
         let message;
         try {
