@@ -173,13 +173,18 @@
 const INPUT_SAMPLE_RATE = 24000;
 const LOCAL_SPEECH_RMS_THRESHOLD = 0.024;
 const LOCAL_SPEECH_PEAK_THRESHOLD = 0.035;
-const LOCAL_SPEECH_CONFIRM_MS = 90;
-const LOCAL_CANDIDATE_SILENCE_RESET_MS = 70;
-const LOCAL_MAX_PREROLL_MS = 220;
+const LOCAL_SPEECH_CONFIRM_MS = 150;
+const LOCAL_SPEECH_MIN_FRAMES = 10;
+const LOCAL_SPEECH_MIN_VOICE_RATIO = 0.7;
+const LOCAL_CANDIDATE_SILENCE_RESET_MS = 90;
+const LOCAL_CANDIDATE_MAX_MS = 650;
+const LOCAL_MAX_PREROLL_MS = 280;
+const LOCAL_MAX_VOICE_CREST_FACTOR = 11.5;
+const LOCAL_MAX_VOICE_ZERO_CROSSING_RATE = 0.32;
 const LOCAL_SILENCE_END_MS = 240;
 const LOCAL_TRAILING_SILENCE_MS = 45;
 const LOCAL_MIN_SPEECH_MS = 180;
-const LOCAL_MIN_SENT_AUDIO_MS = 105;
+const LOCAL_MIN_SENT_AUDIO_MS = 150;
 const TARGET_LATENCY_MS = 500;
 const VOICE_AGENT_BACKEND_HOST = 'zeppo-dk.onrender.com';
 
@@ -209,6 +214,10 @@ let localSentAudioFrames = 0;
 let localSpeechCandidateStartedAt = 0;
 let localSpeechCandidateLastVoiceAt = 0;
 let localSpeechCandidatePeak = 0;
+let localSpeechCandidateVoiceMs = 0;
+let localSpeechCandidateVoiceFrames = 0;
+let localSpeechCandidateCrestTotal = 0;
+let localSpeechCandidateZcrTotal = 0;
 let localSpeechCandidateFrames = [];
 let localLastNoiseLogAt = 0;
 
@@ -287,6 +296,10 @@ function resetLocalSpeechCandidate() {
   localSpeechCandidateStartedAt = 0;
   localSpeechCandidateLastVoiceAt = 0;
   localSpeechCandidatePeak = 0;
+  localSpeechCandidateVoiceMs = 0;
+  localSpeechCandidateVoiceFrames = 0;
+  localSpeechCandidateCrestTotal = 0;
+  localSpeechCandidateZcrTotal = 0;
   localSpeechCandidateFrames = [];
 }
 
@@ -294,21 +307,74 @@ function frameDurationMs(input) {
   return (input.length / (audioContext?.sampleRate || 48000)) * 1000;
 }
 
-function rememberSpeechCandidateFrame(input, rms, now) {
+function refreshSpeechCandidateStats() {
+  localSpeechCandidatePeak = 0;
+  localSpeechCandidateVoiceMs = 0;
+  localSpeechCandidateVoiceFrames = 0;
+  localSpeechCandidateCrestTotal = 0;
+  localSpeechCandidateZcrTotal = 0;
+  for (const frame of localSpeechCandidateFrames) {
+    localSpeechCandidatePeak = Math.max(localSpeechCandidatePeak, frame.peak);
+    if (!frame.isVoiceLike) continue;
+    localSpeechCandidateVoiceMs += frame.durationMs;
+    localSpeechCandidateVoiceFrames += 1;
+    localSpeechCandidateCrestTotal += frame.crestFactor;
+    localSpeechCandidateZcrTotal += frame.zeroCrossingRate;
+  }
+}
+
+function analyzeMicrophoneFrame(input) {
+  let sum = 0;
+  let peak = 0;
+  let zeroCrossings = 0;
+  let previous = input[0] || 0;
+  for (let i = 0; i < input.length; i++) {
+    const value = input[i];
+    const abs = Math.abs(value);
+    sum += value * value;
+    if (abs > peak) peak = abs;
+    if (i > 0 && ((value >= 0 && previous < 0) || (value < 0 && previous >= 0))) {
+      zeroCrossings += 1;
+    }
+    previous = value;
+  }
+  const rms = Math.sqrt(sum / Math.max(1, input.length));
+  const crestFactor = peak / Math.max(rms, 0.000001);
+  const zeroCrossingRate = zeroCrossings / Math.max(1, input.length - 1);
+  const hasVoiceEnergy = rms > LOCAL_SPEECH_RMS_THRESHOLD && peak > LOCAL_SPEECH_PEAK_THRESHOLD;
+  const isVoiceLike =
+    hasVoiceEnergy &&
+    crestFactor <= LOCAL_MAX_VOICE_CREST_FACTOR &&
+    zeroCrossingRate <= LOCAL_MAX_VOICE_ZERO_CROSSING_RATE;
+  return { rms, peak, crestFactor, zeroCrossingRate, hasVoiceEnergy, isVoiceLike };
+}
+
+function rememberSpeechCandidateFrame(input, analysis, now) {
   if (!localSpeechCandidateStartedAt) {
     localSpeechCandidateStartedAt = now;
     localSpeechCandidateFrames = [];
     localSpeechCandidatePeak = 0;
+    localSpeechCandidateVoiceMs = 0;
+    localSpeechCandidateVoiceFrames = 0;
+    localSpeechCandidateCrestTotal = 0;
+    localSpeechCandidateZcrTotal = 0;
   }
 
-  localSpeechCandidateLastVoiceAt = now;
-  localSpeechCandidatePeak = Math.max(localSpeechCandidatePeak, rms);
-  localSpeechCandidateFrames.push(input.slice(0));
+  if (analysis.hasVoiceEnergy) localSpeechCandidateLastVoiceAt = now;
+  localSpeechCandidateFrames.push({
+    samples: input.slice(0),
+    durationMs: frameDurationMs(input),
+    isVoiceLike: analysis.isVoiceLike,
+    peak: analysis.peak,
+    crestFactor: analysis.crestFactor,
+    zeroCrossingRate: analysis.zeroCrossingRate,
+  });
 
   const maxFrames = Math.max(1, Math.ceil(LOCAL_MAX_PREROLL_MS / Math.max(1, frameDurationMs(input))));
   if (localSpeechCandidateFrames.length > maxFrames) {
     localSpeechCandidateFrames.splice(0, localSpeechCandidateFrames.length - maxFrames);
   }
+  refreshSpeechCandidateStats();
 }
 
 function ignoreSpeechCandidate(now) {
@@ -317,7 +383,15 @@ function ignoreSpeechCandidate(now) {
     localLastNoiseLogAt = now;
     console.log('[voice] noise_burst_ignored', {
       frames: localSpeechCandidateFrames.length,
+      voiceFrames: localSpeechCandidateVoiceFrames,
+      voiceMs: Math.round(localSpeechCandidateVoiceMs),
       peak: Number(localSpeechCandidatePeak.toFixed(4)),
+      avgCrest: localSpeechCandidateVoiceFrames
+        ? Number((localSpeechCandidateCrestTotal / localSpeechCandidateVoiceFrames).toFixed(2))
+        : null,
+      avgZcr: localSpeechCandidateVoiceFrames
+        ? Number((localSpeechCandidateZcrTotal / localSpeechCandidateVoiceFrames).toFixed(3))
+        : null,
     });
   }
   resetLocalSpeechCandidate();
@@ -333,7 +407,7 @@ function startConfirmedLocalSpeech(now) {
   resetLatency();
   latency.localSpeechStart = localSpeechStartedAt;
   console.log('[latency] local_speech_started');
-  const frames = localSpeechCandidateFrames;
+  const frames = localSpeechCandidateFrames.map((frame) => frame.samples);
   resetLocalSpeechCandidate();
   return frames;
 }
@@ -342,20 +416,23 @@ function getMicrophoneFramesToSend(input) {
   const now = performance.now();
   if (awaitingAssistantResponse && !localSpeechActive) return [];
 
-  let sum = 0;
-  for (let i = 0; i < input.length; i++) sum += input[i] * input[i];
-  const rms = Math.sqrt(sum / Math.max(1, input.length));
-  const hasVoiceEnergy = rms > LOCAL_SPEECH_RMS_THRESHOLD;
+  const analysis = analyzeMicrophoneFrame(input);
 
-  if (hasVoiceEnergy) {
+  if (analysis.hasVoiceEnergy) {
     if (!localSpeechActive) {
-      rememberSpeechCandidateFrame(input, rms, now);
+      rememberSpeechCandidateFrame(input, analysis, now);
       const candidateDurationMs = now - localSpeechCandidateStartedAt + frameDurationMs(input);
+      const voiceRatio = localSpeechCandidateVoiceFrames / Math.max(1, localSpeechCandidateFrames.length);
       const speechConfirmed =
-        candidateDurationMs >= LOCAL_SPEECH_CONFIRM_MS &&
+        localSpeechCandidateVoiceMs >= LOCAL_SPEECH_CONFIRM_MS &&
+        localSpeechCandidateVoiceFrames >= LOCAL_SPEECH_MIN_FRAMES &&
+        voiceRatio >= LOCAL_SPEECH_MIN_VOICE_RATIO &&
         localSpeechCandidatePeak >= LOCAL_SPEECH_PEAK_THRESHOLD;
 
-      if (!speechConfirmed) return [];
+      if (!speechConfirmed) {
+        if (candidateDurationMs > LOCAL_CANDIDATE_MAX_MS) ignoreSpeechCandidate(now);
+        return [];
+      }
 
       const frames = startConfirmedLocalSpeech(now);
       localLastVoiceAt = now;
