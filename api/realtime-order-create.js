@@ -237,11 +237,16 @@ export default async function createRealtimeOrderHandler(req, res) {
     }
 
     if (error instanceof WooCommerceError) {
-      console.error('[orders] woocommerce_error', { status: error.status, body: error.body });
+      console.error('[orders] woocommerce_error', {
+        code: error.code,
+        status: error.status,
+        message: error.message,
+        body: error.body,
+      });
       return res.status(502).json({
         ok: false,
-        error: 'WooCommerce API error',
-        code: 'WOOCOMMERCE_ERROR',
+        error: error.message || 'WooCommerce API error',
+        code: error.code || 'WOOCOMMERCE_ERROR',
         woo_status: error.status,
         woo_body: error.body,
         message_for_agent: 'Jeg kunne ikke oprette ordren automatisk lige nu. Jeg sender den videre manuelt.',
