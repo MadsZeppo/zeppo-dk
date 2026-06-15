@@ -8,11 +8,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { appendFile, mkdir, readFile } from 'fs/promises';
 import WebSocket, { WebSocketServer } from 'ws';
-import {
-  buildLaasesmedSms,
-  defaultLaasesmedInfo,
-  extractLaasesmedInfo,
-} from './api/_laasesmed-shared.js';
 import realtimeCallHandler from './api/realtime-call.js';
 import createWooCommerceOrderHandler from './api/create-woocommerce-order.js';
 import createRealtimeOrderHandler from './api/realtime-order-create.js';
