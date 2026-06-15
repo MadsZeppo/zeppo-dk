@@ -236,7 +236,7 @@ export default async function createRealtimeOrderHandler(req, res) {
       });
     }
 
-    if (error instanceof WooCommerceError) {
+    if (error instanceof WooCommerceError || error.name === 'WooCommerceError') {
       console.error('[orders] woocommerce_error', {
         code: error.code,
         status: error.status,
@@ -256,8 +256,9 @@ export default async function createRealtimeOrderHandler(req, res) {
     console.error('[orders] unexpected_error', error);
     return res.status(500).json({
       ok: false,
-      error: 'Unexpected backend error',
+      error: error.message || 'Unexpected backend error',
       code: 'INTERNAL_ERROR',
+      error_name: error.name || 'Error',
       message_for_agent: 'Jeg kunne ikke oprette ordren automatisk lige nu. Jeg sender den videre manuelt.',
     });
   }
