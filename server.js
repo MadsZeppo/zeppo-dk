@@ -1036,6 +1036,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     let assistantResponseText = '';
     let awaitingOrderConfirmation = false;
     let orderConfirmationAnswered = false;
+    let orderConfirmationApproved = false;
     let awaitingCustomerName = false;
 
     function clientJson(data) {
@@ -1230,7 +1231,12 @@ function setupCartesiaVoiceAgent(httpServer) {
           if (knownCustomerName) awaitingCustomerName = false;
           if (awaitingOrderConfirmation) {
             orderConfirmationAnswered = true;
-            if (!isClearDanishConfirmation(latestUserTranscript)) {
+            if (isClearDanishConfirmation(latestUserTranscript)) {
+              orderConfirmationApproved = true;
+              console.log('[voice] order_confirmation_approved', {
+                latest_user_transcript: latestUserTranscript,
+              });
+            } else if (!orderConfirmationApproved) {
               awaitingOrderConfirmation = false;
               console.log('[voice] order_confirmation_rejected_or_unclear', {
                 latest_user_transcript: latestUserTranscript,
@@ -1307,6 +1313,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           if (/lyder det rigtigt\??/i.test(assistantResponseText)) {
             awaitingOrderConfirmation = true;
             orderConfirmationAnswered = false;
+            orderConfirmationApproved = false;
             console.log('[voice] order_confirmation_prompt_seen', {
               text: assistantResponseText.slice(0, 240),
             });
@@ -1489,6 +1496,9 @@ function setupCartesiaVoiceAgent(httpServer) {
         'Opsummer aldrig hele den aktuelle bestilling midt i flowet. Bekræft kun det kunden lige sagde, og opsummer først i det afsluttende "Lyder det rigtigt?"-trin.',
         'Sig aldrig "så har jeg", "nu har du", "jeg noterer", "jeg tilføjer" eller "til din bestilling".',
         'Sig aldrig "Er der mere, du gerne vil have?", "Er der andet, du gerne vil have?", "Er der ellers noget, du ønsker?", "lad os lige få det bekræftet" eller "Du har bestilt" midt i flowet.',
+        'Sig aldrig "Lyder det rigtigt:" med kolon, "Lad mig lige opsummere igen", "Lad os lige tage opsummeringen igen", "Bekræfter du" eller "Lyder det helt korrekt?".',
+        'Opsummeringen skal have formen: "Så det er [ordre] til [afhentning/levering] om [tid]. Lyder det rigtigt?"',
+        'Efter kunden har sagt tydeligt ja til opsummeringen, må du aldrig opsummere igen. Kald create_woocommerce_order.',
         'Gå aldrig til bekræftelse før mad, drikkevarer eller nej til drikkevarer, afhentning eller levering, tidspunkt og navn er kendt.',
         'Hvis kunden lige valgte en drik efter maden, spørg kun: "Skal vi levere den eller henter du selv?"',
         'Hvis kunden lige ændrede maden, nævn kun ændringen og stil næste manglende flowspørgsmål.',
@@ -1545,11 +1555,12 @@ function setupCartesiaVoiceAgent(httpServer) {
         latest_user_transcript: latestUserTranscript,
         awaiting_order_confirmation: awaitingOrderConfirmation,
         order_confirmation_answered: orderConfirmationAnswered,
+        order_confirmation_approved: orderConfirmationApproved,
       });
 
       let result;
       try {
-        if (!awaitingOrderConfirmation || !orderConfirmationAnswered) {
+        if (!awaitingOrderConfirmation || !orderConfirmationAnswered || !orderConfirmationApproved) {
           const error = new Error('Ordren må ikke oprettes før opsummering og kundens bekræftelse');
           error.body = {
             ok: false,
@@ -1560,7 +1571,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           throw error;
         }
 
-        if (!isClearDanishConfirmation(latestUserTranscript)) {
+        if (!orderConfirmationApproved) {
           awaitingOrderConfirmation = false;
           const error = new Error('Kundens seneste svar var ikke en tydelig bekræftelse');
           error.body = {
@@ -1589,6 +1600,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         });
         awaitingOrderConfirmation = false;
         orderConfirmationAnswered = false;
+        orderConfirmationApproved = false;
       } catch (error) {
         result = error.body || {
           ok: false,
