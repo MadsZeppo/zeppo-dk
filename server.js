@@ -1037,6 +1037,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     let awaitingOrderConfirmation = false;
     let orderConfirmationAnswered = false;
     let orderConfirmationApproved = false;
+    let forceOrderToolOnNextResponse = false;
     let awaitingCustomerName = false;
 
     function clientJson(data) {
@@ -1214,13 +1215,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           uncommittedOpenAiAudioMs = 0;
           if (manualCommitPending && manualResponsePending && openaiWs?.readyState === WebSocket.OPEN) {
             manualCommitPending = false;
-            openaiWs.send(JSON.stringify({
-              type: 'response.create',
-              response: {
-                output_modalities: ['text'],
-                instructions: responseContextInstructions(),
-              },
-            }));
+            openaiWs.send(JSON.stringify(createOpenAiResponsePayload()));
           }
           return;
         }
@@ -1233,6 +1228,7 @@ function setupCartesiaVoiceAgent(httpServer) {
             orderConfirmationAnswered = true;
             if (isClearDanishConfirmation(latestUserTranscript)) {
               orderConfirmationApproved = true;
+              forceOrderToolOnNextResponse = true;
               console.log('[voice] order_confirmation_approved', {
                 latest_user_transcript: latestUserTranscript,
               });
@@ -1515,6 +1511,34 @@ function setupCartesiaVoiceAgent(httpServer) {
       return rules.join(' ');
     }
 
+    function createOpenAiResponsePayload() {
+      if (forceOrderToolOnNextResponse) {
+        forceOrderToolOnNextResponse = false;
+        console.log('[voice] forcing_order_tool_response');
+        return {
+          type: 'response.create',
+          response: {
+            output_modalities: ['text'],
+            tool_choice: 'required',
+            instructions: [
+              'Kunden har lige bekræftet opsummeringen tydeligt.',
+              'Du må IKKE tale, opsummere igen eller stille flere spørgsmål.',
+              'Kald create_woocommerce_order nu med den bekræftede ordre.',
+              'confirmed_by_customer skal være true.',
+            ].join(' '),
+          },
+        };
+      }
+
+      return {
+        type: 'response.create',
+        response: {
+          output_modalities: ['text'],
+          instructions: responseContextInstructions(),
+        },
+      };
+    }
+
     function isClearDanishConfirmation(text) {
       const normalized = String(text || '')
         .toLowerCase()
@@ -1601,6 +1625,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         awaitingOrderConfirmation = false;
         orderConfirmationAnswered = false;
         orderConfirmationApproved = false;
+        forceOrderToolOnNextResponse = false;
       } catch (error) {
         result = error.body || {
           ok: false,
@@ -1757,12 +1782,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         if (!manualCommitPending || !manualResponsePending || responseActive || openaiWs?.readyState !== WebSocket.OPEN) return;
         console.warn('[voice] openai_audio_commit_timeout_starting_response');
         manualCommitPending = false;
-        openaiWs.send(JSON.stringify({
-          type: 'response.create',
-          response: {
-            output_modalities: ['text'],
-          },
-        }));
+        openaiWs.send(JSON.stringify(createOpenAiResponsePayload()));
       }, 250);
     }
 
