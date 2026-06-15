@@ -1031,6 +1031,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     const voiceSessionId = crypto.randomUUID();
     const pendingToolCalls = new Map();
     const handledToolCallIds = new Set();
+    let latestUserTranscript = '';
 
     function clientJson(data) {
       sendJson(client, data);
@@ -1108,7 +1109,7 @@ function setupCartesiaVoiceAgent(httpServer) {
                 transcription: { model: 'whisper-1', language: 'da' },
                 turn_detection: {
                   type: 'semantic_vad',
-                  eagerness: 'high',
+                  eagerness: 'medium',
                   create_response: false,
                   interrupt_response: true,
                 },
@@ -1218,7 +1219,8 @@ function setupCartesiaVoiceAgent(httpServer) {
         }
 
         if (event.type === 'conversation.item.input_audio_transcription.completed') {
-          clientJson({ type: 'transcript', role: 'user', text: event.transcript || '' });
+          latestUserTranscript = event.transcript || '';
+          clientJson({ type: 'transcript', role: 'user', text: latestUserTranscript });
           return;
         }
 
@@ -1405,6 +1407,17 @@ function setupCartesiaVoiceAgent(httpServer) {
       }
     }
 
+    function isClearDanishConfirmation(text) {
+      const normalized = String(text || '')
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!normalized) return false;
+      if (/\b(nej|ikke|forkert|ret|ændr|vent|stop)\b/.test(normalized)) return false;
+      return /^(ja|jo|jep|yep|korrekt|det er korrekt|det er rigtigt|den er god|det passer|helt rigtigt|super|perfekt|fint|ja tak)(\b|$)/.test(normalized);
+    }
+
     async function handleFunctionCall({ callId, name, argumentsJson }) {
       if (!callId || name !== 'create_woocommerce_order') return;
       if (handledToolCallIds.has(callId)) return;
@@ -1415,10 +1428,22 @@ function setupCartesiaVoiceAgent(httpServer) {
         item_count: Array.isArray(args.items) ? args.items.length : 0,
         delivery_type: args.delivery_type,
         confirmed_by_customer: args.confirmed_by_customer,
+        latest_user_transcript: latestUserTranscript,
       });
 
       let result;
       try {
+        if (!isClearDanishConfirmation(latestUserTranscript)) {
+          const error = new Error('Kundens seneste svar var ikke en tydelig bekræftelse');
+          error.body = {
+            ok: false,
+            error: error.message,
+            code: 'CUSTOMER_CONFIRMATION_REQUIRED',
+            message_for_agent: 'Jeg skal lige have et tydeligt ja, før jeg lægger ordren ind.',
+          };
+          throw error;
+        }
+
         result = await createRealtimeOrder({
           session_id: voiceSessionId,
           confirmed_by_customer: args.confirmed_by_customer === true,
