@@ -1440,8 +1440,17 @@ function setupCartesiaVoiceAgent(httpServer) {
     }
 
     function responseContextInstructions() {
-      if (!knownCustomerName) return undefined;
-      return `Kundens navn er ${knownCustomerName}. Spørg ikke efter navn igen. Hvis du opsummerer ordren, brug navnet kort og naturligt.`;
+      const rules = [
+        'Hawaii og calzone findes ikke på menuen. Match dem aldrig til Margherita, Pepperoni eller andre produkter.',
+        'Hvis kunden beder om Hawaii, svar præcis: "Vi har desværre ikke Hawaii på kortet. Kan jeg byde på noget andet?"',
+        'Hvis kunden beder om calzone, svar præcis: "Vi har desværre ikke calzone på kortet. Kan jeg byde på noget andet?"',
+        'Spørg aldrig "hvor mange" efter én almindelig vare. Hvis kunden siger en Pepperoni eller en Margherita, antag antal 1.',
+        'Beskriv aldrig ingredienser, smag eller at en vare er lækker.',
+      ];
+      if (knownCustomerName) {
+        rules.unshift(`Kundens navn er ${knownCustomerName}. Spørg ikke efter navn igen. Hvis du opsummerer ordren, brug navnet kort og naturligt.`);
+      }
+      return rules.join(' ');
     }
 
     function isClearDanishConfirmation(text) {
