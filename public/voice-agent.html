@@ -171,7 +171,11 @@
 
 <script>
 const INPUT_SAMPLE_RATE = 24000;
-const LOCAL_SPEECH_RMS_THRESHOLD = 0.02;
+const LOCAL_SPEECH_RMS_THRESHOLD = 0.024;
+const LOCAL_SPEECH_PEAK_THRESHOLD = 0.035;
+const LOCAL_SPEECH_CONFIRM_MS = 90;
+const LOCAL_CANDIDATE_SILENCE_RESET_MS = 70;
+const LOCAL_MAX_PREROLL_MS = 220;
 const LOCAL_SILENCE_END_MS = 240;
 const LOCAL_TRAILING_SILENCE_MS = 45;
 const LOCAL_MIN_SPEECH_MS = 180;
@@ -202,6 +206,11 @@ let localSpeechEndSent = false;
 let pendingLocalSpeechEnd = false;
 let awaitingAssistantResponse = false;
 let localSentAudioFrames = 0;
+let localSpeechCandidateStartedAt = 0;
+let localSpeechCandidateLastVoiceAt = 0;
+let localSpeechCandidatePeak = 0;
+let localSpeechCandidateFrames = [];
+let localLastNoiseLogAt = 0;
 
 const statusEl = document.getElementById('status');
 const openaiStateEl = document.getElementById('openaiState');
@@ -274,29 +283,99 @@ function reportLatency() {
   if (parts.length) console.log('[latency]', latencyStateEl.textContent);
 }
 
-function shouldSendMicrophoneFrame(input) {
+function resetLocalSpeechCandidate() {
+  localSpeechCandidateStartedAt = 0;
+  localSpeechCandidateLastVoiceAt = 0;
+  localSpeechCandidatePeak = 0;
+  localSpeechCandidateFrames = [];
+}
+
+function frameDurationMs(input) {
+  return (input.length / (audioContext?.sampleRate || 48000)) * 1000;
+}
+
+function rememberSpeechCandidateFrame(input, rms, now) {
+  if (!localSpeechCandidateStartedAt) {
+    localSpeechCandidateStartedAt = now;
+    localSpeechCandidateFrames = [];
+    localSpeechCandidatePeak = 0;
+  }
+
+  localSpeechCandidateLastVoiceAt = now;
+  localSpeechCandidatePeak = Math.max(localSpeechCandidatePeak, rms);
+  localSpeechCandidateFrames.push(input.slice(0));
+
+  const maxFrames = Math.max(1, Math.ceil(LOCAL_MAX_PREROLL_MS / Math.max(1, frameDurationMs(input))));
+  if (localSpeechCandidateFrames.length > maxFrames) {
+    localSpeechCandidateFrames.splice(0, localSpeechCandidateFrames.length - maxFrames);
+  }
+}
+
+function ignoreSpeechCandidate(now) {
+  if (!localSpeechCandidateFrames.length) return;
+  if (now - localLastNoiseLogAt > 1500) {
+    localLastNoiseLogAt = now;
+    console.log('[voice] noise_burst_ignored', {
+      frames: localSpeechCandidateFrames.length,
+      peak: Number(localSpeechCandidatePeak.toFixed(4)),
+    });
+  }
+  resetLocalSpeechCandidate();
+}
+
+function startConfirmedLocalSpeech(now) {
+  localSpeechActive = true;
+  localSpeechStartedAt = localSpeechCandidateStartedAt || now;
+  localSpeechEndMarked = false;
+  localSpeechEndSent = false;
+  localSilenceFramesSentAfterEnd = 0;
+  localSentAudioFrames = 0;
+  resetLatency();
+  latency.localSpeechStart = localSpeechStartedAt;
+  console.log('[latency] local_speech_started');
+  const frames = localSpeechCandidateFrames;
+  resetLocalSpeechCandidate();
+  return frames;
+}
+
+function getMicrophoneFramesToSend(input) {
   const now = performance.now();
-  if (awaitingAssistantResponse && !localSpeechActive) return false;
+  if (awaitingAssistantResponse && !localSpeechActive) return [];
 
   let sum = 0;
   for (let i = 0; i < input.length; i++) sum += input[i] * input[i];
   const rms = Math.sqrt(sum / Math.max(1, input.length));
+  const hasVoiceEnergy = rms > LOCAL_SPEECH_RMS_THRESHOLD;
 
-  if (rms > LOCAL_SPEECH_RMS_THRESHOLD) {
+  if (hasVoiceEnergy) {
     if (!localSpeechActive) {
-      localSpeechActive = true;
-      localSpeechStartedAt = now;
-      localSpeechEndMarked = false;
-      localSpeechEndSent = false;
-      localSilenceFramesSentAfterEnd = 0;
-      localSentAudioFrames = 0;
-      resetLatency();
-      latency.localSpeechStart = now;
-      console.log('[latency] local_speech_started');
+      rememberSpeechCandidateFrame(input, rms, now);
+      const candidateDurationMs = now - localSpeechCandidateStartedAt + frameDurationMs(input);
+      const speechConfirmed =
+        candidateDurationMs >= LOCAL_SPEECH_CONFIRM_MS &&
+        localSpeechCandidatePeak >= LOCAL_SPEECH_PEAK_THRESHOLD;
+
+      if (!speechConfirmed) return [];
+
+      const frames = startConfirmedLocalSpeech(now);
+      localLastVoiceAt = now;
+      latency.localLastVoice = now;
+      return frames;
     }
+
     localLastVoiceAt = now;
     latency.localLastVoice = now;
-    return true;
+    return [input];
+  }
+
+  if (!localSpeechActive) {
+    if (
+      localSpeechCandidateFrames.length &&
+      now - localSpeechCandidateLastVoiceAt > LOCAL_CANDIDATE_SILENCE_RESET_MS
+    ) {
+      ignoreSpeechCandidate(now);
+    }
+    return [];
   }
 
   const speechDurationMs = now - localSpeechStartedAt;
@@ -314,11 +393,11 @@ function shouldSendMicrophoneFrame(input) {
     console.log('[latency] local_speech_ended');
   }
 
-  if (!localSpeechEndMarked) return true;
+  if (!localSpeechEndMarked) return [input];
 
   localSilenceFramesSentAfterEnd += input.length;
   const extraSilenceMs = (localSilenceFramesSentAfterEnd / (audioContext?.sampleRate || 48000)) * 1000;
-  return extraSilenceMs < LOCAL_TRAILING_SILENCE_MS;
+  return extraSilenceMs < LOCAL_TRAILING_SILENCE_MS ? [input] : [];
 }
 
 function clearTranscript() {
@@ -570,11 +649,14 @@ async function startMicrophone() {
     if (!connected || ws?.readyState !== WebSocket.OPEN) return;
     if (assistantSpeaking) return;
     const input = event.inputBuffer.getChannelData(0);
-    if (!shouldSendMicrophoneFrame(input)) return;
-    const downsampled = downsample(input, audioContext.sampleRate, INPUT_SAMPLE_RATE);
-    const pcm16 = floatToPcm16(downsampled);
-    ws.send(pcm16.buffer);
-    localSentAudioFrames += downsampled.length;
+    const frames = getMicrophoneFramesToSend(input);
+    if (!frames.length) return;
+    for (const frame of frames) {
+      const downsampled = downsample(frame, audioContext.sampleRate, INPUT_SAMPLE_RATE);
+      const pcm16 = floatToPcm16(downsampled);
+      ws.send(pcm16.buffer);
+      localSentAudioFrames += downsampled.length;
+    }
     sendPendingLocalSpeechEnd();
   };
   micSource.connect(micProcessor);
@@ -684,6 +766,7 @@ async function startSession() {
 
 function cleanup() {
   connected = false;
+  resetLocalSpeechCandidate();
   if (micProcessor) micProcessor.disconnect();
   if (micSource) micSource.disconnect();
   if (micStream) micStream.getTracks().forEach((track) => track.stop());
