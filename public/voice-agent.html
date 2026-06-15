@@ -72,6 +72,8 @@
     }
     .pill strong { color: #151515; }
     .pill.latency { grid-column: 1 / -1; }
+    .pill.latency.ok { background: #f0f8f2; border-color: #b9dfc4; }
+    .pill.latency.slow { background: #fff2ef; border-color: #ebb4ad; }
     .transcript {
       min-height: 310px;
       max-height: 430px;
@@ -174,6 +176,7 @@ const LOCAL_SILENCE_END_MS = 390;
 const LOCAL_TRAILING_SILENCE_MS = 90;
 const LOCAL_MIN_SPEECH_MS = 260;
 const LOCAL_MIN_SENT_AUDIO_MS = 120;
+const TARGET_LATENCY_MS = 500;
 
 let ws = null;
 let audioContext = null;
@@ -205,6 +208,7 @@ const cartesiaStateEl = document.getElementById('cartesiaState');
 const micStateEl = document.getElementById('micState');
 const audioStateEl = document.getElementById('audioState');
 const latencyStateEl = document.getElementById('latencyState');
+const latencyPillEl = document.querySelector('.pill.latency');
 const transcriptEl = document.getElementById('transcript');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
@@ -225,6 +229,7 @@ function resetLatency() {
     sampleRate: audioContext?.sampleRate || 48000,
   };
   latencyStateEl.textContent = '-';
+  latencyPillEl.classList.remove('ok', 'slow');
 }
 
 function markLatency(name) {
@@ -241,14 +246,21 @@ function reportLatency() {
     const value = Math.round(end - start);
     if (value >= 0) parts.push(`${label} ${value}ms`);
   };
-  if (latency.localSpeechEnd && latency.speechStopped) {
-    pushDuration('VAD wait', latency.localSpeechEnd, latency.speechStopped);
+  const perceivedTotal = latency.localLastVoice && latency.playbackStart
+    ? Math.round(latency.playbackStart - latency.localLastVoice)
+    : null;
+  if (perceivedTotal != null) {
+    const isOk = perceivedTotal <= TARGET_LATENCY_MS;
+    latencyPillEl.classList.toggle('ok', isOk);
+    latencyPillEl.classList.toggle('slow', !isOk);
+    parts.push(`mål ${TARGET_LATENCY_MS}ms: ${perceivedTotal}ms ${isOk ? 'ok' : 'over'}`);
   }
+  pushDuration('stilhed', latency.localLastVoice, latency.localSpeechEnd);
+  pushDuration('commit', latency.localSpeechEnd, latency.speechStopped);
   pushDuration('STT/LLM', latency.speechStopped, latency.firstOpenaiText);
   pushDuration('TTS', latency.firstOpenaiText, latency.firstCartesiaAudio);
   pushDuration('play', latency.firstCartesiaAudio, latency.playbackStart);
-  pushDuration('server total', latency.speechStopped, latency.playbackStart);
-  pushDuration('real total', latency.localSpeechEnd, latency.playbackStart);
+  pushDuration('backend', latency.speechStopped, latency.playbackStart);
   if (playbackStats.chunks) {
     parts.push(`chunks ${playbackStats.chunks}`);
   }
@@ -282,6 +294,7 @@ function shouldSendMicrophoneFrame(input) {
       console.log('[latency] local_speech_started');
     }
     localLastVoiceAt = now;
+    latency.localLastVoice = now;
     return true;
   }
 
