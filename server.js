@@ -1452,6 +1452,9 @@ function setupCartesiaVoiceAgent(httpServer) {
         'Gå aldrig til bekræftelse før mad, drikkevarer eller nej til drikkevarer, afhentning eller levering, tidspunkt og navn er kendt.',
         'Hvis kunden lige valgte en drik efter maden, spørg kun: "Skal vi levere den eller henter du selv?"',
         'Hvis kunden lige ændrede maden, nævn kun ændringen og stil næste manglende flowspørgsmål.',
+        'Efter en madvare som Pepperoni, Margherita eller Kebab Durum skal næste spørgsmål altid være "Skal der mere til?", medmindre kunden tydeligt har sagt nej til mere mad.',
+        'Hvis kunden vælger Margherita eller Pepperoni efter en vare der ikke findes, svar kun "[Produkt], ja. Skal der mere til?" Spørg ikke om afhentning eller levering endnu.',
+        'Hvis kunden spørger "har du snakket med..." eller nævner andre pizzarianavne, vælg aldrig produkt. Spørg kun: "Ja, hvad må det være?"',
       ];
       if (knownCustomerName) {
         rules.unshift(`Kundens navn er ${knownCustomerName}. Spørg ikke efter navn igen. Hvis du opsummerer ordren, brug navnet kort og naturligt.`);
