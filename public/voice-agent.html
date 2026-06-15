@@ -177,6 +177,7 @@ const LOCAL_TRAILING_SILENCE_MS = 90;
 const LOCAL_MIN_SPEECH_MS = 260;
 const LOCAL_MIN_SENT_AUDIO_MS = 120;
 const TARGET_LATENCY_MS = 500;
+const VOICE_AGENT_BACKEND_HOST = 'zeppo-dk.onrender.com';
 
 let ws = null;
 let audioContext = null;
@@ -356,6 +357,13 @@ function finishAssistant() {
 }
 
 function getWsUrl() {
+  if (
+    location.hostname !== VOICE_AGENT_BACKEND_HOST &&
+    location.hostname !== 'localhost' &&
+    location.hostname !== '127.0.0.1'
+  ) {
+    return `wss://${VOICE_AGENT_BACKEND_HOST}/api/voice-agent`;
+  }
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${location.host}/api/voice-agent`;
 }
