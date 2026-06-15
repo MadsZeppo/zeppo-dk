@@ -1136,7 +1136,6 @@ function setupCartesiaVoiceAgent(httpServer) {
                       description: 'Skal være true, og kun hvis kunden lige har bekræftet opsummeringen.',
                     },
                     name: { type: 'string' },
-                    phone: { type: 'string' },
                     items: {
                       type: 'array',
                       items: {
@@ -1232,9 +1231,13 @@ function setupCartesiaVoiceAgent(httpServer) {
               console.log('[voice] order_confirmation_approved', {
                 latest_user_transcript: latestUserTranscript,
               });
-            } else if (!orderConfirmationApproved) {
+            } else if (isOrderCorrectionOrRejection(latestUserTranscript) && !orderConfirmationApproved) {
               awaitingOrderConfirmation = false;
               console.log('[voice] order_confirmation_rejected_or_unclear', {
+                latest_user_transcript: latestUserTranscript,
+              });
+            } else {
+              console.log('[voice] order_confirmation_waiting_for_clear_yes', {
                 latest_user_transcript: latestUserTranscript,
               });
             }
@@ -1495,6 +1498,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         'Sig aldrig "Lyder det rigtigt:" med kolon, "Lad mig lige opsummere igen", "Lad os lige tage opsummeringen igen", "Bekræfter du" eller "Lyder det helt korrekt?".',
         'Opsummeringen skal have formen: "Okay [navn]. Så det er [ordre], [afhentning/levering] om [tid]. Lyder det rigtigt?"',
         'Efter kunden har sagt tydeligt ja til opsummeringen, må du aldrig opsummere igen. Kald create_woocommerce_order.',
+        'Spørg aldrig efter telefonnummer. Telefonnummeret håndteres af systemet.',
         'Gå aldrig til bekræftelse før mad, drikkevarer eller nej til drikkevarer, afhentning eller levering, tidspunkt og navn er kendt.',
         'Hvis kunden lige valgte en drik efter maden, spørg kun: "Skal vi levere den eller henter du selv?"',
         'Hvis kunden lige ændrede maden, nævn kun ændringen og stil næste manglende flowspørgsmål.',
@@ -1546,8 +1550,20 @@ function setupCartesiaVoiceAgent(httpServer) {
         .replace(/\s+/g, ' ')
         .trim();
       if (!normalized) return false;
-      if (/\b(nej|ikke|forkert|ret|ændr|vent|stop)\b/.test(normalized)) return false;
+      if (/\b(ikke|forkert|ret|ændr|vent|stop)\b/.test(normalized)) return false;
+      if (/\b(ja|jo|jep|yep|yes)\b.*\b(korrekt|rigtigt|godt|passer|stemmer|super|fint)\b/.test(normalized)) return true;
       return /^(ja|jo|jep|yep|korrekt|det er korrekt|det er rigtigt|den er god|det passer|helt rigtigt|super|perfekt|fint|ja tak)(\b|$)/.test(normalized);
+    }
+
+    function isOrderCorrectionOrRejection(text) {
+      const normalized = String(text || '')
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!normalized) return false;
+      if (isClearDanishConfirmation(normalized)) return false;
+      return /\b(nej|ikke|forkert|ret|rettelse|ændr|skift|vent|stop)\b/.test(normalized);
     }
 
     function orderResultInstructions(result) {
