@@ -1032,6 +1032,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     const pendingToolCalls = new Map();
     const handledToolCallIds = new Set();
     let latestUserTranscript = '';
+    let knownCustomerName = '';
 
     function clientJson(data) {
       sendJson(client, data);
@@ -1083,7 +1084,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           type: 'response.create',
           response: {
             output_modalities: ['text'],
-            instructions: 'Sig præcis denne ene sætning og intet andet: "Hej og velkommen til Godtfolk Pizzabar, hvad kan jeg hjælpe med?" Udtal Godtfolk som ét sammenhængende ord, ikke "godt ... folk".',
+            instructions: 'Sig præcis denne ene sætning og intet andet: "Hej og velkommen til Pizzaria Napoli, hvad kan jeg hjælpe med?" Udtal Pizzaria Napoli roligt og samlet.',
           },
         }));
       }
@@ -1119,7 +1120,7 @@ function setupCartesiaVoiceAgent(httpServer) {
               {
                 type: 'function',
                 name: 'create_woocommerce_order',
-                description: 'Opretter en bekræftet Godtfolk Pizzabar ordre i WooCommerce. Må kun kaldes efter kunden tydeligt har bekræftet opsummeringen.',
+                description: 'Opretter en bekræftet Pizzaria Napoli ordre i WooCommerce. Må kun kaldes efter kunden tydeligt har bekræftet opsummeringen.',
                 parameters: {
                   type: 'object',
                   additionalProperties: false,
@@ -1212,6 +1213,7 @@ function setupCartesiaVoiceAgent(httpServer) {
               type: 'response.create',
               response: {
                 output_modalities: ['text'],
+                instructions: responseContextInstructions(),
               },
             }));
           }
@@ -1220,6 +1222,7 @@ function setupCartesiaVoiceAgent(httpServer) {
 
         if (event.type === 'conversation.item.input_audio_transcription.completed') {
           latestUserTranscript = event.transcript || '';
+          updateKnownCustomerName(latestUserTranscript);
           clientJson({ type: 'transcript', role: 'user', text: latestUserTranscript });
           return;
         }
@@ -1407,6 +1410,40 @@ function setupCartesiaVoiceAgent(httpServer) {
       }
     }
 
+    function normalizeDanishName(name) {
+      const cleaned = clean(name).replace(/[^A-Za-zÆØÅæøå'-]/g, '');
+      if (!cleaned || cleaned.length < 2 || cleaned.length > 28) return '';
+      const blocked = new Set([
+        'kan', 'jeg', 'bestille', 'have', 'få', 'pizza', 'pepperoni', 'margherita',
+        'durum', 'kebab', 'pepsi', 'max', 'hej', 'hallo', 'tak',
+      ]);
+      const lower = cleaned.toLowerCase();
+      if (blocked.has(lower)) return '';
+      return cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+    }
+
+    function updateKnownCustomerName(transcript) {
+      if (knownCustomerName) return;
+      const text = String(transcript || '').trim();
+      const patterns = [
+        /\b(?:jeg hedder|mit navn er|du snakker(?: jo)? med)\s+([A-Za-zÆØÅæøå'-]{2,28})\b/i,
+        /\b([A-Za-zÆØÅæøå'-]{2,28})\s+her\b/i,
+      ];
+      for (const pattern of patterns) {
+        const match = text.match(pattern);
+        const name = normalizeDanishName(match?.[1]);
+        if (!name) continue;
+        knownCustomerName = name;
+        console.log('[voice] customer_name_detected', { name: knownCustomerName });
+        return;
+      }
+    }
+
+    function responseContextInstructions() {
+      if (!knownCustomerName) return undefined;
+      return `Kundens navn er ${knownCustomerName}. Spørg ikke efter navn igen. Hvis du opsummerer ordren, brug navnet kort og naturligt.`;
+    }
+
     function isClearDanishConfirmation(text) {
       const normalized = String(text || '')
         .toLowerCase()
@@ -1448,7 +1485,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           session_id: voiceSessionId,
           confirmed_by_customer: args.confirmed_by_customer === true,
           customer: {
-            name: args.name || '',
+            name: args.name || knownCustomerName || '',
             phone: args.phone || process.env.VOICE_AGENT_DEFAULT_PHONE || '00000000',
             address: args.address || '',
             city: args.city || '',
