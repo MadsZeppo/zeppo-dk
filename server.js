@@ -989,7 +989,7 @@ function setupElevenLabsTtsProxy(httpServer) {
 
 const OPENAI_REALTIME_WS_MODEL = 'gpt-realtime';
 const OPENAI_REALTIME_INPUT_RATE = 24000;
-const OPENAI_MIN_COMMIT_AUDIO_MS = 120;
+const OPENAI_MIN_COMMIT_AUDIO_MS = 105;
 const CARTESIA_VERSION = process.env.CARTESIA_VERSION || '2026-03-01';
 const CARTESIA_MODEL_ID = process.env.CARTESIA_MODEL_ID || 'sonic-3.5';
 
@@ -1116,7 +1116,7 @@ function setupCartesiaVoiceAgent(httpServer) {
                 transcription: { model: 'whisper-1', language: 'da' },
                 turn_detection: {
                   type: 'semantic_vad',
-                  eagerness: 'medium',
+                  eagerness: 'high',
                   create_response: false,
                   interrupt_response: true,
                 },
@@ -1698,7 +1698,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         context_id: contextId,
         language: 'da',
         add_timestamps: false,
-        max_buffer_delay_ms: 35,
+        max_buffer_delay_ms: 20,
       };
     }
 
@@ -1730,7 +1730,7 @@ function setupCartesiaVoiceAgent(httpServer) {
 
     function shouldFlushCartesiaText(text) {
       const trimmed = text.trim();
-      return /[.!?]\s*$/.test(trimmed) || /,\s*$/.test(trimmed) || trimmed.length >= 34;
+      return /[.!?]\s*$/.test(trimmed) || /,\s*$/.test(trimmed) || trimmed.length >= 24;
     }
 
     function bufferCartesiaText(delta) {
@@ -1811,7 +1811,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         console.warn('[voice] openai_audio_commit_timeout_starting_response');
         manualCommitPending = false;
         openaiWs.send(JSON.stringify(createOpenAiResponsePayload()));
-      }, 250);
+      }, 150);
     }
 
     function startOpenAiResponseFromLocalSpeechEnd() {
