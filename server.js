@@ -1728,7 +1728,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         context_id: contextId,
         language: 'da',
         add_timestamps: false,
-        max_buffer_delay_ms: 10,
+        max_buffer_delay_ms: 35,
       };
     }
 
@@ -1760,7 +1760,10 @@ function setupCartesiaVoiceAgent(httpServer) {
 
     function shouldFlushCartesiaText(text) {
       const trimmed = text.trim();
-      return /[.!?]\s*$/.test(trimmed) || /,\s*$/.test(trimmed) || trimmed.length >= 20;
+      const hasSentenceEnd = /[.!?]\s*$/.test(trimmed);
+      const hasLongCommaPause = trimmed.length >= 36 && /,\s*$/.test(trimmed);
+      const hasEnoughPhraseContext = trimmed.length >= 44 && /[\s,]$/.test(text);
+      return hasSentenceEnd || hasLongCommaPause || hasEnoughPhraseContext || trimmed.length >= 68;
     }
 
     function bufferCartesiaText(delta) {
