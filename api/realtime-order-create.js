@@ -249,6 +249,7 @@ export default async function createRealtimeOrderHandler(req, res) {
         code: error.code || 'WOOCOMMERCE_ERROR',
         woo_status: error.status,
         woo_body: error.body,
+        details: error.details || {},
         message_for_agent: 'Jeg kunne ikke oprette ordren automatisk lige nu. Jeg sender den videre manuelt.',
       });
     }
