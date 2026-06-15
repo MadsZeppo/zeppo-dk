@@ -1486,7 +1486,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           confirmed_by_customer: args.confirmed_by_customer === true,
           customer: {
             name: args.name || knownCustomerName || '',
-            phone: args.phone || process.env.VOICE_AGENT_DEFAULT_PHONE || '00000000',
+            phone: '22769095',
             address: args.address || '',
             city: args.city || '',
             postcode: args.postcode || '',
