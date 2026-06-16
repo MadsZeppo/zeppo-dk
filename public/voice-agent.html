@@ -181,9 +181,9 @@ const LOCAL_CANDIDATE_MAX_MS = 650;
 const LOCAL_MAX_PREROLL_MS = 280;
 const LOCAL_MAX_VOICE_CREST_FACTOR = 11.5;
 const LOCAL_MAX_VOICE_ZERO_CROSSING_RATE = 0.32;
-const LOCAL_SILENCE_END_MS = 240;
-const LOCAL_TRAILING_SILENCE_MS = 45;
-const LOCAL_MIN_SPEECH_MS = 180;
+const LOCAL_SILENCE_END_MS = 650;
+const LOCAL_TRAILING_SILENCE_MS = 120;
+const LOCAL_MIN_SPEECH_MS = 260;
 const LOCAL_MIN_SENT_AUDIO_MS = 150;
 const TARGET_LATENCY_MS = 500;
 const VOICE_AGENT_BACKEND_HOST = 'zeppo-dk.onrender.com';
@@ -800,6 +800,11 @@ async function startSession() {
         markLatency(message.name);
       }
       if (message.type === 'transcript' && message.role === 'user') addMessage('user', message.text);
+      if (message.type === 'input_ignored') {
+        awaitingAssistantResponse = false;
+        if (microphoneStarted && !assistantSpeaking) micStateEl.textContent = 'listening';
+        console.log('[voice] input_ignored', message.reason);
+      }
       if (message.type === 'transcript_delta' && message.role === 'assistant') addAssistantDelta(message.text);
       if (message.type === 'transcript_done') finishAssistant();
       if (message.type === 'interrupt') {

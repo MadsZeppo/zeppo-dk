@@ -1040,6 +1040,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     let orderConfirmationApproved = false;
     let forceOrderToolOnNextResponse = false;
     let awaitingCustomerName = false;
+    let awaitingTranscriptAfterCommit = false;
 
     function clientJson(data) {
       sendJson(client, data);
@@ -1071,6 +1072,7 @@ function setupCartesiaVoiceAgent(httpServer) {
       manualResponsePending = false;
       manualCommitPending = false;
       responseCreatePending = false;
+      awaitingTranscriptAfterCommit = false;
     }
 
     function closeCartesia() {
@@ -1217,17 +1219,15 @@ function setupCartesiaVoiceAgent(httpServer) {
           uncommittedOpenAiAudioMs = 0;
           if (manualCommitPending && manualResponsePending && openaiWs?.readyState === WebSocket.OPEN) {
             manualCommitPending = false;
-            if (awaitingOrderConfirmation && !orderConfirmationAnswered) {
-              console.log('[voice] deferring_response_until_confirmation_transcript');
-              return;
-            }
-            sendOpenAiResponseCreate('audio_committed');
+            awaitingTranscriptAfterCommit = true;
+            console.log('[voice] waiting_for_transcript_before_response');
           }
           return;
         }
 
         if (event.type === 'conversation.item.input_audio_transcription.completed') {
           latestUserTranscript = event.transcript || '';
+          awaitingTranscriptAfterCommit = false;
           updateKnownCustomerName(latestUserTranscript, { afterNameQuestion: awaitingCustomerName });
           if (knownCustomerName) awaitingCustomerName = false;
           if (awaitingOrderConfirmation) {
@@ -1249,6 +1249,22 @@ function setupCartesiaVoiceAgent(httpServer) {
               });
             }
           }
+          const ignoredReason =
+            manualResponsePending && !manualCommitPending
+              ? ignoredTranscriptReason(latestUserTranscript)
+              : '';
+          if (ignoredReason) {
+            console.log('[voice] transcript_ignored', {
+              reason: ignoredReason,
+              transcript: latestUserTranscript,
+            });
+            manualResponsePending = false;
+            manualCommitPending = false;
+            awaitingTranscriptAfterCommit = false;
+            clientJson({ type: 'input_ignored', reason: ignoredReason });
+            return;
+          }
+
           clientJson({ type: 'transcript', role: 'user', text: latestUserTranscript });
           if (
             manualResponsePending &&
@@ -1510,6 +1526,63 @@ function setupCartesiaVoiceAgent(httpServer) {
           console.log('[voice] customer_name_detected_after_prompt', { name: knownCustomerName });
         }
       }
+    }
+
+    function normalizeTranscriptText(text) {
+      return String(text || '')
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function transcriptHasActionableContent(normalized) {
+      if (!normalized) return false;
+      const productPattern = /\b(pepperoni|peberoni|peperoni|pepperon|margherita|margarita|margerita|kebab|durum|pepsi|maks|max|hawaii|calzone|fanta|peanuts)\b/;
+      const flowPattern = /\b(henter|hente|afhentning|levering|levere|lever|adresse|vej|gade|stræde|minut|minutter|time|timer|kvarter|hurtigst|nu|senere|navn|hedder|korrekt|rigtigt|passer)\b/;
+      const namePattern = /\b(jeg hedder|mit navn er|min navn er|du snakker med|det er [a-zæøå]{2,28}|[a-zæøå]{2,28} her)\b/;
+      const clearAnswerPattern = /^(ja|jo|jep|yep|yes|nej|nej tak|okay|fint|perfekt|super)(\b|$)/;
+      const genericOrderIntent = /\b(bestille|bestilling|jeg skal have|jeg vil have|jeg vil gerne have|jeg kunne godt tænke mig|kan jeg få|må jeg få)\b/;
+      return (
+        productPattern.test(normalized) ||
+        flowPattern.test(normalized) ||
+        namePattern.test(normalized) ||
+        clearAnswerPattern.test(normalized) ||
+        genericOrderIntent.test(normalized)
+      );
+    }
+
+    function ignoredTranscriptReason(transcript) {
+      const normalized = normalizeTranscriptText(transcript);
+      if (!normalized) return 'empty_transcript';
+      if (awaitingOrderConfirmation || awaitingCustomerName) return '';
+      if (isClearDanishConfirmation(normalized) || isOrderCorrectionOrRejection(normalized)) return '';
+
+      const fillerOrNoisePattern = /^(øh|øhm|uhm|hm|hmm|mmm|nå|tsk|bop|bop bop|skål|okay|ja okay|hej så|hav det|vi ses|god aften)(\s+\1)*$/;
+      if (fillerOrNoisePattern.test(normalized)) return 'filler_or_noise_only';
+
+      if (/\b(lad mig|lade mig|vil du lige)\s+snakke\s+færdig/.test(normalized)) {
+        return 'customer_still_speaking';
+      }
+
+      if (/\b(snakkes.*i morgen|vi snakkes|vi ses|hav det.*godt|god aften|tsk|skål|bop)\b/.test(normalized)) {
+        return 'smalltalk_or_noise';
+      }
+
+      const danglingOrderPattern = /\b(?:jeg|vi|man)\s+(?:skal|vil|ville|kunne godt tænke mig|må|kan)\s+(?:lige\s+)?(?:have|bestille|få)\s+(?:en|et|noget)?\s*(?:øh|øhm|uhm|hm|hmm|altså)?$/;
+      if (danglingOrderPattern.test(normalized)) return 'unfinished_order_phrase';
+
+      if (/\bikke\s+fordi\s+(?:jeg|vi)\s+skal\s+have\b/.test(normalized)) {
+        const parts = normalized.split(/\bmen\b/);
+        if (parts.length < 2) return 'negated_product';
+        const tailAfterMen = parts.pop() || '';
+        if (!transcriptHasActionableContent(tailAfterMen) || danglingOrderPattern.test(tailAfterMen)) {
+          return 'negated_partial_order';
+        }
+      }
+
+      if (!transcriptHasActionableContent(normalized)) return 'no_actionable_order_content';
+      return '';
     }
 
     function responseContextInstructions() {
@@ -1844,7 +1917,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         console.warn('[voice] openai_audio_commit_timeout_starting_response');
         manualCommitPending = false;
         sendOpenAiResponseCreate('commit_timeout');
-      }, 100);
+      }, 800);
     }
 
     function startOpenAiResponseFromLocalSpeechEnd() {
