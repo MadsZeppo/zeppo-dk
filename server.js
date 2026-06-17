@@ -1353,7 +1353,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           speechStoppedFallbackTimer = setTimeout(() => {
             speechStoppedFallbackTimer = null;
             startOpenAiResponseFromSpeechEnd('openai_speech_stopped_fallback');
-          }, 1000);
+          }, 350);
           return;
         }
 
@@ -1362,8 +1362,13 @@ function setupCartesiaVoiceAgent(httpServer) {
           uncommittedOpenAiAudioMs = 0;
           if (manualCommitPending && manualResponsePending && openaiWs?.readyState === WebSocket.OPEN) {
             manualCommitPending = false;
-            awaitingTranscriptAfterCommit = true;
-            console.log('[voice] waiting_for_transcript_before_response');
+            if (awaitingOrderConfirmation && !orderConfirmationAnswered) {
+              awaitingTranscriptAfterCommit = true;
+              console.log('[voice] waiting_for_confirmation_transcript_before_response');
+            } else {
+              awaitingTranscriptAfterCommit = false;
+              sendOpenAiResponseCreate('audio_committed');
+            }
           }
           return;
         }
@@ -2144,7 +2149,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         console.warn('[voice] openai_audio_commit_timeout_starting_response');
         manualCommitPending = false;
         sendOpenAiResponseCreate('commit_timeout');
-      }, 800);
+      }, 300);
     }
 
     function startOpenAiResponseFromLocalSpeechEnd() {
