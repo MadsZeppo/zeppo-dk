@@ -1,173 +1,980 @@
 <!DOCTYPE html>
 <html lang="da">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anja - Pizzaria Napoli Voice Agent</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zeppo Demo - AI-telefonmedarbejder</title>
+
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #f7f4ee;
+      --card: #ffffff;
+      --card-soft: #fbfaf7;
+      --text: #151515;
+      --muted: #706b63;
+      --light: #928c82;
+      --border: #e4dfd6;
+      --border-strong: #d7d0c4;
+      --green: #157a3f;
+      --green-soft: #e8f6ee;
+      --green-border: #bfe6cf;
+      --red: #c83b2d;
+      --red-soft: #fff0ee;
+      --yellow: #fff5d8;
+      --yellow-text: #775500;
+      --black: #111111;
+      --shadow: 0 28px 90px rgba(30, 25, 18, 0.13);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.95), transparent 32%),
+        radial-gradient(circle at 85% 8%, rgba(255, 255, 255, 0.85), transparent 28%),
+        linear-gradient(180deg, #fbfaf7 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 26px 0 52px;
+    }
+
+    .topbar {
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background: #f4f1ea;
-      color: #151515;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-    main {
-      width: min(720px, 100%);
-      background: #fff;
-      border: 1px solid #dedbd2;
-      border-radius: 8px;
-      box-shadow: 0 24px 70px rgba(21, 21, 21, 0.14);
-      overflow: hidden;
-    }
-    header {
-      display: flex;
       justify-content: space-between;
       gap: 18px;
-      padding: 28px 30px;
-      border-bottom: 1px solid #dedbd2;
+      margin-bottom: 52px;
     }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 22px;
+      font-weight: 850;
+      letter-spacing: -0.04em;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: var(--black);
+      color: white;
+      font-size: 17px;
+      font-weight: 900;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+    }
+
+    .top-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 8px 30px rgba(20, 20, 20, 0.04);
+      backdrop-filter: blur(16px);
+    }
+
+    .top-pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(21, 122, 63, 0.12);
+    }
+
+    .hero {
+      text-align: center;
+      margin: 0 auto 34px;
+      max-width: 920px;
+    }
+
+    .eyebrow {
+      width: fit-content;
+      margin: 0 auto 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.75);
+      color: #38342f;
+      font-size: 14px;
+      font-weight: 750;
+      box-shadow: 0 8px 34px rgba(20, 20, 20, 0.04);
+    }
+
+    .spark {
+      width: 18px;
+      height: 18px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--black);
+      color: #fff;
+      font-size: 11px;
+      line-height: 1;
+    }
+
     h1 {
       margin: 0;
-      font-size: 34px;
-      letter-spacing: 0;
+      font-size: clamp(44px, 7vw, 82px);
+      line-height: 0.94;
+      letter-spacing: -0.075em;
+      font-weight: 900;
     }
-    .subtitle {
-      margin: 6px 0 0;
-      color: #666158;
-      font-size: 16px;
+
+    .hero-text {
+      max-width: 740px;
+      margin: 22px auto 0;
+      color: #69635b;
+      font-size: clamp(18px, 2vw, 23px);
+      line-height: 1.48;
+      letter-spacing: -0.025em;
+      font-weight: 540;
     }
-    .status {
-      align-self: start;
-      min-width: 132px;
+
+    .layout {
+      display: grid;
+      grid-template-columns: 0.92fr 1.08fr;
+      gap: 18px;
+      align-items: stretch;
+      margin-top: 28px;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(18px);
+    }
+
+    .guide {
+      padding: 28px;
+    }
+
+    .section-title {
+      margin: 0 0 8px;
+      font-size: 21px;
+      line-height: 1.15;
+      letter-spacing: -0.04em;
+      font-weight: 850;
+    }
+
+    .section-text {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .steps {
+      display: grid;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #fff;
+    }
+
+    .step-number {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: #161616;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 850;
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+    }
+
+    .step span {
+      display: block;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .example-block {
+      margin-top: 22px;
+      padding-top: 22px;
+      border-top: 1px solid var(--border);
+    }
+
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .example {
       padding: 10px 12px;
-      border-radius: 8px;
-      text-align: center;
-      font-weight: 700;
-      background: #ece8df;
-      color: #5f5a50;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fff;
+      color: #282522;
+      font-size: 14px;
+      line-height: 1.2;
+      font-weight: 650;
     }
-    .status.connecting { background: #fff2c6; color: #795b00; }
-    .status.connected { background: #dff3e4; color: #17652b; }
-    .status.error { background: #f9d8d4; color: #94281e; }
-    section {
-      padding: 28px 30px 30px;
+
+    .menu {
+      margin-top: 22px;
+      padding-top: 22px;
+      border-top: 1px solid var(--border);
     }
-    .debug {
+
+    .menu-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
-      margin-bottom: 18px;
+      margin-top: 14px;
     }
-    .pill {
-      border: 1px solid #dedbd2;
-      border-radius: 8px;
-      padding: 12px 14px;
-      color: #5f5a50;
+
+    .menu-item {
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: linear-gradient(180deg, #fff 0%, #fbfaf7 100%);
     }
-    .pill strong { color: #151515; }
-    .pill.latency { grid-column: 1 / -1; }
-    .pill.latency.ok { background: #f0f8f2; border-color: #b9dfc4; }
-    .pill.latency.slow { background: #fff2ef; border-color: #ebb4ad; }
-    .transcript {
-      min-height: 310px;
-      max-height: 430px;
-      overflow: auto;
-      border: 1px solid #dedbd2;
-      border-radius: 8px;
-      background: #fbfaf7;
-      padding: 18px;
+
+    .menu-item strong {
+      display: block;
+      font-size: 15px;
+      letter-spacing: -0.02em;
     }
-    .empty {
-      min-height: 270px;
+
+    .menu-item span {
+      display: block;
+      margin-top: 5px;
+      color: var(--green);
+      font-size: 14px;
+      font-weight: 850;
+    }
+
+    .booking-note {
+      margin-top: 18px;
+      padding: 16px;
+      border: 1px solid var(--green-border);
+      border-radius: 18px;
+      background: var(--green-soft);
+    }
+
+    .booking-note strong {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      color: #125f33;
+      font-size: 15px;
+      letter-spacing: -0.02em;
+    }
+
+    .booking-note p {
+      margin: 0;
+      color: #32654a;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .demo {
+      display: flex;
+      flex-direction: column;
+      min-height: 760px;
+    }
+
+    .demo-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 28px;
+      border-bottom: 1px solid var(--border);
+      background:
+        radial-gradient(circle at top right, rgba(21, 122, 63, 0.12), transparent 34%),
+        #fff;
+    }
+
+    .agent {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .agent-avatar {
+      width: 54px;
+      height: 54px;
       display: grid;
       place-items: center;
-      color: #918b81;
-      font-weight: 600;
+      flex: 0 0 auto;
+      border-radius: 18px;
+      background: #151515;
+      color: white;
+      font-size: 22px;
+      font-weight: 900;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.16);
     }
-    .msg {
-      padding: 12px 0;
-      border-bottom: 1px solid #ebe7df;
+
+    .agent h2 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -0.055em;
+      line-height: 1;
     }
-    .msg:last-child { border-bottom: 0; }
-    .role {
-      margin-bottom: 5px;
-      font-size: 13px;
-      font-weight: 800;
-      color: #1c6a33;
+
+    .agent p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.3;
+      font-weight: 560;
     }
-    .msg.user .role { color: #1f5e9d; }
-    .text {
-      white-space: pre-wrap;
-      line-height: 1.45;
-      font-size: 16px;
+
+    .status {
+      flex: 0 0 auto;
+      width: 226px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 14px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: #f8f6f1;
     }
-    .controls {
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: #9a948a;
+    }
+
+    .status strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .status span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 560;
+    }
+
+    .status[data-state="connecting"] {
+      border-color: #ead893;
+      background: var(--yellow);
+    }
+
+    .status[data-state="connecting"] .status-dot {
+      background: #e5a900;
+      animation: pulse 1.15s ease-in-out infinite;
+    }
+
+    .status[data-state="connected"] {
+      border-color: var(--green-border);
+      background: var(--green-soft);
+    }
+
+    .status[data-state="connected"] .status-dot {
+      background: var(--green);
+      box-shadow: 0 0 0 6px rgba(21, 122, 63, 0.12);
+      animation: pulse 1.15s ease-in-out infinite;
+    }
+
+    .status[data-state="speaking"] {
+      border-color: #c9d8ef;
+      background: #eef5ff;
+    }
+
+    .status[data-state="speaking"] .status-dot {
+      background: #2e6dcc;
+      animation: pulse 1.15s ease-in-out infinite;
+    }
+
+    .status[data-state="error"] {
+      border-color: #efc0ba;
+      background: var(--red-soft);
+    }
+
+    .status[data-state="error"] .status-dot {
+      background: var(--red);
+    }
+
+    .status[data-state="stopped"] {
+      border-color: var(--border);
+      background: #f8f6f1;
+    }
+
+    .demo-body {
+      padding: 24px 28px 28px;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .call-explainer {
       display: grid;
       grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .small-card {
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 17px;
+      background: var(--card-soft);
+    }
+
+    .small-card strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+      letter-spacing: -0.02em;
+    }
+
+    .small-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .transcript {
+      min-height: 330px;
+      max-height: 430px;
+      flex: 1;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.88), rgba(251,250,247,0.96)),
+        var(--card-soft);
+      padding: 18px;
+      scroll-behavior: smooth;
+    }
+
+    .empty {
+      min-height: 290px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--light);
+      font-weight: 650;
+      line-height: 1.45;
+    }
+
+    .empty-inner {
+      max-width: 360px;
+    }
+
+    .empty-icon {
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 14px;
+      border-radius: 20px;
+      background: #fff;
+      border: 1px solid var(--border);
+      color: var(--green);
+      font-size: 22px;
+      box-shadow: 0 14px 35px rgba(20, 20, 20, 0.06);
+    }
+
+    .empty-title {
+      margin: 0 0 6px;
+      color: #2b2824;
+      font-size: 18px;
+      font-weight: 850;
+      letter-spacing: -0.035em;
+    }
+
+    .empty-copy {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 560;
+    }
+
+    .msg {
+      width: fit-content;
+      max-width: min(82%, 560px);
+      margin: 0 0 12px;
+      padding: 13px 15px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 8px 22px rgba(20, 20, 20, 0.04);
+    }
+
+    .msg.user {
+      margin-left: auto;
+      background: #151515;
+      color: #fff;
+      border-color: #151515;
+      border-bottom-right-radius: 6px;
+    }
+
+    .msg.assistant {
+      margin-right: auto;
+      background: #fff;
+      border-bottom-left-radius: 6px;
+    }
+
+    .role {
+      margin-bottom: 6px;
+      color: var(--green);
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .msg.user .role {
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .text {
+      white-space: pre-wrap;
+      line-height: 1.48;
+      font-size: 16px;
+      letter-spacing: -0.015em;
+      font-weight: 560;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    button {
+      min-height: 62px;
+      border: 0;
+      border-radius: 18px;
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: -0.025em;
+      cursor: pointer;
+      transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.44;
+      box-shadow: none !important;
+    }
+
+    #startBtn {
+      background: var(--green);
+      color: #fff;
+      box-shadow: 0 18px 36px rgba(21, 122, 63, 0.22);
+    }
+
+    #stopBtn {
+      background: #f0d6d2;
+      color: #8a281f;
+    }
+
+    .hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 16px 0 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.4;
+      font-weight: 600;
+    }
+
+    .hint-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--green);
+    }
+
+    .bottom-info {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 14px;
       margin-top: 18px;
     }
-    button {
-      min-height: 56px;
-      border: 0;
-      border-radius: 8px;
-      font-size: 17px;
-      font-weight: 800;
-      cursor: pointer;
+
+    .info-card {
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 10px 30px rgba(20, 20, 20, 0.04);
     }
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.45;
+
+    .info-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 15px;
+      letter-spacing: -0.025em;
     }
-    #startBtn { background: #1f7a3a; color: #fff; }
-    #stopBtn { background: #c83b2d; color: #fff; }
-    .hint {
-      margin: 16px 0 0;
-      text-align: center;
-      color: #777168;
+
+    .info-card p {
+      margin: 0;
+      color: var(--muted);
       font-size: 14px;
+      line-height: 1.45;
     }
-    @media (max-width: 620px) {
-      body { padding: 12px; }
-      header, section { padding: 22px; }
-      header, .debug, .controls { grid-template-columns: 1fr; flex-direction: column; }
-      .status { width: 100%; }
+
+    .hidden-tech {
+      display: none !important;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(0.82);
+        opacity: 0.68;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .topbar {
+        margin-bottom: 34px;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .demo {
+        min-height: auto;
+      }
+
+      .bottom-info {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        width: min(100% - 20px, 1180px);
+        padding-top: 16px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .top-pill {
+        width: 100%;
+        justify-content: center;
+      }
+
+      h1 {
+        font-size: 44px;
+      }
+
+      .hero-text {
+        font-size: 17px;
+      }
+
+      .guide,
+      .demo-header,
+      .demo-body {
+        padding: 20px;
+      }
+
+      .demo-header {
+        flex-direction: column;
+      }
+
+      .status {
+        width: 100%;
+      }
+
+      .call-explainer,
+      .menu-grid,
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .transcript {
+        min-height: 300px;
+      }
+
+      .msg {
+        max-width: 94%;
+      }
     }
   </style>
 </head>
+
 <body>
-  <main>
-    <header>
-      <div>
-        <h1>Anja</h1>
-        <p class="subtitle">Pizzaria Napoli - OpenAI Realtime + Cartesia</p>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">z</div>
+        zeppo.
       </div>
-      <div id="status" class="status">Klar</div>
+
+      <div class="top-pill">
+        <span class="top-pill-dot"></span>
+        Live demo for restauranter
+      </div>
     </header>
-    <section>
-      <div class="debug">
-        <div class="pill">OpenAI: <strong id="openaiState">idle</strong></div>
-        <div class="pill">Cartesia: <strong id="cartesiaState">idle</strong></div>
-        <div class="pill">Mikrofon: <strong id="micState">idle</strong></div>
-        <div class="pill">Audio: <strong id="audioState">idle</strong></div>
-        <div class="pill latency">Latency: <strong id="latencyState">-</strong></div>
+
+    <section class="hero">
+      <div class="eyebrow">
+        <span class="spark">✦</span>
+        AI-telefonmedarbejder til pizzariaer
       </div>
-      <div id="transcript" class="transcript">
-        <div class="empty">Samtalen vises her.</div>
-      </div>
-      <div class="controls">
-        <button id="startBtn">Start samtale</button>
-        <button id="stopBtn" disabled>Stop</button>
-      </div>
-      <p class="hint">Tryk Start, tillad mikrofon, og tal naturligt.</p>
+
+      <h1>Prøv at bestille mad med stemmen.</h1>
+
+      <p class="hero-text">
+        Tryk start, tillad mikrofon, og tal helt normalt. AI’en tager imod din bestilling,
+        svarer på spørgsmål og viser hvordan restauranter kan håndtere telefonen automatisk.
+      </p>
     </section>
-  </main>
+
+    <main class="layout">
+      <aside class="panel guide">
+        <h2 class="section-title">Sådan virker demoen</h2>
+        <p class="section-text">
+          Du taler med Anja, som er en AI-telefonmedarbejder. Hun hjælper dig som en rigtig medarbejder i telefonen.
+        </p>
+
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div>
+              <strong>Tryk på “Start samtale”</strong>
+              <span>Samtalen starter direkte i browseren.</span>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">2</div>
+            <div>
+              <strong>Tillad mikrofon</strong>
+              <span>Browseren spørger om lov til at bruge din mikrofon.</span>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">3</div>
+            <div>
+              <strong>Sig din bestilling</strong>
+              <span>Tal som du normalt ville gøre i telefonen.</span>
+            </div>
+          </div>
+
+          <div class="step">
+            <div class="step-number">4</div>
+            <div>
+              <strong>AI’en hjælper dig videre</strong>
+              <span>Den forstår ordren, stiller spørgsmål og bekræfter til sidst.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="example-block">
+          <h2 class="section-title">Det kan du fx sige</h2>
+          <p class="section-text">
+            Start bare naturligt. Du behøver ikke bruge bestemte kommandoer.
+          </p>
+
+          <div class="examples">
+            <div class="example">“Jeg vil gerne bestille en pepperoni”</div>
+            <div class="example">“En kebab durum og en Pepsi Max”</div>
+            <div class="example">“Kan jeg hente om 20 minutter?”</div>
+            <div class="example">“Har I margherita?”</div>
+            <div class="example">“Jeg vil gerne bestille bord til 4 personer”</div>
+          </div>
+        </div>
+
+        <div class="menu">
+          <h2 class="section-title">Menu i denne demo</h2>
+          <p class="section-text">
+            I denne test kan AI’en tage imod bestillinger på disse varer.
+          </p>
+
+          <div class="menu-grid">
+            <div class="menu-item">
+              <strong>Pepperoni</strong>
+              <span>50 kr.</span>
+            </div>
+
+            <div class="menu-item">
+              <strong>Margherita</strong>
+              <span>50 kr.</span>
+            </div>
+
+            <div class="menu-item">
+              <strong>Kebab Durum</strong>
+              <span>50 kr.</span>
+            </div>
+
+            <div class="menu-item">
+              <strong>Pepsi Max</strong>
+              <span>15 kr.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="booking-note">
+          <strong>✓ Kan også hjælpe med bordbookinger</strong>
+          <p>
+            Den fulde løsning kan også tage imod bordreservationer, ændringer og spørgsmål fra gæster.
+            Denne demo viser primært telefonbestillinger.
+          </p>
+        </div>
+      </aside>
+
+      <section class="panel demo">
+        <div class="demo-header">
+          <div class="agent">
+            <div class="agent-avatar">A</div>
+            <div>
+              <h2>Anja</h2>
+              <p>AI-telefonmedarbejder til restaurant og takeaway</p>
+            </div>
+          </div>
+
+          <div id="status" class="status" data-state="idle">
+            <div class="status-dot"></div>
+            <div>
+              <strong id="statusTitle">Klar til at starte</strong>
+              <span id="statusHelp">Tryk start og tal normalt.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="demo-body">
+          <div class="call-explainer">
+            <div class="small-card">
+              <strong>Hvad sker der her?</strong>
+              <p>Du taler direkte med AI’en, som om du ringede til pizzariaet.</p>
+            </div>
+
+            <div class="small-card">
+              <strong>Hvad skal jeg gøre?</strong>
+              <p>Sig din bestilling, afhentningstid eller et spørgsmål.</p>
+            </div>
+          </div>
+
+          <div id="transcript" class="transcript">
+            <div class="empty">
+              <div class="empty-inner">
+                <div class="empty-icon">☎</div>
+                <p class="empty-title">Samtalen vises her</p>
+                <p class="empty-copy">
+                  Når du starter, kan du fx sige: “Jeg vil gerne bestille en pepperoni og en Pepsi Max.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="controls">
+            <button id="startBtn">Start samtale</button>
+            <button id="stopBtn" disabled>Stop samtale</button>
+          </div>
+
+          <p class="hint">
+            <span class="hint-dot"></span>
+            Tryk start, tillad mikrofon, og tal som i en normal telefonsamtale.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <section class="bottom-info">
+      <div class="info-card">
+        <strong>Tager imod ordrer</strong>
+        <p>AI’en kan spørge ind til varer, antal, afhentning og navn.</p>
+      </div>
+
+      <div class="info-card">
+        <strong>Aflaster personalet</strong>
+        <p>Når telefonen ringer midt i travlheden, kan AI’en tage samtalen.</p>
+      </div>
+
+      <div class="info-card">
+        <strong>Kan kobles til systemer</strong>
+        <p>I den fulde løsning kan ordrer og bookinger sendes videre til restaurantens system.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="hidden-tech" aria-hidden="true">
+    <span id="openaiState"></span>
+    <span id="cartesiaState"></span>
+    <span id="micState"></span>
+    <span id="audioState"></span>
+    <div class="pill latency"><strong id="latencyState"></strong></div>
+  </div>
 
 <script>
 const INPUT_SAMPLE_RATE = 24000;
@@ -222,6 +1029,8 @@ let localSpeechCandidateFrames = [];
 let localLastNoiseLogAt = 0;
 
 const statusEl = document.getElementById('status');
+const statusTitleEl = document.getElementById('statusTitle');
+const statusHelpEl = document.getElementById('statusHelp');
 const openaiStateEl = document.getElementById('openaiState');
 const cartesiaStateEl = document.getElementById('cartesiaState');
 const micStateEl = document.getElementById('micState');
@@ -233,8 +1042,60 @@ const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 
 function setStatus(text, state = '') {
-  statusEl.textContent = text;
-  statusEl.className = `status ${state}`.trim();
+  const normalized = getFriendlyStatus(text, state);
+  statusEl.dataset.state = normalized.state;
+  statusTitleEl.textContent = normalized.title;
+  statusHelpEl.textContent = normalized.help;
+}
+
+function getFriendlyStatus(text, state = '') {
+  const raw = String(text || '').toLowerCase();
+
+  if (state === 'speaking' || raw.includes('svarer')) {
+    return {
+      state: 'speaking',
+      title: 'AI’en svarer',
+      help: 'Vent et øjeblik, så kan du tale igen.',
+    };
+  }
+
+  if (state === 'connected' || raw.includes('lytter') || raw.includes('forbundet')) {
+    return {
+      state: 'connected',
+      title: 'Du kan tale nu',
+      help: 'Sig fx: “Jeg vil gerne bestille en pepperoni.”',
+    };
+  }
+
+  if (state === 'connecting' || raw.includes('forbinder') || raw.includes('websocket')) {
+    return {
+      state: 'connecting',
+      title: 'Forbinder samtalen',
+      help: 'Vent et øjeblik. Demoen gøres klar.',
+    };
+  }
+
+  if (state === 'error' || raw.includes('fejl')) {
+    return {
+      state: 'error',
+      title: 'Noget gik galt',
+      help: 'Tjek at mikrofonen er tilladt, og prøv igen.',
+    };
+  }
+
+  if (state === 'stopped' || raw.includes('lukket') || raw.includes('stoppet')) {
+    return {
+      state: 'stopped',
+      title: 'Samtalen er stoppet',
+      help: 'Tryk start for at prøve igen.',
+    };
+  }
+
+  return {
+    state: 'idle',
+    title: 'Klar til at starte',
+    help: 'Tryk start og tal normalt.',
+  };
 }
 
 function resetLatency() {
@@ -260,34 +1121,41 @@ function markLatency(name) {
 function reportLatency() {
   const parts = [];
   const sampleRate = playbackStats.sampleRate || audioContext?.sampleRate || 48000;
+
   const pushDuration = (label, start, end) => {
     if (!start || !end) return;
     const value = Math.round(end - start);
     if (value >= 0) parts.push(`${label} ${value}ms`);
   };
+
   const perceivedTotal = latency.localLastVoice && latency.playbackStart
     ? Math.round(latency.playbackStart - latency.localLastVoice)
     : null;
+
   if (perceivedTotal != null) {
     const isOk = perceivedTotal <= TARGET_LATENCY_MS;
     latencyPillEl.classList.toggle('ok', isOk);
     latencyPillEl.classList.toggle('slow', !isOk);
     parts.push(`mål ${TARGET_LATENCY_MS}ms: ${perceivedTotal}ms ${isOk ? 'ok' : 'over'}`);
   }
+
   pushDuration('stilhed', latency.localLastVoice, latency.localSpeechEnd);
   pushDuration('commit', latency.localSpeechEnd, latency.speechStopped);
   pushDuration('STT/LLM', latency.speechStopped, latency.firstOpenaiText);
   pushDuration('TTS', latency.firstOpenaiText, latency.firstCartesiaAudio);
   pushDuration('play', latency.firstCartesiaAudio, latency.playbackStart);
   pushDuration('backend', latency.speechStopped, latency.playbackStart);
+
   if (playbackStats.chunks) {
     parts.push(`chunks ${playbackStats.chunks}`);
   }
+
   if (playbackStats.gapFrames) {
     const gapMs = Math.round((playbackStats.gapFrames / sampleRate) * 1000);
     const maxGapMs = Math.round((playbackStats.maxGapFrames / sampleRate) * 1000);
     parts.push(`audio gaps ${gapMs}ms (${playbackStats.gapEvents}x, max ${maxGapMs}ms)`);
   }
+
   latencyStateEl.textContent = parts.join(' | ') || '-';
   if (parts.length) console.log('[latency]', latencyStateEl.textContent);
 }
@@ -313,9 +1181,12 @@ function refreshSpeechCandidateStats() {
   localSpeechCandidateVoiceFrames = 0;
   localSpeechCandidateCrestTotal = 0;
   localSpeechCandidateZcrTotal = 0;
+
   for (const frame of localSpeechCandidateFrames) {
     localSpeechCandidatePeak = Math.max(localSpeechCandidatePeak, frame.peak);
+
     if (!frame.isVoiceLike) continue;
+
     localSpeechCandidateVoiceMs += frame.durationMs;
     localSpeechCandidateVoiceFrames += 1;
     localSpeechCandidateCrestTotal += frame.crestFactor;
@@ -328,24 +1199,30 @@ function analyzeMicrophoneFrame(input) {
   let peak = 0;
   let zeroCrossings = 0;
   let previous = input[0] || 0;
+
   for (let i = 0; i < input.length; i++) {
     const value = input[i];
     const abs = Math.abs(value);
     sum += value * value;
     if (abs > peak) peak = abs;
+
     if (i > 0 && ((value >= 0 && previous < 0) || (value < 0 && previous >= 0))) {
       zeroCrossings += 1;
     }
+
     previous = value;
   }
+
   const rms = Math.sqrt(sum / Math.max(1, input.length));
   const crestFactor = peak / Math.max(rms, 0.000001);
   const zeroCrossingRate = zeroCrossings / Math.max(1, input.length - 1);
   const hasVoiceEnergy = rms > LOCAL_SPEECH_RMS_THRESHOLD && peak > LOCAL_SPEECH_PEAK_THRESHOLD;
+
   const isVoiceLike =
     hasVoiceEnergy &&
     crestFactor <= LOCAL_MAX_VOICE_CREST_FACTOR &&
     zeroCrossingRate <= LOCAL_MAX_VOICE_ZERO_CROSSING_RATE;
+
   return { rms, peak, crestFactor, zeroCrossingRate, hasVoiceEnergy, isVoiceLike };
 }
 
@@ -361,6 +1238,7 @@ function rememberSpeechCandidateFrame(input, analysis, now) {
   }
 
   if (analysis.hasVoiceEnergy) localSpeechCandidateLastVoiceAt = now;
+
   localSpeechCandidateFrames.push({
     samples: input.slice(0),
     durationMs: frameDurationMs(input),
@@ -371,16 +1249,20 @@ function rememberSpeechCandidateFrame(input, analysis, now) {
   });
 
   const maxFrames = Math.max(1, Math.ceil(LOCAL_MAX_PREROLL_MS / Math.max(1, frameDurationMs(input))));
+
   if (localSpeechCandidateFrames.length > maxFrames) {
     localSpeechCandidateFrames.splice(0, localSpeechCandidateFrames.length - maxFrames);
   }
+
   refreshSpeechCandidateStats();
 }
 
 function ignoreSpeechCandidate(now) {
   if (!localSpeechCandidateFrames.length) return;
+
   if (now - localLastNoiseLogAt > 1500) {
     localLastNoiseLogAt = now;
+
     console.log('[voice] noise_burst_ignored', {
       frames: localSpeechCandidateFrames.length,
       voiceFrames: localSpeechCandidateVoiceFrames,
@@ -394,6 +1276,7 @@ function ignoreSpeechCandidate(now) {
         : null,
     });
   }
+
   resetLocalSpeechCandidate();
 }
 
@@ -404,16 +1287,21 @@ function startConfirmedLocalSpeech(now) {
   localSpeechEndSent = false;
   localSilenceFramesSentAfterEnd = 0;
   localSentAudioFrames = 0;
+
   resetLatency();
+
   latency.localSpeechStart = localSpeechStartedAt;
   console.log('[latency] local_speech_started');
+
   const frames = localSpeechCandidateFrames.map((frame) => frame.samples);
   resetLocalSpeechCandidate();
+
   return frames;
 }
 
 function getMicrophoneFramesToSend(input) {
   const now = performance.now();
+
   if (awaitingAssistantResponse && !localSpeechActive) return [];
 
   const analysis = analyzeMicrophoneFrame(input);
@@ -421,8 +1309,10 @@ function getMicrophoneFramesToSend(input) {
   if (analysis.hasVoiceEnergy) {
     if (!localSpeechActive) {
       rememberSpeechCandidateFrame(input, analysis, now);
+
       const candidateDurationMs = now - localSpeechCandidateStartedAt + frameDurationMs(input);
       const voiceRatio = localSpeechCandidateVoiceFrames / Math.max(1, localSpeechCandidateFrames.length);
+
       const speechConfirmed =
         localSpeechCandidateVoiceMs >= LOCAL_SPEECH_CONFIRM_MS &&
         localSpeechCandidateVoiceFrames >= LOCAL_SPEECH_MIN_FRAMES &&
@@ -437,11 +1327,13 @@ function getMicrophoneFramesToSend(input) {
       const frames = startConfirmedLocalSpeech(now);
       localLastVoiceAt = now;
       latency.localLastVoice = now;
+
       return frames;
     }
 
     localLastVoiceAt = now;
     latency.localLastVoice = now;
+
     return [input];
   }
 
@@ -452,11 +1344,13 @@ function getMicrophoneFramesToSend(input) {
     ) {
       ignoreSpeechCandidate(now);
     }
+
     return [];
   }
 
   const speechDurationMs = now - localSpeechStartedAt;
   const silenceMs = now - localLastVoiceAt;
+
   if (
     localSpeechActive &&
     !localSpeechEndMarked &&
@@ -473,13 +1367,26 @@ function getMicrophoneFramesToSend(input) {
   if (!localSpeechEndMarked) return [input];
 
   localSilenceFramesSentAfterEnd += input.length;
+
   const extraSilenceMs = (localSilenceFramesSentAfterEnd / (audioContext?.sampleRate || 48000)) * 1000;
+
   return extraSilenceMs < LOCAL_TRAILING_SILENCE_MS ? [input] : [];
 }
 
 function clearTranscript() {
   assistantDraft = null;
-  transcriptEl.innerHTML = '<div class="empty">Samtalen vises her.</div>';
+
+  transcriptEl.innerHTML = `
+    <div class="empty">
+      <div class="empty-inner">
+        <div class="empty-icon">☎</div>
+        <p class="empty-title">Samtalen vises her</p>
+        <p class="empty-copy">
+          Når du starter, kan du fx sige: “Jeg vil gerne bestille en pepperoni og en Pepsi Max.”
+        </p>
+      </div>
+    </div>
+  `;
 }
 
 function removeEmpty() {
@@ -489,21 +1396,29 @@ function removeEmpty() {
 
 function addMessage(role, text) {
   if (text == null) return;
+
   removeEmpty();
+
   const msg = document.createElement('div');
   msg.className = `msg ${role}`;
   msg.innerHTML = `<div class="role">${role === 'user' ? 'Du' : 'Anja'}</div><div class="text"></div>`;
   msg.querySelector('.text').textContent = text;
+
   transcriptEl.appendChild(msg);
   transcriptEl.scrollTop = transcriptEl.scrollHeight;
+
   return msg;
 }
 
 function addAssistantDelta(delta) {
   if (!delta) return;
+
+  setStatus('AI’en svarer...', 'speaking');
   removeEmpty();
+
   if (!assistantDraft) assistantDraft = addMessage('assistant', '');
   if (!assistantDraft) return;
+
   assistantDraft.querySelector('.text').textContent += delta;
   transcriptEl.scrollTop = transcriptEl.scrollHeight;
 }
@@ -520,12 +1435,15 @@ function getWsUrl() {
   ) {
     return `wss://${VOICE_AGENT_BACKEND_HOST}/api/voice-agent`;
   }
+
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+
   return `${protocol}//${location.host}/api/voice-agent`;
 }
 
 async function initAudio() {
   audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
   await audioContext.audioWorklet.addModule(URL.createObjectURL(new Blob([`
     class PCMPlayerProcessor extends AudioWorkletProcessor {
       constructor() {
@@ -538,6 +1456,7 @@ async function initAudio() {
         this.started = false;
         this.gapFrames = 0;
         this.gapReportedFrames = 0;
+
         this.port.onmessage = (event) => {
           if (event.data.type === 'chunk') {
             this.queue.push(new Float32Array(event.data.buffer));
@@ -545,6 +1464,7 @@ async function initAudio() {
             this.ending = false;
             this.port.postMessage({ type: 'buffer', queuedFrames: this.queuedFrames() });
           }
+
           if (event.data.type === 'reset') {
             this.queue = [];
             this.current = null;
@@ -554,92 +1474,127 @@ async function initAudio() {
             this.started = false;
             this.flushGap();
           }
+
           if (event.data.type === 'end') {
             this.ending = true;
           }
         };
       }
+
       queuedFrames() {
         const currentFrames = this.current ? Math.max(0, this.current.length - this.index) : 0;
         return currentFrames + this.queue.reduce((sum, chunk) => sum + chunk.length, 0);
       }
+
       flushGap() {
         const unreported = this.gapFrames - this.gapReportedFrames;
+
         if (unreported <= 0) {
           this.gapFrames = 0;
           this.gapReportedFrames = 0;
           return;
         }
-        this.port.postMessage({ type: 'underrun', frames: unreported, currentTotalFrames: this.gapFrames, ended: true });
+
+        this.port.postMessage({
+          type: 'underrun',
+          frames: unreported,
+          currentTotalFrames: this.gapFrames,
+          ended: true
+        });
+
         this.gapFrames = 0;
         this.gapReportedFrames = 0;
       }
+
       process(_inputs, outputs) {
         const out = outputs[0][0];
+
         for (let i = 0; i < out.length; i++) {
           if (!this.current || this.index >= this.current.length) {
             this.current = this.queue.shift() || null;
             this.index = 0;
             if (this.current) this.flushGap();
           }
+
           if (this.current) {
             if (!this.started) {
               this.started = true;
               this.port.postMessage({ type: 'playback_started' });
             }
+
             out[i] = this.current[this.index++];
           } else {
             out[i] = 0;
+
             if (this.playing && !this.ending) {
               this.gapFrames++;
+
               if (this.gapFrames - this.gapReportedFrames >= Math.floor(sampleRate * 0.05)) {
                 const unreported = this.gapFrames - this.gapReportedFrames;
                 this.gapReportedFrames = this.gapFrames;
-                this.port.postMessage({ type: 'underrun', frames: unreported, currentTotalFrames: this.gapFrames, ended: false });
+
+                this.port.postMessage({
+                  type: 'underrun',
+                  frames: unreported,
+                  currentTotalFrames: this.gapFrames,
+                  ended: false
+                });
               }
             }
           }
         }
+
         if (this.ending && !this.current && this.queue.length === 0) {
           this.playing = false;
           this.ending = false;
           this.started = false;
           this.flushGap();
         }
+
         return true;
       }
     }
+
     registerProcessor('pcm-player', PCMPlayerProcessor);
   `], { type: 'application/javascript' })));
 
   playerNode = new AudioWorkletNode(audioContext, 'pcm-player');
+
   playerNode.port.onmessage = (event) => {
     if (event.data.type === 'playback_started') {
       markLatency('playbackStart');
       return;
     }
+
     if (event.data.type === 'underrun') {
       const frames = Number(event.data.frames) || 0;
       if (!frames) return;
+
       const wasInGap = playbackStats.inGap;
+
       playbackStats.gapFrames += frames;
       if (!wasInGap) playbackStats.gapEvents += 1;
       playbackStats.inGap = !event.data.ended;
       playbackStats.maxGapFrames = Math.max(playbackStats.maxGapFrames, Number(event.data.currentTotalFrames) || frames);
+
       const sampleRate = playbackStats.sampleRate || audioContext?.sampleRate || 48000;
       const totalGapMs = Math.round((playbackStats.gapFrames / sampleRate) * 1000);
+
       if (totalGapMs >= playbackStats.lastGapLoggedFrames + 50) {
         playbackStats.lastGapLoggedFrames = totalGapMs;
+
         console.warn('[audio] underrun', {
           gapMs: Math.round((frames / sampleRate) * 1000),
           totalGapMs,
           events: playbackStats.gapEvents,
         });
       }
+
       reportLatency();
       return;
     }
   };
+
   playerNode.connect(audioContext.destination);
   audioStateEl.textContent = `${audioContext.sampleRate} Hz`;
 }
@@ -650,67 +1605,95 @@ function resetPlayback() {
 
 function playPcmF32(arrayBuffer) {
   if (!playerNode || !arrayBuffer.byteLength) return;
+
   awaitingAssistantResponse = false;
   assistantSpeaking = true;
-  micStateEl.textContent = 'muted while Anja speaks';
+  micStateEl.textContent = 'muted while assistant speaks';
+  setStatus('AI’en svarer...', 'speaking');
+
   if (assistantUnmuteTimer) clearTimeout(assistantUnmuteTimer);
+
   playbackStats.chunks += 1;
   reportLatency();
+
   const copy = arrayBuffer.slice(0);
   playerNode.port.postMessage({ type: 'chunk', buffer: copy }, [copy]);
 }
 
 function scheduleMicUnmute(delayMs = 250) {
   if (assistantUnmuteTimer) clearTimeout(assistantUnmuteTimer);
+
   assistantUnmuteTimer = setTimeout(() => {
     assistantSpeaking = false;
-    if (microphoneStarted) micStateEl.textContent = 'listening';
+
+    if (microphoneStarted) {
+      micStateEl.textContent = 'listening';
+      setStatus('Lytter...', 'connected');
+    }
   }, delayMs);
 }
 
 function downsample(input, inputRate, outputRate) {
   if (inputRate === outputRate) return input;
+
   const ratio = inputRate / outputRate;
   const outputLength = Math.floor(input.length / ratio);
   const output = new Float32Array(outputLength);
+
   for (let i = 0; i < outputLength; i++) {
     const start = Math.floor(i * ratio);
     const end = Math.min(Math.floor((i + 1) * ratio), input.length);
     let sum = 0;
+
     for (let j = start; j < end; j++) sum += input[j];
+
     output[i] = sum / Math.max(1, end - start);
   }
+
   return output;
 }
 
 function floatToPcm16(float32) {
   const pcm16 = new Int16Array(float32.length);
+
   for (let i = 0; i < float32.length; i++) {
     const sample = Math.max(-1, Math.min(1, float32[i]));
     pcm16[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
   }
+
   return pcm16;
 }
 
 function sendPendingLocalSpeechEnd() {
   if (!pendingLocalSpeechEnd || localSpeechEndSent || ws?.readyState !== WebSocket.OPEN) return;
+
   const sentAudioMs = (localSentAudioFrames / INPUT_SAMPLE_RATE) * 1000;
+
   if (sentAudioMs < LOCAL_MIN_SENT_AUDIO_MS) {
     pendingLocalSpeechEnd = false;
     localSpeechEndSent = true;
-    console.warn('[voice] local_speech_end_ignored_short_audio', { sentAudioMs: Math.round(sentAudioMs) });
+
+    console.warn('[voice] local_speech_end_ignored_short_audio', {
+      sentAudioMs: Math.round(sentAudioMs)
+    });
+
     return;
   }
+
   pendingLocalSpeechEnd = false;
   localSpeechEndSent = true;
   awaitingAssistantResponse = true;
+
   ws.send(JSON.stringify({ type: 'local_speech_end' }));
+
   console.log('[voice] local_speech_end_sent');
 }
 
 async function startMicrophone() {
   if (microphoneStarted) return;
+
   microphoneStarted = true;
+
   micStream = await navigator.mediaDevices.getUserMedia({
     audio: {
       channelCount: 1,
@@ -719,39 +1702,55 @@ async function startMicrophone() {
       autoGainControl: true,
     },
   });
+
   micSource = audioContext.createMediaStreamSource(micStream);
   micProcessor = audioContext.createScriptProcessor(512, 1, 1);
+
   micProcessor.onaudioprocess = (event) => {
     event.outputBuffer.getChannelData(0).fill(0);
+
     if (!connected || ws?.readyState !== WebSocket.OPEN) return;
     if (assistantSpeaking) return;
+
     const input = event.inputBuffer.getChannelData(0);
     const frames = getMicrophoneFramesToSend(input);
+
     if (!frames.length) return;
+
     for (const frame of frames) {
       const downsampled = downsample(frame, audioContext.sampleRate, INPUT_SAMPLE_RATE);
       const pcm16 = floatToPcm16(downsampled);
+
       ws.send(pcm16.buffer);
+
       localSentAudioFrames += downsampled.length;
     }
+
     sendPendingLocalSpeechEnd();
   };
+
   micSource.connect(micProcessor);
   micProcessor.connect(audioContext.destination);
+
   micStateEl.textContent = 'listening';
+  setStatus('Lytter...', 'connected');
 }
 
 async function startSession() {
   try {
     startBtn.disabled = true;
     stopBtn.disabled = false;
+
     setStatus('Forbinder...', 'connecting');
     clearTranscript();
     resetLatency();
+
     await initAudio();
 
     const wsUrl = getWsUrl();
+
     console.log('[voice] connecting', wsUrl);
+
     ws = new WebSocket(wsUrl);
     ws.binaryType = 'arraybuffer';
 
@@ -767,6 +1766,7 @@ async function startSession() {
       }
 
       let message;
+
       try {
         message = JSON.parse(event.data);
       } catch {
@@ -774,59 +1774,88 @@ async function startSession() {
       }
 
       if (message.type === 'session_started') {
-        openaiStateEl.textContent = message.openai_model;
-        cartesiaStateEl.textContent = message.cartesia_model;
+        openaiStateEl.textContent = message.openai_model || '';
+        cartesiaStateEl.textContent = message.cartesia_model || '';
+
         startMicrophone().catch((error) => {
           console.error('[voice] microphone_error', error);
           setStatus(`Mikrofon fejl: ${error.message}`, 'error');
         });
       }
+
       if (message.type === 'ws_connected') {
         console.log('[voice] server_ws_connected');
+
         if (!startSent) {
           startSent = true;
+
           console.log('[voice] start_sent');
+
           ws.send(JSON.stringify({
             type: 'start',
             outputSampleRate: audioContext.sampleRate,
           }));
         }
-        setStatus('WebSocket forbundet', 'connecting');
+
+        setStatus('Forbinder...', 'connecting');
       }
-      if (message.type === 'openai_status') openaiStateEl.textContent = message.status;
-      if (message.type === 'cartesia_status') cartesiaStateEl.textContent = message.status;
+
+      if (message.type === 'openai_status') openaiStateEl.textContent = message.status || '';
+      if (message.type === 'cartesia_status') cartesiaStateEl.textContent = message.status || '';
+
       if (message.type === 'latency_mark') {
         if (message.name === 'speechStopped' && !latency.localSpeechEnd) resetLatency();
         markLatency(message.name);
       }
-      if (message.type === 'transcript' && message.role === 'user') addMessage('user', message.text);
+
+      if (message.type === 'transcript' && message.role === 'user') {
+        addMessage('user', message.text);
+      }
+
       if (message.type === 'input_ignored') {
         awaitingAssistantResponse = false;
-        if (microphoneStarted && !assistantSpeaking) micStateEl.textContent = 'listening';
+
+        if (microphoneStarted && !assistantSpeaking) {
+          micStateEl.textContent = 'listening';
+          setStatus('Lytter...', 'connected');
+        }
+
         console.log('[voice] input_ignored', message.reason);
       }
-      if (message.type === 'transcript_delta' && message.role === 'assistant') addAssistantDelta(message.text);
-      if (message.type === 'transcript_done') finishAssistant();
+
+      if (message.type === 'transcript_delta' && message.role === 'assistant') {
+        addAssistantDelta(message.text);
+      }
+
+      if (message.type === 'transcript_done') {
+        finishAssistant();
+      }
+
       if (message.type === 'interrupt') {
         awaitingAssistantResponse = false;
         resetPlayback();
         audioStateEl.textContent = 'interrupted';
+        setStatus('Lytter...', 'connected');
       }
+
       if (message.type === 'audio_end') {
         audioStateEl.textContent = `${audioContext.sampleRate} Hz`;
+
         if (playerNode) playerNode.port.postMessage({ type: 'end' });
+
         scheduleMicUnmute();
       }
+
       if (message.type === 'error') {
         awaitingAssistantResponse = false;
         console.error('[voice]', message.error);
-        setStatus(message.error, 'error');
+        setStatus(message.error || 'Fejl', 'error');
       }
     };
 
     ws.onerror = (error) => {
       console.error('[voice] ws_error', error);
-      setStatus('WebSocket fejl', 'error');
+      setStatus('Forbindelsesfejl', 'error');
     };
 
     ws.onclose = (event) => {
@@ -835,8 +1864,9 @@ async function startSession() {
         reason: event.reason,
         wasClean: event.wasClean,
       });
+
       connected = false;
-      setStatus(event.code ? `Forbindelse lukket (${event.code})` : 'Forbindelse lukket');
+      setStatus('Samtalen er stoppet', 'stopped');
       cleanup();
     };
   } catch (error) {
@@ -849,26 +1879,31 @@ async function startSession() {
 function cleanup() {
   connected = false;
   resetLocalSpeechCandidate();
+
   if (micProcessor) micProcessor.disconnect();
   if (micSource) micSource.disconnect();
   if (micStream) micStream.getTracks().forEach((track) => track.stop());
   if (audioContext && audioContext.state !== 'closed') audioContext.close();
+
   micProcessor = null;
   micSource = null;
   micStream = null;
   microphoneStarted = false;
   assistantSpeaking = false;
   awaitingAssistantResponse = false;
+
   if (assistantUnmuteTimer) clearTimeout(assistantUnmuteTimer);
+
   assistantUnmuteTimer = null;
   startSent = false;
   pendingLocalSpeechEnd = false;
   localSpeechEndSent = false;
   audioContext = null;
   playerNode = null;
+
   startBtn.disabled = false;
   stopBtn.disabled = true;
-  micStateEl.textContent = 'idle';
+  micStateEl.textContent = '';
 }
 
 function stopSession() {
@@ -876,11 +1911,14 @@ function stopSession() {
     ws.send(JSON.stringify({ type: 'stop' }));
     ws.close();
   }
+
   cleanup();
+  setStatus('Samtalen er stoppet', 'stopped');
 }
 
 startBtn.addEventListener('click', startSession);
 stopBtn.addEventListener('click', stopSession);
+
 window.addEventListener('beforeunload', () => {
   if (ws) ws.close();
   cleanup();
