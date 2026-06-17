@@ -3,364 +3,298 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zeppo — AI automation til virksomheder</title>
+<meta name="description" content="Zeppo bygger AI telefonmedarbejdere til restauranter, takeaway-steder og servicevirksomheder. Fang flere opkald, bookinger og ordrer automatisk.">
+<title>Zeppo - AI telefonmedarbejder til restauranter og takeaway</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400;1,9..144,700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--g:#1a6b3c;--gd:#155730;--glt:#e8f5ee;--cream:#f2f2ef;--white:#ffffff;--ink:#141412;--mid:#5a5a55;--muted:#9a9a93;--bdr:#e0e0db;--ff:'Fraunces',Georgia,serif;--fb:'DM Sans',sans-serif;--ease:cubic-bezier(.16,1,.3,1)}*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:var(--fb);background:var(--cream);color:var(--ink);overflow-x:hidden;-webkit-font-smoothing:antialiased}
-nav{position:fixed;top:0;left:0;right:0;z-index:900;height:64px;padding:0 48px;display:flex;align-items:center;justify-content:space-between;background:rgba(242,242,239,.88);backdrop-filter:blur(24px) saturate(180%);border-bottom:1px solid rgba(224,224,219,.8)}.logo{font-family:var(--ff);font-size:20px;font-weight:700;color:var(--ink);text-decoration:none;letter-spacing:-.03em}.logo-dot{color:var(--g)}.nav-c{display:flex;gap:36px;list-style:none}.nav-c a{font-size:13.5px;font-weight:400;color:var(--mid);text-decoration:none;transition:color .15s}.nav-c a:hover{color:var(--ink)}.nav-r{display:flex;align-items:center;gap:8px}.nav-login{font-size:13.5px;font-weight:400;color:var(--mid);text-decoration:none;padding:8px 14px;transition:color .15s}.nav-login:hover{color:var(--ink)}.nav-test{display:inline-flex;align-items:center;padding:9px 16px;font-family:var(--fb);font-size:13.5px;font-weight:500;color:var(--g);background:var(--white);border:1px solid var(--bdr);border-radius:8px;cursor:pointer;text-decoration:none;transition:all .15s}.nav-test:hover{border-color:var(--g);color:var(--gd)}.nav-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;font-family:var(--fb);font-size:13.5px;font-weight:500;color:var(--white);background:var(--g);border:none;border-radius:8px;cursor:pointer;text-decoration:none;transition:all .18s}.nav-btn:hover{background:var(--gd)}.nav-btn svg{transition:transform .15s}.nav-btn:hover svg{transform:translateX(2px)}
-.hero{padding:104px 48px 48px;display:flex;flex-direction:column;align-items:center;text-align:center}
-h1{font-family:var(--fb);font-size:clamp(44px,6.5vw,88px);font-weight:500;line-height:1.06;letter-spacing:-.025em;color:var(--ink);max-width:900px;animation:fadeUp .7s .1s var(--ease) both}
-h1 em{font-style:normal;font-weight:700;color:var(--g);letter-spacing:-.015em}
-.hero-sub{font-size:17px;font-weight:300;color:var(--mid);line-height:1.75;max-width:460px;margin:28px auto 40px;animation:fadeUp .7s .17s var(--ease) both}
-.hero-btns{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;animation:fadeUp .7s .24s var(--ease) both}
-.btn-p{display:inline-flex;align-items:center;gap:7px;padding:14px 26px;font-family:var(--fb);font-size:14.5px;font-weight:500;color:var(--white);background:var(--g);border:none;border-radius:9px;cursor:pointer;text-decoration:none;transition:all .2s}
-.btn-p:hover{background:var(--gd);box-shadow:0 8px 28px rgba(26,107,60,.25);transform:translateY(-1px)}
-.btn-p svg{transition:transform .18s}.btn-p:hover svg{transform:translateX(3px)}
-.btn-s{display:inline-flex;align-items:center;gap:7px;padding:14px 22px;font-family:var(--fb);font-size:14.5px;font-weight:400;color:var(--mid);background:var(--white);border:1px solid var(--bdr);border-radius:9px;cursor:pointer;text-decoration:none;transition:all .15s}
-.btn-s:hover{border-color:#b0b0a8;color:var(--ink)}
-.hero-badges{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:22px;animation:fadeUp .7s .28s var(--ease) both}
-.hero-badge{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid var(--bdr);border-radius:999px;background:rgba(255,255,255,.72);color:var(--mid);font-size:13px;font-weight:400}
-.hero-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--g)}
-.scenario{max-width:1100px;margin:72px auto 0;padding:0 48px;animation:fadeUp .8s .32s var(--ease) both}
-.scenario-label{text-align:center;margin-bottom:32px}
-.scenario-tag{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:var(--ink);color:var(--white);border-radius:999px;font-size:13px;font-weight:500;letter-spacing:.02em}
-.scenario-tag .pulse{width:8px;height:8px;border-radius:50%;background:#4ade80;animation:blink 1.5s ease infinite}
-.scenario-grid{display:grid;grid-template-columns:1fr 48px 1fr;gap:0;align-items:stretch}
-.scenario-left,.scenario-right{background:var(--white);border:1px solid var(--bdr);border-radius:18px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)}
-.scenario-arrow{display:flex;align-items:center;justify-content:center;position:relative}
-.scenario-arrow::before{content:'';position:absolute;top:50%;left:0;right:0;height:2px;background:var(--g);opacity:.3}
-.scenario-arrow svg{position:relative;z-index:1;background:var(--cream);padding:4px;color:var(--g)}
-.sc-header{padding:16px 24px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px}
-.sc-dot{width:10px;height:10px;border-radius:50%}
-.sc-dot.red{background:#f87171}.sc-dot.green{background:#4ade80}
-.sc-title{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
-.sc-title.red{color:#b42318}.sc-title.green{color:var(--g)}
-.sc-body{padding:24px}
-.sc-line{display:flex;gap:10px;font-size:13.5px;line-height:1.9;font-family:'SF Mono','Fira Code',monospace}
-.sc-k{color:var(--muted);min-width:68px;font-size:12px;flex-shrink:0}
-.sc-v{color:var(--ink);font-weight:500}
-.sc-v.red{color:#c0392b}.sc-v.green{color:var(--g)}.sc-v.amber{color:#c26a00}
-.sc-footer{padding:12px 24px;border-top:1px solid var(--bdr);background:var(--glt);display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--g)}
-.sc-footer .pulse{width:6px;height:6px;border-radius:50%;background:var(--g);animation:blink 2s ease infinite}
-.scenario-caption{text-align:center;margin-top:28px;font-size:14px;font-weight:300;color:var(--muted);line-height:1.7;max-width:500px;margin-left:auto;margin-right:auto}
-.scenario-caption strong{font-weight:500;color:var(--ink)}
-.transition{text-align:center;padding:100px 48px 40px;position:relative}
-.transition::before{content:'';position:absolute;left:50%;top:0;width:1px;height:60px;background:linear-gradient(to bottom,var(--bdr),transparent)}
-.transition-eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--g);margin-bottom:18px}
-.transition-eyebrow .line{width:20px;height:1.5px;background:var(--g)}
-.transition h2{font-family:var(--ff);font-size:clamp(36px,4vw,52px);font-weight:300;line-height:1.06;letter-spacing:-.045em;color:var(--ink);max-width:600px;margin:0 auto}
-.transition h2 em{font-style:italic;font-weight:700;color:var(--g)}
-.transition-sub{font-size:15px;font-weight:300;color:var(--mid);line-height:1.8;max-width:440px;margin:20px auto 0}
-.section{max-width:1100px;margin:0 auto;padding:40px 48px 120px}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);background:var(--bdr);border:1px solid var(--bdr);border-radius:20px;overflow:hidden;gap:1px}
-.step{background:var(--white);padding:48px 40px;position:relative;transition:background .2s;cursor:default}
-.step::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--g);transform:scaleX(0);transform-origin:left;transition:transform .3s var(--ease)}
-.step:hover{background:var(--glt)}.step:hover::before{transform:scaleX(1)}
-.step-n{font-family:var(--ff);font-size:60px;font-weight:300;color:var(--bdr);letter-spacing:-.06em;line-height:1;margin-bottom:28px;transition:color .2s}
-.step:hover .step-n{color:#b8dfc6}
-.step-ico{width:42px;height:42px;border-radius:10px;background:var(--cream);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;margin-bottom:20px;transition:transform .2s}
-.step:hover .step-ico{transform:scale(1.06)}
-.step-t{font-family:var(--ff);font-size:20px;font-weight:700;letter-spacing:-.025em;color:var(--ink);margin-bottom:10px}
-.step-b{font-size:14px;font-weight:300;color:var(--mid);line-height:1.8}
-.dark{background:#0f0f0d;padding:120px 48px}
-.dark-in{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:96px;align-items:center}
-.dark .eyebrow{color:#4ade80;display:flex;align-items:center;gap:10px;font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px}
-.dark .eyebrow .line{width:20px;height:1.5px;background:#4ade80}
-.dark .h2{font-family:var(--ff);font-size:clamp(38px,4vw,56px);font-weight:300;line-height:1.04;letter-spacing:-.045em;color:var(--white)}
-.dark .h2 em{font-style:italic;font-weight:700;color:#4ade80}
-.dark-p{font-size:15px;font-weight:300;color:rgba(255,255,255,.36);line-height:1.85;margin:22px 0 40px}
-.cklist{list-style:none;display:flex;flex-direction:column;gap:12px}
-.ck{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:300;color:rgba(255,255,255,.48)}
-.ck-i{width:20px;height:20px;border-radius:50%;background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ck-i svg{color:#4ade80}
-.dc-wrap{position:relative}
-.dc-glow{position:absolute;inset:-20px;border-radius:24px;background:radial-gradient(ellipse at 50% 50%,rgba(26,107,60,.18),transparent 70%);filter:blur(20px);pointer-events:none}
-.dc{background:#1a1a18;border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;position:relative;box-shadow:0 40px 80px rgba(0,0,0,.5)}
-.dc-top{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
-.dc-title{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.2)}
-.dc-badge{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#4ade80;background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.15);padding:3px 9px;border-radius:4px}
-.dc-body{padding:24px 22px;font-family:'SF Mono','Fira Code',monospace;font-size:12.5px;line-height:2.2}
-.dk2{color:rgba(255,255,255,.3)}.dw{color:rgba(255,255,255,.88)}.dg2{color:#4ade80;font-weight:600}.dy2{color:#f59e0b}.dr2{color:#f87171}
-.dc-foot{border-top:1px solid rgba(255,255,255,.06);padding:12px 22px;background:rgba(74,222,128,.04);display:flex;align-items:center;gap:9px}
-.dc-dot{width:6px;height:6px;border-radius:50%;background:#4ade80;animation:blink 2s ease infinite}
-.dc-txt{font-size:11.5px;color:rgba(255,255,255,.25)}
-.who{max-width:1100px;margin:0 auto;padding:96px 48px 120px}
-.who-head{text-align:center;margin-bottom:56px}
-.who h2{font-family:var(--ff);font-size:clamp(32px,3.5vw,46px);font-weight:300;line-height:1.1;letter-spacing:-.04em;color:var(--ink)}
-.who h2 em{font-style:italic;font-weight:700;color:var(--g)}
-.who-sub{font-size:15px;font-weight:300;color:var(--mid);line-height:1.8;max-width:500px;margin:16px auto 0}
-.who-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bdr);border:1px solid var(--bdr);border-radius:20px;overflow:hidden}
-.who-card{background:var(--white);padding:40px 36px;transition:background .2s;position:relative}
-.who-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--g);transform:scaleX(0);transform-origin:left;transition:transform .3s var(--ease)}
-.who-card:hover{background:var(--glt)}.who-card:hover::before{transform:scaleX(1)}
-.who-emoji{font-size:32px;margin-bottom:16px}
-.who-t{font-family:var(--ff);font-size:18px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:8px}
-.who-b{font-size:13.5px;font-weight:300;color:var(--mid);line-height:1.7}
-.feat-section{max-width:1100px;margin:0 auto;padding:96px 48px 120px}
-.feat-head{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:end;margin-bottom:64px}
-.eyebrow{display:flex;align-items:center;gap:10px;font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--g);margin-bottom:18px}
-.eyebrow .line{width:20px;height:1.5px;background:var(--g)}
-.h2{font-family:var(--ff);font-size:clamp(38px,4vw,56px);font-weight:300;line-height:1.04;letter-spacing:-.045em;color:var(--ink)}
-.h2 em{font-style:italic;font-weight:700;color:var(--g)}
-.s-desc{font-size:15px;font-weight:300;color:var(--mid);line-height:1.8}
-.feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--bdr);border:1px solid var(--bdr);border-radius:20px;overflow:hidden}
-.feat{background:var(--white);padding:44px 40px;position:relative;transition:background .2s}
-.feat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--g);transform:scaleX(0);transform-origin:left;transition:transform .28s var(--ease)}
-.feat:hover{background:#fafaf7}.feat:hover::after{transform:scaleX(1)}
-.feat-ico{width:44px;height:44px;border-radius:11px;background:var(--cream);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;margin-bottom:24px;transition:transform .2s}
-.feat:hover .feat-ico{transform:scale(1.06)}
-.feat-t{font-family:var(--ff);font-size:19px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:10px}
-.feat-b{font-size:13.5px;font-weight:300;color:var(--mid);line-height:1.8}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);background:var(--white);border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr)}
-.stat{padding:68px 32px;text-align:center;border-right:1px solid var(--bdr);transition:background .2s}
-.stat:last-child{border-right:none}.stat:hover{background:var(--glt)}
-.stat-n{font-family:var(--ff);font-size:56px;font-weight:700;letter-spacing:-.06em;line-height:1;color:var(--ink);margin-bottom:10px}
-.stat-n.words{font-family:var(--fb);font-size:38px;font-weight:600;letter-spacing:-.04em}
-.stat-u{font-size:28px;color:var(--g)}
-.stat-l{font-size:13px;font-weight:300;color:var(--muted);line-height:1.5}
-.cta{padding:140px 48px;text-align:center;background:var(--cream);position:relative}
-.cta-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 50% 50% at 50% 50%,rgba(26,107,60,.05),transparent 65%)}
-.cta-in{position:relative;z-index:1}
-.cta-h{font-family:var(--ff);font-size:clamp(44px,5.5vw,72px);font-weight:300;line-height:.97;letter-spacing:-.05em;color:var(--ink);margin:20px 0 18px}
-.cta-h em{font-style:italic;font-weight:700;color:var(--g)}
-.cta-sub{font-size:16px;font-weight:300;color:var(--mid);max-width:380px;margin:0 auto 48px;line-height:1.75}
-.cta-form{display:flex;max-width:380px;margin:0 auto 12px;background:var(--white);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.06);transition:box-shadow .2s}
-.cta-form:focus-within{box-shadow:0 2px 14px rgba(0,0,0,.08),0 0 0 3px rgba(26,107,60,.12)}
-.cta-form input{flex:1;padding:14px 18px;font-family:var(--fb);font-size:14px;font-weight:300;background:none;border:none;color:var(--ink);outline:none}
-.cta-form input::placeholder{color:var(--muted)}
-.cta-form button{padding:14px 22px;font-family:var(--fb);font-size:13.5px;font-weight:500;background:var(--g);color:var(--white);border:none;cursor:pointer;white-space:nowrap;transition:background .15s}
-.cta-form button:hover{background:var(--gd)}
-.cta-fine{font-size:12px;font-weight:300;color:var(--muted)}
-footer{background:var(--ink);padding:40px 48px;display:flex;align-items:center;justify-content:space-between}
-.f-logo{font-family:var(--ff);font-size:19px;font-weight:700;color:var(--white);letter-spacing:-.03em}.f-dot{color:#4ade80}
-.f-links{display:flex;gap:28px;list-style:none}
-.f-links a{font-size:13px;font-weight:300;color:rgba(255,255,255,.4);text-decoration:none;transition:color .15s}
-.f-links a:hover{color:rgba(255,255,255,.75)}
-.f-note{font-size:12px;font-weight:300;color:rgba(255,255,255,.3)}
-.rv{opacity:0;transform:translateY(20px);transition:opacity .65s var(--ease),transform .65s var(--ease)}
-.rv.in{opacity:1;transform:none}
-.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}
-@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-@media(max-width:1024px){.feat-head,.dark-in{grid-template-columns:1fr;gap:40px}.feat-grid,.who-grid{grid-template-columns:1fr}.scenario-grid{grid-template-columns:1fr;gap:20px}.scenario-arrow{display:none}}
-@media(max-width:768px){nav{padding:0 20px}.nav-c{display:none}.hero{padding:92px 20px 34px}.scenario{padding:0 20px}.section,.feat-section,.who{padding:40px 20px 80px}.dark{padding:80px 20px}.steps{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.stat:nth-child(2){border-right:none}.stat:nth-child(3),.stat:nth-child(4){border-top:1px solid var(--bdr)}.cta{padding:80px 20px}.cta-form{flex-direction:column}footer{padding:28px 20px;flex-direction:column;gap:20px;text-align:center}.f-links{flex-wrap:wrap;justify-content:center}.transition{padding:80px 20px 30px}}
+:root{
+  --bg:#fbfbfb;
+  --paper:#fff;
+  --ink:#151515;
+  --soft:#666;
+  --muted:#9a9a9a;
+  --line:#e7e7e7;
+  --line2:#f1f1f1;
+  --dark:#090909;
+  --green:#10b981;
+  --rose:#ff365f;
+  --amber:#f59e0b;
+  --shadow:0 28px 80px rgba(0,0,0,.10);
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button,input{font:inherit}
+.page{min-height:100vh;overflow:hidden;background:
+  radial-gradient(circle at 50% 0%,#fff 0,#fff 28%,rgba(255,255,255,0) 54%),
+  linear-gradient(180deg,#fff 0,#fbfbfb 52%,#f6f7f8 100%)}
+.nav{height:88px;display:flex;align-items:center;justify-content:space-between;max-width:1280px;margin:0 auto;padding:0 32px;position:relative;z-index:10}
+.brand{display:flex;align-items:center;gap:11px;font-size:22px;font-weight:700;letter-spacing:-.04em}
+.brand-mark{width:26px;height:26px;border-radius:8px;background:#121212;position:relative;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.brand-mark::after{content:"";position:absolute;inset:6px;border-radius:4px;background:var(--rose)}
+.nav-links{display:flex;align-items:center;gap:34px;color:#333;font-size:15px;font-weight:500}
+.nav-links a{transition:color .18s}
+.nav-links a:hover{color:#000}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-ghost{color:#444;font-size:15px;font-weight:500;padding:12px 14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:8px;border:1px solid transparent;min-height:46px;padding:0 20px;font-size:15px;font-weight:700;cursor:pointer;transition:transform .18s var(--ease),box-shadow .18s var(--ease),background .18s}
+.btn-dark{background:#080808;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.14)}
+.btn-dark:hover{transform:translateY(-1px);box-shadow:0 16px 34px rgba(0,0,0,.18)}
+.btn-light{background:#fff;color:#202020;border-color:#dfdfdf;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.btn-light:hover{background:#f7f7f7}
+.hero{max-width:1160px;margin:0 auto;text-align:center;padding:116px 28px 0;position:relative}
+.hero::before{content:"";position:absolute;left:50%;top:20px;width:860px;height:520px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(0,0,0,.045),rgba(0,0,0,0) 68%);pointer-events:none}
+.pill{position:relative;display:inline-flex;align-items:center;gap:10px;border:1px solid #ececec;background:rgba(245,245,245,.86);backdrop-filter:blur(16px);border-radius:999px;padding:12px 18px;color:#363636;font-size:15px;font-weight:500;box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
+.pill-star{width:18px;height:18px;position:relative}
+.pill-star::before,.pill-star::after{content:"";position:absolute;inset:0;margin:auto;background:#111}
+.pill-star::before{width:18px;height:6px;border-radius:999px}
+.pill-star::after{width:6px;height:18px;border-radius:999px}
+h1{position:relative;margin:44px auto 22px;max-width:970px;font-size:clamp(50px,7vw,92px);line-height:.98;letter-spacing:-.075em;font-weight:700;color:#151515}
+.lead{position:relative;max-width:760px;margin:0 auto;color:#666;font-size:clamp(19px,2vw,25px);line-height:1.45;font-weight:500;letter-spacing:-.025em}
+.hero-actions{position:relative;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:38px}
+.play-dot{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:999px;background:#7b8190;color:#fff;margin-left:-10px}
+.play-dot svg{margin-left:2px}
+.hero-fine{margin-top:18px;color:#9a9a9a;font-size:13px}
+.product-stage{max-width:1160px;margin:70px auto 0;padding:0 28px 92px;position:relative}
+.product-stage::before{content:"";position:absolute;left:50%;top:44px;width:1400px;height:420px;transform:translateX(-50%);background:
+  linear-gradient(12deg,transparent 0 34%,rgba(20,20,20,.035) 34.2%,transparent 35%),
+  linear-gradient(-12deg,transparent 0 34%,rgba(20,20,20,.035) 34.2%,transparent 35%),
+  radial-gradient(ellipse at 50% 60%,rgba(13,18,26,.09),transparent 58%);
+  pointer-events:none}
+.browser{position:relative;max-width:980px;margin:0 auto;border:1px solid rgba(0,0,0,.08);border-radius:18px;background:rgba(255,255,255,.82);box-shadow:var(--shadow);overflow:hidden;backdrop-filter:blur(24px)}
+.browser-top{height:48px;border-bottom:1px solid var(--line2);display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:rgba(255,255,255,.72)}
+.traffic{display:flex;gap:8px}
+.traffic span{width:11px;height:11px;border-radius:99px}
+.traffic span:nth-child(1){background:#ff4b4b}.traffic span:nth-child(2){background:#ffb020}.traffic span:nth-child(3){background:#21c55d}
+.browser-url{height:28px;width:260px;border-radius:999px;background:#f7f7f7;border:1px solid #ececec}
+.browser-help{width:30px;height:30px;border-radius:99px;background:#f0f0f0;display:grid;place-items:center;color:#555;font-size:13px;font-weight:700}
+.app{display:grid;grid-template-columns:210px 1fr;min-height:430px;background:#fff}
+.app-side{border-right:1px solid var(--line2);padding:22px 16px;background:#fcfcfc}
+.side-label{font-size:11px;color:#aaa;font-weight:700;margin:22px 8px 9px;text-transform:uppercase;letter-spacing:.04em}
+.side-item{height:36px;border-radius:8px;display:flex;align-items:center;gap:10px;padding:0 10px;color:#4b4b4b;font-size:14px;font-weight:600}
+.side-item.active{background:#eee;color:#111}
+.side-icon{width:15px;height:15px;border-radius:4px;border:1.5px solid currentColor}
+.app-main{padding:26px 28px 30px}
+.app-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.app-title{font-size:24px;font-weight:700;letter-spacing:-.04em}
+.status{display:inline-flex;align-items:center;gap:8px;border:1px solid #e6f7ef;background:#f0fdf7;color:#047857;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700}
+.status-dot{width:8px;height:8px;border-radius:99px;background:var(--green);box-shadow:0 0 0 4px rgba(16,185,129,.12)}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--line);margin-bottom:24px}
+.metric{background:#fff;padding:20px}
+.metric-label{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#999;font-weight:700}
+.metric-value{margin-top:20px;font-size:42px;line-height:1;font-weight:700;letter-spacing:-.05em}
+.metric-sub{margin-top:8px;color:#999;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.panel-title{display:flex;align-items:center;justify-content:space-between;margin:8px 0 12px}
+.panel-title h3{margin:0;font-size:18px;letter-spacing:-.03em}
+.live-small{display:flex;align-items:center;gap:6px;font-size:12px;color:#888;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.list{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.row{display:grid;grid-template-columns:70px 34px 1fr 90px;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid #f0f0f0}
+.row:last-child{border-bottom:0}
+.time{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#555;font-size:13px}
+.row-icon{width:30px;height:30px;border-radius:8px;background:#fff7ed;border:1px solid #fed7aa}
+.row-title{font-weight:700;font-size:14px}
+.row-sub{font-size:12px;color:#8a8a8a;margin-top:3px}
+.tag{justify-self:end;border-radius:999px;background:#f5f5f5;color:#555;padding:6px 9px;font-size:12px;font-weight:700}
+.trust{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff}
+.trust-inner{max-width:1160px;margin:0 auto;padding:28px;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#eee}
+.trust-item{background:#fff;padding:28px;text-align:center}
+.trust-num{font-size:34px;font-weight:700;letter-spacing:-.05em}
+.trust-label{margin-top:7px;color:#777;font-size:13px;line-height:1.4}
+.section{max-width:1160px;margin:0 auto;padding:92px 28px}
+.section-head{display:grid;grid-template-columns:.9fr 1fr;gap:60px;align-items:end;margin-bottom:34px}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:#888;font-weight:700}
+.section h2{margin:12px 0 0;font-size:clamp(34px,4vw,56px);line-height:1.02;letter-spacing:-.06em}
+.section-copy{color:#666;font-size:17px;line-height:1.65;margin:0}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.card{border:1px solid var(--line);background:#fff;border-radius:8px;padding:28px;min-height:220px;transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
+.card:hover{transform:translateY(-2px);box-shadow:0 18px 44px rgba(0,0,0,.08)}
+.card-icon{width:38px;height:38px;border-radius:10px;border:1px solid #ececec;background:#fafafa;margin-bottom:24px}
+.card h3{margin:0 0 10px;font-size:20px;letter-spacing:-.035em}
+.card p{margin:0;color:#666;line-height:1.65;font-size:15px}
+.split{background:#0b0b0b;color:#fff}
+.split .section{display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center}
+.split h2{color:#fff}
+.split p{color:rgba(255,255,255,.58)}
+.terminal{border:1px solid rgba(255,255,255,.09);border-radius:14px;background:#151515;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+.terminal-top{height:44px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;padding:0 16px;color:rgba(255,255,255,.35);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
+.terminal-body{padding:24px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:2;color:rgba(255,255,255,.68)}
+.green{color:#34d399}.amber{color:#fbbf24}.dim{color:rgba(255,255,255,.28)}
+.cta{max-width:1160px;margin:0 auto;padding:112px 28px;text-align:center}
+.cta-box{border:1px solid var(--line);background:#fff;border-radius:12px;padding:72px 28px;box-shadow:0 24px 70px rgba(0,0,0,.05)}
+.cta h2{margin:0 auto 18px;max-width:760px;font-size:clamp(38px,5vw,72px);line-height:1;letter-spacing:-.07em}
+.cta p{margin:0 auto 34px;max-width:520px;color:#666;font-size:18px;line-height:1.55}
+.demo-form{display:flex;max-width:470px;margin:0 auto;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.demo-form input{flex:1;border:0;outline:0;padding:15px 16px;color:#111}
+.demo-form button{border:0;background:#080808;color:#fff;font-weight:700;padding:0 19px;cursor:pointer}
+footer{border-top:1px solid var(--line);background:#fff}
+.footer-inner{max-width:1280px;margin:0 auto;padding:34px 32px;display:flex;align-items:center;justify-content:space-between;color:#777;font-size:13px}
+.footer-links{display:flex;gap:22px}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .65s var(--ease),transform .65s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+@media(max-width:900px){
+  .nav{height:72px;padding:0 20px}.nav-links,.nav-ghost{display:none}
+  .hero{padding-top:78px}.lead{font-size:18px}
+  .product-stage{margin-top:44px;padding-left:16px;padding-right:16px}
+  .browser{border-radius:14px}.browser-url{display:none}.app{grid-template-columns:1fr}.app-side{display:none}.app-main{padding:20px}
+  .metrics,.cards,.trust-inner,.section-head,.split .section{grid-template-columns:1fr}
+  .row{grid-template-columns:56px 30px 1fr}.tag{display:none}
+  .section{padding:68px 20px}.trust-inner{padding:20px;background:#fff}.trust-item{border-bottom:1px solid var(--line)}
+  .demo-form{flex-direction:column}.demo-form button{height:48px}
+  .footer-inner{padding:28px 20px;flex-direction:column;gap:16px}
+}
 </style>
 </head>
 <body>
+<div class="page">
+  <header class="nav">
+    <a href="#" class="brand"><span class="brand-mark"></span>Zeppo</a>
+    <nav class="nav-links" aria-label="Primær navigation">
+      <a href="#platform">Platform</a>
+      <a href="#usecases">Use cases</a>
+      <a href="#demo">Demo</a>
+    </nav>
+    <div class="nav-actions">
+      <a class="nav-ghost" href="https://dashboard.zeppo.dk/login">Log ind</a>
+      <a class="btn btn-dark" href="#demo">Book demo</a>
+    </div>
+  </header>
 
-<nav>
-  <a href="#" class="logo">zeppo<span class="logo-dot">.</span></a>
-  <ul class="nav-c">
-    <li><a href="#how">Sådan virker det</a></li>
-    <li><a href="#who">Use cases</a></li>
-    <li><a href="#features">Funktioner</a></li>
-  </ul>
-  <div class="nav-r">
-    <a href="#demo" class="nav-login">Kontakt</a>
-    <a href="https://zeppo-dk.onrender.com/voice-agent.html" class="nav-test">Test Anja</a>
-    <a href="#demo" class="nav-btn">Book demo <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-  </div>
-</nav>
+  <main>
+    <section class="hero">
+      <div class="pill"><span class="pill-star"></span>Bygget til restauranter, takeaway og service</div>
+      <h1>Gå aldrig glip af et opkald igen.</h1>
+      <p class="lead">AI telefonmedarbejdere der tager imod ordrer, bookinger og henvendelser, mens dit team passer driften.</p>
+      <div class="hero-actions">
+        <a class="btn btn-light" href="https://zeppo-dk.onrender.com/voice-agent.html">
+          <span class="play-dot"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+          Hør demo
+        </a>
+        <a class="btn btn-dark" href="#demo">Book demo <span>→</span></a>
+      </div>
+      <div class="hero-fine">Dansk tale, WooCommerce-ordrer, booking-flow og dashboard i realtid.</div>
+    </section>
 
-<section class="hero">
-  <h1>AI automation<br>der får arbejdet<br><em>gjort.</em></h1>
-  <p class="hero-sub">Zeppo bygger AI-agenter og workflows, der håndterer henvendelser, sorterer information, følger op og opdaterer dine systemer.</p>
-  <div class="hero-btns">
-    <a href="#demo" class="btn-p">Book en automation-demo <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-    <a href="https://zeppo-dk.onrender.com/voice-agent.html" class="btn-s">Test Anja</a>
-  </div>
-  <div class="hero-badges">
-    <span class="hero-badge">Voice agents</span>
-    <span class="hero-badge">Email automation</span>
-    <span class="hero-badge">CRM og workflows</span>
+    <section class="product-stage" aria-label="Zeppo dashboard preview">
+      <div class="browser reveal">
+        <div class="browser-top">
+          <div class="traffic"><span></span><span></span><span></span></div>
+          <div class="browser-url"></div>
+          <div class="browser-help">?</div>
+        </div>
+        <div class="app">
+          <aside class="app-side">
+            <div class="brand" style="font-size:18px;margin-bottom:22px"><span class="brand-mark" style="width:22px;height:22px"></span>Zeppo</div>
+            <div class="side-label">Drift</div>
+            <div class="side-item active"><span class="side-icon"></span>Oversigt</div>
+            <div class="side-item"><span class="side-icon"></span>Opkald</div>
+            <div class="side-item"><span class="side-icon"></span>Ordrer</div>
+            <div class="side-item"><span class="side-icon"></span>Bookinger</div>
+            <div class="side-label">Konto</div>
+            <div class="side-item"><span class="side-icon"></span>Indstillinger</div>
+          </aside>
+          <div class="app-main">
+            <div class="app-head">
+              <div>
+                <div class="app-title">Dagens drift</div>
+                <div class="row-sub">Pizzaria Napoli · live overblik</div>
+              </div>
+              <div class="status"><span class="status-dot"></span>Agenten tager opkald</div>
+            </div>
+            <div class="metrics">
+              <div class="metric"><div class="metric-label">Opkald i dag</div><div class="metric-value">42</div><div class="metric-sub">12 live minutter</div></div>
+              <div class="metric"><div class="metric-label">Konverteret</div><div class="metric-value">71%</div><div class="metric-sub">30 blev til ordre eller booking</div></div>
+              <div class="metric"><div class="metric-label">Omsætning</div><div class="metric-value">8.450</div><div class="metric-sub">kr · 26 ordrer</div></div>
+            </div>
+            <div class="panel-title">
+              <h3>Kommende i dag</h3>
+              <div class="live-small"><span class="status-dot"></span>Live opdateret</div>
+            </div>
+            <div class="list">
+              <div class="row"><div class="time">18:20</div><div class="row-icon"></div><div><div class="row-title">Mads</div><div class="row-sub">Afhentning · Margherita, Pepsi Max</div></div><div class="tag">Ordre</div></div>
+              <div class="row"><div class="time">18:45</div><div class="row-icon"></div><div><div class="row-title">Sofie</div><div class="row-sub">4 gæster · vinduesbord hvis muligt</div></div><div class="tag">Booking</div></div>
+              <div class="row"><div class="time">19:10</div><div class="row-icon"></div><div><div class="row-title">Lars</div><div class="row-sub">Levering · Pepperoni, Kebab Durum</div></div><div class="tag">Levering</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<section class="trust">
+  <div class="trust-inner">
+    <div class="trust-item reveal"><div class="trust-num">24/7</div><div class="trust-label">Telefonen kan blive taget, selv når teamet er optaget.</div></div>
+    <div class="trust-item reveal"><div class="trust-num">60 sek</div><div class="trust-label">Fra opkald til struktureret ordre eller booking.</div></div>
+    <div class="trust-item reveal"><div class="trust-num">0</div><div class="trust-label">Manuel copy-paste mellem telefon og system.</div></div>
+    <div class="trust-item reveal"><div class="trust-num">DK</div><div class="trust-label">Bygget til naturlige danske samtaler.</div></div>
   </div>
 </section>
 
-<div class="scenario rv">
-  <div class="scenario-label"><div class="scenario-tag"><span class="pulse"></span>En manuel proces bliver ved med at stjæle tid.</div></div>
-  <div class="scenario-grid">
-    <div class="scenario-left">
-      <div class="sc-header"><div class="sc-dot red"></div><span class="sc-title red">Uden Zeppo</span></div>
-      <div class="sc-body">
-        <div class="sc-line"><span class="sc-k">Input</span><span class="sc-v">Ny henvendelse eller opgave</span></div>
-        <div class="sc-line"><span class="sc-k">Trin 1</span><span class="sc-v red">Manuel sortering</span></div>
-        <div class="sc-line"><span class="sc-k">Trin 2</span><span class="sc-v red">Copy-paste mellem systemer</span></div>
-        <div class="sc-line"><span class="sc-k">Trin 3</span><span class="sc-v" style="color:var(--muted);font-weight:300;font-style:italic">Opfølgning bliver glemt</span></div>
-        <div class="sc-line"><span class="sc-k" style="opacity:0">_</span><span class="sc-v red">Tid tabt på rutinearbejde</span></div>
-      </div>
-    </div>
-    <div class="scenario-arrow">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    </div>
-    <div class="scenario-right">
-      <div class="sc-header"><div class="sc-dot green"></div><span class="sc-title green">Med Zeppo</span></div>
-      <div class="sc-body">
-        <div class="sc-line"><span class="sc-k">Input</span><span class="sc-v green">Zeppo forstår indholdet</span></div>
-        <div class="sc-line"><span class="sc-k">Trin 1</span><span class="sc-v">Data bliver struktureret</span></div>
-        <div class="sc-line"><span class="sc-k">Trin 2</span><span class="sc-v">Systemer opdateres</span></div>
-        <div class="sc-line"><span class="sc-k">Trin 3</span><span class="sc-v green">Næste handling sættes i gang</span></div>
-        <div class="sc-line"><span class="sc-k" style="opacity:0">_</span><span class="sc-v" style="color:var(--muted);font-weight:300;font-style:italic">Du får overblik uden manuelt mellemled</span></div>
-      </div>
-      <div class="sc-footer"><span class="pulse"></span>Rutinearbejdet kører automatisk.</div>
-    </div>
-  </div>
-  <p class="scenario-caption"><strong>Zeppo fjerner de manuelle mellemtrin.</strong> Voice, email, formularer og interne workflows kan blive til samme automatiserede maskine.</p>
-</div>
-
-<div class="transition rv" id="how">
-  <div class="transition-eyebrow"><span class="line"></span>Sådan virker det<span class="line"></span></div>
-  <h2>Vælg en proces.<br><em>Zeppo automatiserer den.</em></h2>
-  <p class="transition-sub">Vi kortlægger flowet, bygger AI-agenten og kobler den på de værktøjer, du allerede bruger.</p>
-</div>
-
-<div class="section">
-  <div class="steps">
-    <div class="step rv">
-      <div class="step-n">01</div>
-      <div class="step-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g)"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.9 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.81 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
-      <div class="step-t">Vi finder processen</div>
-      <p class="step-b">Vi gennemgår de gentagne opgaver, der tager tid: henvendelser, opfølgning, sortering, dataindtastning eller rapportering.</p>
-    </div>
-    <div class="step rv d1">
-      <div class="step-n">02</div>
-      <div class="step-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-      <div class="step-t">AI-agenten bygges</div>
-      <p class="step-b">Zeppo lærer reglerne, felterne og rækkefølgen, så automationen kan håndtere arbejdet præcist og ens hver gang.</p>
-    </div>
-    <div class="step rv d2">
-      <div class="step-n">03</div>
-      <div class="step-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g)"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9l20-7z"/></svg></div>
-      <div class="step-t">Flowet kører selv</div>
-      <p class="step-b">Information bliver samlet, valideret og sendt videre til de rigtige personer eller systemer uden manuel kopiering.</p>
-    </div>
-  </div>
-</div>
-
-<div class="dark">
-  <div class="dark-in">
-    <div class="rv">
-      <div class="eyebrow"><span class="line"></span>Hvad kan automatiseres</div>
-      <div class="h2">Alt det der stjæler<br><em>små bidder</em> af dagen.</div>
-      <p class="dark-p">Zeppo kan håndtere både eksterne henvendelser og interne processer, så arbejdet lander struktureret der, hvor det skal bruges.</p>
-      <ul class="cklist">
-        <li class="ck"><div class="ck-i"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Voice agents der kvalificerer henvendelser</li>
-        <li class="ck"><div class="ck-i"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Email automation og opfølgning</li>
-        <li class="ck"><div class="ck-i"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Lead capture og CRM-opdateringer</li>
-        <li class="ck"><div class="ck-i"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Interne beskeder, opgaver og påmindelser</li>
-        <li class="ck"><div class="ck-i"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>Rapporter, status og struktureret overblik</li>
-      </ul>
-    </div>
-    <div class="dc-wrap rv d1">
-      <div class="dc-glow"></div>
-      <div class="dc">
-        <div class="dc-top"><div style="display:flex;gap:6px"><div class="sc-dot" style="width:11px;height:11px;background:#ff5f57"></div><div class="sc-dot" style="width:11px;height:11px;background:#febc2e"></div><div class="sc-dot" style="width:11px;height:11px;background:#28c840"></div></div><div class="dc-title">Zeppo Automation</div><div class="dc-badge">Flow kørt</div></div>
-        <div class="dc-body">
-          <span class="dg2">⚙️ AUTOMATION GENNEMFØRT</span><br><br>
-          <span class="dk2">Input:   </span><span class="dw">Ny henvendelse kvalificeret</span><br>
-          <span class="dk2">Kilde:   </span><span class="dw">Voice agent + formular</span><br><br>
-          <span class="dk2">Data:    </span><span class="dw">Navn, behov, budget, deadline</span><br>
-          <span class="dk2">CRM:     </span><span class="dg2">Lead oprettet</span><br>
-          <span class="dk2">Task:    </span><span class="dy2">Opfølgning sat til i morgen</span><br>
-          <span class="dk2">Status:  </span><span class="dg2">Sendt videre til salg</span>
-        </div>
-        <div class="dc-foot"><div class="dc-dot"></div><span class="dc-txt">Workflow afsluttet · 6 handlinger kørt</span></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="who rv" id="who">
-  <div class="who-head">
-    <div class="eyebrow" style="justify-content:center"><span class="line"></span>Use cases</div>
-    <h2>Til virksomheder med<br><em>gentagne processer.</em></h2>
-    <p class="who-sub">Zeppo er bygget til teams, der vil bruge mindre tid på manuelt arbejde og mere tid på kunder, drift og vækst.</p>
-  </div>
-  <div class="who-grid">
-    <div class="who-card rv">
-      <div class="who-emoji">🎙️</div>
-      <div class="who-t">Voice agents</div>
-      <div class="who-b">AI-agenter der tager samtaler, stiller de rigtige spørgsmål og sender struktureret information videre.</div>
-    </div>
-    <div class="who-card rv d1">
-      <div class="who-emoji">✉️</div>
-      <div class="who-t">Email automation</div>
-      <div class="who-b">Automatiske svar, kvalificering, opfølgning og sortering af indbakker uden at miste overblikket.</div>
-    </div>
-    <div class="who-card rv d2">
-      <div class="who-emoji">⚙️</div>
-      <div class="who-t">Interne workflows</div>
-      <div class="who-b">Opgaver, CRM, rapportering, påmindelser og dataflyt mellem de systemer virksomheden allerede bruger.</div>
-    </div>
-  </div>
-</div>
-
-<div class="feat-section" id="features">
-  <div class="feat-head rv">
+<section class="section" id="platform">
+  <div class="section-head reveal">
     <div>
-      <div class="eyebrow"><span class="line"></span>Funktioner</div>
-      <div class="h2">AI automation.<br><em>Bygget</em> til din hverdag.</div>
+      <div class="eyebrow">Platform</div>
+      <h2>Fra opkald til handling, uden mellemled.</h2>
     </div>
-    <p class="s-desc">Zeppo kan bygges omkring dine regler, dine systemer og dine kunderejser, så automationen føles som en del af forretningen.</p>
+    <p class="section-copy">Zeppo lytter, spørger ind, opsummerer og sender informationen videre til dine systemer, så personalet ikke skal stoppe arbejdet for at tage telefonen.</p>
   </div>
-  <div class="feat-grid">
-    <div class="feat rv">
-      <div class="feat-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g)"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></div>
-      <div class="feat-t">Naturlige AI-agenter</div>
-      <p class="feat-b">Voice eller tekst. Zeppo kan forstå dansk, stille opfølgende spørgsmål og holde svar korte og relevante.</p>
+  <div class="cards">
+    <div class="card reveal"><div class="card-icon"></div><h3>Voice agent</h3><p>Tager imod ordrer, bookinger og spørgsmål på dansk med korte, naturlige svar.</p></div>
+    <div class="card reveal"><div class="card-icon"></div><h3>Automatisk oprettelse</h3><p>Opretter ordrer, gemmer kundedata og samler notater, så intet forsvinder i travlheden.</p></div>
+    <div class="card reveal"><div class="card-icon"></div><h3>Realtime dashboard</h3><p>Se aktive opkald, dagens tal, kommende tider og seneste samtaler ét sted.</p></div>
+  </div>
+</section>
+
+<section class="split" id="usecases">
+  <div class="section">
+    <div class="reveal">
+      <div class="eyebrow">Use cases</div>
+      <h2>Til takeaway, restauranter og servicefirmaer.</h2>
+      <p class="section-copy">Samme kerne kan tilpasses forskellige flows. En takeaway skal bruge ordrer og pickup-tider. En restaurant skal bruge bookinger. En serviceforretning skal bruge leads og opfølgning.</p>
     </div>
-    <div class="feat rv d1">
-      <div class="feat-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g)"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-      <div class="feat-t">Skræddersyede flows</div>
-      <p class="feat-b">Automationerne bygges til dine felter, beslutninger, deadlines og måden du allerede arbejder på.</p>
-    </div>
-    <div class="feat rv d2">
-      <div class="feat-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-      <div class="feat-t">Kører i baggrunden</div>
-      <p class="feat-b">Henvendelser, opgaver og opfølgninger kan håndteres løbende, også når teamet er optaget.</p>
-    </div>
-    <div class="feat rv d3">
-      <div class="feat-ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g)"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9l20-7z"/></svg></div>
-      <div class="feat-t">Sender data videre</div>
-      <p class="feat-b">Zeppo kan opdatere CRM, sende beskeder, oprette tasks eller samle et klart handoff til næste person.</p>
+    <div class="terminal reveal">
+      <div class="terminal-top"><span>Zeppo Flow</span><span class="green">Kører</span></div>
+      <div class="terminal-body">
+        <span class="dim">Input</span>  Nyt opkald modtaget<br>
+        <span class="dim">Agent</span>  Kunden vil bestille til afhentning<br>
+        <span class="dim">Data</span>   Navn, varer, tidspunkt og bekræftelse<br>
+        <span class="dim">System</span> <span class="green">Ordre oprettet</span><br>
+        <span class="dim">Status</span> <span class="amber">Synlig i dashboard</span>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<div class="stats">
-  <div class="stat rv"><div class="stat-n">24<span class="stat-u">/7</span></div><div class="stat-l">Automations kan<br>køre løbende</div></div>
-  <div class="stat rv d1"><div class="stat-n">0</div><div class="stat-l">Unødige manuelle<br>mellemtrin</div></div>
-  <div class="stat rv d2"><div class="stat-n">&lt;5<span class="stat-u">min</span></div><div class="stat-l">Fra input til<br>næste handling</div></div>
-  <div class="stat rv d3"><div class="stat-n words">30 dage</div><div class="stat-l">Test et konkret<br>automation-flow</div></div>
-</div>
-
-<div class="cta rv" id="demo">
-  <div class="cta-glow"></div>
-  <div class="cta-in">
-    <div class="eyebrow" style="justify-content:center;margin-bottom:18px"><span class="line"></span>Book demo</div>
-    <div class="cta-h">Automatisér den<br>næste <em>proces.</em></div>
-    <p class="cta-sub">Fortæl kort hvad du vil automatisere. Vi viser hvordan Zeppo kan bygges til dit flow.</p>
-    <form class="cta-form" action="https://formspree.io/f/xzdwkvzq" method="POST">
-      <input type="text" name="message" placeholder="Hvad vil du automatisere?" required>
-      <button type="submit">Book demo →</button>
+<section class="cta" id="demo">
+  <div class="cta-box reveal">
+    <h2>Lad os bygge din første AI medarbejder.</h2>
+    <p>Fortæl hvad telefonen skal kunne håndtere. Vi viser et konkret setup til din restaurant, takeaway eller serviceforretning.</p>
+    <form class="demo-form" action="https://formspree.io/f/xzdwkvzq" method="POST">
+      <input type="email" name="email" placeholder="Din email" required>
+      <button type="submit">Book demo</button>
     </form>
-    <p class="cta-fine">Voice agents, email automation, CRM og interne workflows.</p>
   </div>
-</div>
+</section>
 
 <footer>
-  <div class="f-logo">zeppo<span class="f-dot">.</span></div>
-  <ul class="f-links">
-    <li><a href="#how">Sådan virker det</a></li>
-    <li><a href="#features">Funktioner</a></li>
-    <li><a href="#demo">Book demo</a></li>
-  </ul>
-  <div class="f-note">© 2026 Zeppo · CVR 45992284 · Lavet i Danmark 🇩🇰</div>
+  <div class="footer-inner">
+    <div class="brand" style="font-size:17px"><span class="brand-mark" style="width:21px;height:21px"></span>Zeppo</div>
+    <div class="footer-links">
+      <a href="https://dashboard.zeppo.dk/login">Dashboard</a>
+      <a href="https://zeppo-dk.onrender.com/voice-agent.html">Hør demo</a>
+      <a href="#demo">Book demo</a>
+    </div>
+    <div>© 2026 Zeppo · CVR 45992284</div>
+  </div>
 </footer>
 
 <script>
-const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');obs.unobserve(e.target)}}),{threshold:.06});
-document.querySelectorAll('.rv').forEach(el=>obs.observe(el));
+const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add("in");observer.unobserve(entry.target)}}),{threshold:.08});
+document.querySelectorAll(".reveal").forEach(element=>observer.observe(element));
 </script>
 </body>
 </html>
