@@ -15,6 +15,14 @@ import realtimeSessionHandler from './api/realtime-session.js';
 import ttsHandler from './api/tts.js';
 import { getTranscript as getSharedTranscript } from './api/_vvs-shared.js';
 import { GODTFOLK_FAST_INSTRUCTIONS } from './lib/godtfolk-prompt.js';
+import {
+  createCall as createDashboardCall,
+  createOrder as createDashboardOrder,
+  findCustomerById,
+  findCustomerByPhone,
+  logSystemEvent,
+  updateCall as updateDashboardCall,
+} from './lib/supabase.js';
 
 dotenv.config();
 
@@ -992,6 +1000,7 @@ const OPENAI_REALTIME_INPUT_RATE = 24000;
 const OPENAI_MIN_COMMIT_AUDIO_MS = 100;
 const CARTESIA_VERSION = process.env.CARTESIA_VERSION || '2026-03-01';
 const CARTESIA_MODEL_ID = process.env.CARTESIA_MODEL_ID || 'sonic-3.5';
+const SUPABASE_DEFAULT_CUSTOMER_ID = clean(process.env.SUPABASE_DEFAULT_CUSTOMER_ID || process.env.ZEPPO_CUSTOMER_ID);
 
 function setupCartesiaVoiceAgent(httpServer) {
   const voiceWss = new WebSocketServer({ noServer: true });
@@ -1041,9 +1050,133 @@ function setupCartesiaVoiceAgent(httpServer) {
     let forceOrderToolOnNextResponse = false;
     let awaitingCustomerName = false;
     let awaitingTranscriptAfterCommit = false;
+    let dashboardCustomer = null;
+    let dashboardCall = null;
+    let dashboardCallStartedAt = 0;
+    let dashboardCallInitPromise = null;
+    let dashboardCallFinalized = false;
+    let dashboardCallHadOrder = false;
+    const transcriptLines = [];
 
     function clientJson(data) {
       sendJson(client, data);
+    }
+
+    function appendTranscriptLine(role, text) {
+      const cleaned = clean(text);
+      if (!cleaned) return;
+      transcriptLines.push(`${role}: ${cleaned}`);
+    }
+
+    function inboundNumberCandidates(options = {}) {
+      return [
+        options.toNumber,
+        options.to,
+        options.twilioPhoneNumber,
+        process.env.ZEPPO_TWILIO_PHONE_NUMBER,
+        process.env.TWILIO_PHONE_NUMBER,
+        process.env.VOICE_AGENT_TO_NUMBER,
+      ]
+        .map((value) => clean(value))
+        .flatMap((value) => [value, normalizePhone(value)])
+        .filter(Boolean)
+        .filter((value, index, all) => all.indexOf(value) === index);
+    }
+
+    function callerNumberFromOptions(options = {}) {
+      return (
+        clean(options.callerNumber) ||
+        clean(options.fromNumber) ||
+        clean(options.from) ||
+        clean(process.env.VOICE_AGENT_TEST_CALLER_NUMBER) ||
+        'browser-test'
+      );
+    }
+
+    async function resolveDashboardCustomer(options = {}) {
+      for (const phone of inboundNumberCandidates(options)) {
+        const customer = await findCustomerByPhone(phone);
+        if (customer) return customer;
+      }
+
+      if (SUPABASE_DEFAULT_CUSTOMER_ID) {
+        return findCustomerById(SUPABASE_DEFAULT_CUSTOMER_ID);
+      }
+
+      return null;
+    }
+
+    async function initializeDashboardCall(options = {}) {
+      dashboardCallStartedAt = Date.now();
+      const customer = await resolveDashboardCustomer(options);
+      if (!customer) {
+        console.warn('[Supabase] no active customer found for voice session');
+        return null;
+      }
+
+      const call = await createDashboardCall({
+        customer_id: customer.id,
+        caller_number: callerNumberFromOptions(options),
+      });
+
+      if (!call) return null;
+
+      dashboardCustomer = customer;
+      dashboardCall = call;
+      logSystemEvent({
+        customer_id: customer.id,
+        call_id: call.id,
+        level: 'info',
+        source: 'voice-server',
+        message: 'Call started',
+        metadata: {
+          session_id: voiceSessionId,
+          caller_number: call.caller_number,
+          transport: 'websocket',
+        },
+      });
+
+      return { customer, call };
+    }
+
+    async function getDashboardContext() {
+      if (dashboardCallInitPromise) await dashboardCallInitPromise;
+      if (!dashboardCustomer || !dashboardCall) return null;
+      return { customer: dashboardCustomer, call: dashboardCall };
+    }
+
+    async function finalizeDashboardCall(status) {
+      if (dashboardCallFinalized) return;
+      dashboardCallFinalized = true;
+      const context = await getDashboardContext();
+      if (!context) return;
+
+      const endedAt = new Date();
+      const durationSeconds = dashboardCallStartedAt
+        ? Math.max(0, Math.round((endedAt.getTime() - dashboardCallStartedAt) / 1000))
+        : null;
+      const finalStatus = status || (dashboardCallHadOrder ? 'order_created' : 'completed');
+
+      await updateDashboardCall(context.call.id, {
+        ended_at: endedAt.toISOString(),
+        duration_seconds: durationSeconds,
+        transcript: transcriptLines.join('\n'),
+        status: finalStatus,
+      });
+
+      logSystemEvent({
+        customer_id: context.customer.id,
+        call_id: context.call.id,
+        level: 'info',
+        source: 'voice-server',
+        message: 'Call ended',
+        metadata: {
+          session_id: voiceSessionId,
+          status: finalStatus,
+          duration_seconds: durationSeconds,
+          transcript_lines: transcriptLines.length,
+        },
+      });
     }
 
     function ensureEnv() {
@@ -1258,6 +1391,19 @@ function setupCartesiaVoiceAgent(httpServer) {
               reason: ignoredReason,
               transcript: latestUserTranscript,
             });
+            const context = dashboardCustomer && dashboardCall
+              ? { customer: dashboardCustomer, call: dashboardCall }
+              : null;
+            if (context) {
+              logSystemEvent({
+                customer_id: context.customer.id,
+                call_id: context.call.id,
+                level: 'debug',
+                source: 'voice-server',
+                message: 'Transcript ignored',
+                metadata: { reason: ignoredReason, transcript: latestUserTranscript },
+              });
+            }
             manualResponsePending = false;
             manualCommitPending = false;
             awaitingTranscriptAfterCommit = false;
@@ -1265,6 +1411,7 @@ function setupCartesiaVoiceAgent(httpServer) {
             return;
           }
 
+          appendTranscriptLine('Kunde', latestUserTranscript);
           clientJson({ type: 'transcript', role: 'user', text: latestUserTranscript });
           if (
             manualResponsePending &&
@@ -1333,11 +1480,13 @@ function setupCartesiaVoiceAgent(httpServer) {
           event.type === 'response.text.done' ||
           event.type === 'response.done'
         ) {
+          const shouldLogAssistantResponse = responseActive && clean(assistantResponseText);
           if (responseActive) finishCartesiaContext();
           responseActive = false;
           responseCreatePending = false;
           manualResponsePending = false;
           manualCommitPending = false;
+          if (shouldLogAssistantResponse) appendTranscriptLine('Anja', assistantResponseText);
           if (greetingResponseActive) {
             greetingResponseActive = false;
             clientJson({ type: 'transcript_done', role: 'assistant' });
@@ -1749,6 +1898,55 @@ function setupCartesiaVoiceAgent(httpServer) {
           pickup_time_text: args.pickup_time_text || '',
           notes: args.notes || '',
         });
+        const context = await getDashboardContext();
+        if (context && result?.ok) {
+          const totalDkk = Number.isFinite(Number.parseFloat(result.total))
+            ? Math.round(Number.parseFloat(result.total))
+            : null;
+          const orderItems = Array.isArray(result.items)
+            ? result.items.map((item) => ({
+                product_id: item.product_id,
+                name: item.name,
+                qty: item.quantity,
+              }))
+            : (Array.isArray(args.items) ? args.items : []);
+
+          await createDashboardOrder({
+            call_id: context.call.id,
+            customer_id: context.customer.id,
+            order_items: orderItems,
+            customer_name: args.name || knownCustomerName || '',
+            customer_phone: '22769095',
+            delivery_type: args.delivery_type,
+            delivery_address: args.address || null,
+            delivery_city: args.city || null,
+            delivery_postcode: args.postcode || null,
+            pickup_time_text: args.pickup_time_text || '',
+            subtotal_dkk: totalDkk,
+            total_dkk: totalDkk,
+            external_system: 'woocommerce',
+            external_id: result.order_id ? String(result.order_id) : null,
+            external_status: result.status || null,
+            status: 'confirmed',
+            notes: args.notes || null,
+          });
+
+          dashboardCallHadOrder = true;
+          await updateDashboardCall(context.call.id, { status: 'order_created' });
+          logSystemEvent({
+            customer_id: context.customer.id,
+            call_id: context.call.id,
+            level: 'info',
+            source: 'voice-server',
+            message: 'Order created',
+            metadata: {
+              session_id: voiceSessionId,
+              order_id: result.order_id,
+              order_number: result.order_number,
+              total: result.total,
+            },
+          });
+        }
         awaitingOrderConfirmation = false;
         orderConfirmationAnswered = false;
         orderConfirmationApproved = false;
@@ -1767,6 +1965,25 @@ function setupCartesiaVoiceAgent(httpServer) {
         order_id: result.order_id,
         code: result.code,
       });
+      if (!result.ok) {
+        const context = dashboardCustomer && dashboardCall
+          ? { customer: dashboardCustomer, call: dashboardCall }
+          : null;
+        if (context) {
+          logSystemEvent({
+            customer_id: context.customer.id,
+            call_id: context.call.id,
+            level: 'warn',
+            source: 'voice-server',
+            message: 'Order creation failed',
+            metadata: {
+              session_id: voiceSessionId,
+              code: result.code,
+              error: result.error,
+            },
+          });
+        }
+      }
 
       if (openaiWs?.readyState !== WebSocket.OPEN) return;
       openaiWs.send(JSON.stringify({
@@ -1928,12 +2145,19 @@ function setupCartesiaVoiceAgent(httpServer) {
       return ((buffer?.byteLength || buffer?.length || 0) / 2 / OPENAI_REALTIME_INPUT_RATE) * 1000;
     }
 
-    function startSession(options = {}) {
+    async function startSession(options = {}) {
       if (sessionStarted) return;
       if (!ensureEnv()) return;
       sessionStarted = true;
+      dashboardCallFinalized = false;
+      dashboardCallHadOrder = false;
+      transcriptLines.length = 0;
       greetingSent = false;
       cartesiaOutputRate = Number(options.outputSampleRate) || 48000;
+      dashboardCallInitPromise = initializeDashboardCall(options).catch((error) => {
+        console.error('[Supabase] initializeDashboardCall:', error);
+        return null;
+      });
       clientJson({
         type: 'session_started',
         openai_model: OPENAI_REALTIME_WS_MODEL,
@@ -1973,7 +2197,10 @@ function setupCartesiaVoiceAgent(httpServer) {
           console.log('[voice] client_start', {
             outputSampleRate: message.outputSampleRate,
           });
-          startSession(message);
+          startSession(message).catch((error) => {
+            console.error('[voice] start_session_error', error);
+            clientJson({ type: 'error', error: error.message || 'Could not start session' });
+          });
           return;
         }
 
@@ -1984,6 +2211,7 @@ function setupCartesiaVoiceAgent(httpServer) {
 
         if (message.type === 'stop') {
           console.log('[voice] client_stop');
+          finalizeDashboardCall().catch((error) => console.error('[Supabase] finalizeCall:', error));
           closeOpenAi();
           closeCartesia();
           sessionStarted = false;
@@ -2010,6 +2238,7 @@ function setupCartesiaVoiceAgent(httpServer) {
 
     client.on('close', (code, reason) => {
       console.warn('[voice] client_close', { code, reason: reason?.toString() || '' });
+      finalizeDashboardCall().catch((error) => console.error('[Supabase] finalizeCall:', error));
       closeOpenAi();
       closeCartesia();
     });
