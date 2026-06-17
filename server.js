@@ -18,6 +18,7 @@ import { GODTFOLK_FAST_INSTRUCTIONS } from './lib/godtfolk-prompt.js';
 import {
   createCall as createDashboardCall,
   createOrder as createDashboardOrder,
+  findOrCreateCustomer,
   findCustomerById,
   findCustomerByPhone,
   logSystemEvent,
@@ -1001,6 +1002,7 @@ const OPENAI_MIN_COMMIT_AUDIO_MS = 100;
 const CARTESIA_VERSION = process.env.CARTESIA_VERSION || '2026-03-01';
 const CARTESIA_MODEL_ID = process.env.CARTESIA_MODEL_ID || 'sonic-3.5';
 const SUPABASE_DEFAULT_CUSTOMER_ID = clean(process.env.SUPABASE_DEFAULT_CUSTOMER_ID || process.env.ZEPPO_CUSTOMER_ID);
+const SUPABASE_DEFAULT_CUSTOMER_NAME = clean(process.env.SUPABASE_DEFAULT_CUSTOMER_NAME || process.env.ZEPPO_CUSTOMER_NAME || 'Pizzaria Napoli');
 
 function setupCartesiaVoiceAgent(httpServer) {
   const voiceWss = new WebSocketServer({ noServer: true });
@@ -1099,7 +1101,15 @@ function setupCartesiaVoiceAgent(httpServer) {
         if (customer) return customer;
       }
 
+      const defaultCustomer = await findOrCreateCustomer({
+        name: clean(options.customerName) || SUPABASE_DEFAULT_CUSTOMER_NAME,
+        twilio_phone_number: clean(options.toNumber) || clean(options.to) || clean(process.env.ZEPPO_TWILIO_PHONE_NUMBER),
+        contact_phone: clean(process.env.VOICE_AGENT_TEST_CALLER_NUMBER),
+      });
+      if (defaultCustomer) return defaultCustomer;
+
       if (SUPABASE_DEFAULT_CUSTOMER_ID) {
+        console.warn('[Supabase] falling back to SUPABASE_DEFAULT_CUSTOMER_ID');
         return findCustomerById(SUPABASE_DEFAULT_CUSTOMER_ID);
       }
 
