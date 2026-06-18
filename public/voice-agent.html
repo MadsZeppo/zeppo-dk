@@ -7,680 +7,353 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500..800;1,9..144,500..700&family=Atkinson+Hyperlegible:wght@400;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
 <style>
   * { box-sizing: border-box; }
 
   :root {
-    --cream: #FBF4E8;
-    --cream-deep: #F2E7CF;
-    --paper: #FFFFFF;
-    --crust: #2A1B10;
-    --crust-soft: #5C4630;
-    --ink-muted: #7C6A53;
-    --line: #E8D9BC;
-    --line-strong: #D9C49A;
+    --bg: #f8f7f3;
+    --card: #ffffff;
+    --bg-soft: #f2f0ea;
+    --ink: #111110;
+    --ink-soft: #54504a;
+    --muted: #8b867c;
+    --border: #e7e3d9;
 
-    --tomato: #C1432B;
-    --tomato-deep: #8C2E1C;
-    --tomato-soft: #FBE2DA;
-    --tomato-border: #EFBFB1;
+    --green: #1c7a43;
+    --amber: #b9790a;
+    --blue: #2660c4;
+    --red: #c23b2c;
 
-    --basil: #3C6B45;
-    --basil-deep: #234B2C;
-    --basil-soft: #E6F1E4;
-    --basil-border: #BEDCC0;
-
-    --gold: #D89A2E;
-    --gold-deep: #8A5C16;
-    --gold-soft: #FBEFD2;
-    --gold-border: #EAD299;
-
-    --sky-deep: #1F4D94;
-    --sky-soft: #E8F0FC;
-    --sky-border: #C2D7F2;
-
-    --shadow: 0 26px 70px rgba(42, 27, 16, 0.16);
-    --radius-xl: 26px;
-    --radius-lg: 20px;
-    --radius-md: 14px;
+    --shadow: 0 26px 60px rgba(20, 18, 12, 0.08);
   }
 
   html { -webkit-text-size-adjust: 100%; }
 
   body {
     margin: 0;
-    min-height: 100vh;
-    background:
-      radial-gradient(circle at 12% -4%, rgba(255, 255, 255, 0.9), transparent 34%),
-      radial-gradient(circle at 92% 0%, rgba(255, 255, 255, 0.65), transparent 30%),
-      linear-gradient(180deg, #FCF8EE 0%, var(--cream) 55%, var(--cream-deep) 100%);
-    color: var(--crust);
-    font-family: 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    font-size: 17px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 16.5px;
     line-height: 1.5;
   }
 
-  h1, h2, .display {
-    font-family: 'Fraunces', Georgia, serif;
-  }
-
-  button, input { font-family: inherit; }
-
-  a { color: var(--tomato-deep); }
+  button { font-family: inherit; }
 
   :focus-visible {
-    outline: 3px solid var(--gold);
-    outline-offset: 3px;
+    outline: 3px solid var(--blue);
+    outline-offset: 2px;
     border-radius: 6px;
   }
 
   .page {
-    width: min(1180px, calc(100% - 32px));
+    width: min(900px, calc(100% - 32px));
     margin: 0 auto;
-    padding: 28px 0 56px;
+    padding: 28px 0 60px;
   }
 
-  /* ---------- Topbar ---------- */
+  /* ---------- Nav ---------- */
 
   .topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
-    margin-bottom: 46px;
+    gap: 16px;
+    margin-bottom: 56px;
     flex-wrap: wrap;
   }
 
   .brand {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-  }
-
-  .brand-mark {
-    width: 38px;
-    height: 38px;
-    display: grid;
-    place-items: center;
-    border-radius: 11px;
-    background: var(--crust);
-    color: var(--cream);
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 800;
-    font-family: 'Fraunces', serif;
-    box-shadow: 0 10px 26px rgba(42, 27, 16, 0.25);
-    flex: 0 0 auto;
-  }
-
-  .brand-name {
-    font-family: 'Fraunces', serif;
-    font-style: italic;
-    font-weight: 700;
-    font-size: 23px;
-    color: var(--crust);
-  }
-
-  .brand-tagline {
-    font-size: 13.5px;
-    color: var(--ink-muted);
-    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--ink);
   }
 
   .top-pill {
     display: inline-flex;
     align-items: center;
-    gap: 9px;
-    padding: 10px 16px;
-    border: 1px solid var(--line-strong);
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.8);
-    color: var(--crust-soft);
-    font-size: 14px;
-    font-weight: 800;
-    box-shadow: 0 8px 24px rgba(42, 27, 16, 0.06);
+    background: var(--card);
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    font-weight: 700;
   }
 
-  .top-pill-dot {
-    width: 8px;
-    height: 8px;
+  .top-pill .dot {
+    width: 7px;
+    height: 7px;
     border-radius: 999px;
-    background: var(--basil);
-    box-shadow: 0 0 0 5px rgba(60, 107, 69, 0.16);
-    animation: pulse 1.6s ease-in-out infinite;
+    background: var(--green);
   }
 
   /* ---------- Hero ---------- */
 
   .hero {
     text-align: center;
-    margin: 0 auto 30px;
-    max-width: 880px;
+    margin: 0 auto 38px;
   }
 
-  .eyebrow {
+  .badge {
     width: fit-content;
-    margin: 0 auto 22px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 9px 16px;
-    border: 1px solid var(--line-strong);
+    margin: 0 auto 18px;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.8);
-    color: var(--crust-soft);
-    font-size: 14px;
-    font-weight: 800;
+    background: var(--card);
+    color: var(--ink-soft);
+    font-size: 13px;
+    font-weight: 700;
   }
 
   h1 {
     margin: 0;
-    font-weight: 650;
-    font-size: clamp(36px, 5.6vw, 62px);
+    font-weight: 800;
+    font-size: clamp(32px, 5.4vw, 50px);
     line-height: 1.08;
-    letter-spacing: -0.01em;
-    color: var(--crust);
-  }
-
-  h1 em {
-    font-style: italic;
-    color: var(--tomato-deep);
+    letter-spacing: -0.025em;
+    color: var(--ink);
   }
 
   .hero-text {
-    max-width: 660px;
-    margin: 20px auto 0;
-    color: var(--crust-soft);
-    font-size: clamp(17px, 1.7vw, 19px);
+    max-width: 480px;
+    margin: 16px auto 0;
+    color: var(--ink-soft);
+    font-size: 16.5px;
     line-height: 1.55;
     font-weight: 500;
   }
 
-  .hero-text strong { color: var(--crust); font-weight: 800; }
+  /* ---------- Browser-style demo card ---------- */
 
-  /* ---------- Layout ---------- */
-
-  .layout {
-    display: grid;
-    grid-template-columns: 0.94fr 1.06fr;
-    gap: 20px;
-    align-items: stretch;
-    margin-top: 30px;
-  }
-
-  .panel {
-    background: var(--paper);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-xl);
+  .browser-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
     box-shadow: var(--shadow);
     overflow: hidden;
   }
 
-  .guide { padding: 30px; }
-
-  .section-title {
-    margin: 0 0 8px;
-    font-size: 21px;
-    line-height: 1.2;
-    font-weight: 650;
-    color: var(--crust);
-  }
-
-  .section-text {
-    margin: 0;
-    color: var(--ink-muted);
-    font-size: 15.5px;
-    line-height: 1.6;
-  }
-
-  /* ---------- Steps ---------- */
-
-  .steps {
-    display: grid;
-    gap: 10px;
-    margin-top: 20px;
-  }
-
-  .step {
-    display: grid;
-    grid-template-columns: 38px 1fr;
-    gap: 14px;
-    align-items: start;
-    padding: 15px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: linear-gradient(180deg, #FFFFFF, #FEFCF6);
-  }
-
-  .step-number {
-    width: 38px;
-    height: 38px;
-    display: grid;
-    place-items: center;
-    border-radius: 12px;
-    background: var(--crust);
-    color: var(--cream);
-    font-size: 15px;
-    font-weight: 800;
-  }
-
-  .step strong {
-    display: block;
-    margin-bottom: 3px;
-    font-size: 15.5px;
-    color: var(--crust);
-  }
-
-  .step span {
-    display: block;
-    color: var(--ink-muted);
-    font-size: 14.5px;
-    line-height: 1.45;
-  }
-
-  /* ---------- Examples ---------- */
-
-  .example-block {
-    margin-top: 24px;
-    padding-top: 24px;
-    border-top: 1px solid var(--line);
-  }
-
-  .examples {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 9px;
-    margin-top: 14px;
-  }
-
-  .example {
-    padding: 10px 14px;
-    border: 1px solid var(--line-strong);
-    border-radius: 999px;
-    background: var(--cream);
-    color: var(--crust);
-    font-size: 14.5px;
-    font-weight: 700;
-  }
-
-  /* ---------- Menu ---------- */
-
-  .menu {
-    margin-top: 24px;
-    padding-top: 24px;
-    border-top: 1px solid var(--line);
-  }
-
-  .menu-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin-top: 14px;
-  }
-
-  .menu-item {
-    padding: 16px 14px 14px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: linear-gradient(180deg, #FFFFFF 0%, var(--cream) 100%);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .menu-item .icon { font-size: 26px; line-height: 1; }
-
-  .menu-item strong {
-    font-family: 'Fraunces', serif;
-    font-weight: 650;
-    font-size: 16px;
-    color: var(--crust);
-  }
-
-  .menu-item .price {
-    align-self: flex-start;
-    background: var(--basil-soft);
-    color: var(--basil-deep);
-    border: 1px solid var(--basil-border);
-    border-radius: 999px;
-    padding: 3px 11px;
-    font-size: 13.5px;
-    font-weight: 800;
-  }
-
-  /* ---------- Booking note ---------- */
-
-  .booking-note {
-    margin-top: 20px;
-    padding: 18px;
-    border: 1px solid var(--basil-border);
-    border-radius: 18px;
-    background: var(--basil-soft);
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-  }
-
-  .booking-note .icon {
-    font-size: 22px;
-    flex: 0 0 auto;
-    line-height: 1;
-    margin-top: 2px;
-  }
-
-  .booking-note strong {
-    display: block;
-    margin-bottom: 5px;
-    color: var(--basil-deep);
-    font-size: 15.5px;
-  }
-
-  .booking-note p {
-    margin: 0;
-    color: #2E5638;
-    font-size: 14.5px;
-    line-height: 1.55;
-  }
-
-  /* ---------- Demo / call panel ---------- */
-
-  .demo {
-    display: flex;
-    flex-direction: column;
-    min-height: 760px;
-  }
-
-  .demo-header {
-    position: relative;
+  .chrome-bar {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 28px 30px 24px;
-    border-bottom: 1px solid var(--line);
-    background:
-      radial-gradient(circle at top right, rgba(216, 154, 46, 0.14), transparent 36%),
-      #fff;
+    gap: 8px;
+    padding: 13px 16px;
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .chrome-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+  }
+
+  .chrome-dot.red { background: #ec6a5e; }
+  .chrome-dot.amber { background: #f4bf4f; }
+  .chrome-dot.green { background: #61c454; }
+
+  .chrome-address {
+    flex: 1;
+    text-align: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 0 10px;
+  }
+
+  .chrome-help {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .call-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 26px 16px;
+    flex-wrap: wrap;
   }
 
   .agent-avatar {
-    width: 56px;
-    height: 56px;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    border-radius: 13px;
+    background: var(--ink);
+    color: #fff;
     display: grid;
     place-items: center;
-    flex: 0 0 auto;
-    border-radius: 18px;
-    background: var(--crust);
-    color: var(--cream);
-    font-family: 'Fraunces', serif;
-    font-size: 24px;
-    font-weight: 700;
-    box-shadow: 0 14px 32px rgba(42, 27, 16, 0.2);
-  }
-
-  .agent h2 {
-    margin: 0;
-    font-size: 25px;
-    font-weight: 650;
-    line-height: 1.1;
-    color: var(--crust);
-  }
-
-  .agent p {
-    margin: 5px 0 0;
-    color: var(--ink-muted);
-    font-size: 14.5px;
-    line-height: 1.35;
-    font-weight: 600;
-  }
-
-  .stamp-badge {
-    position: absolute;
-    top: 18px;
-    right: 24px;
-    transform: rotate(-4deg);
-    background: var(--tomato-soft);
-    color: var(--tomato-deep);
-    border: 1px solid var(--tomato-border);
-    border-radius: 999px;
-    padding: 6px 12px;
-    font-size: 11.5px;
     font-weight: 800;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    font-size: 17px;
   }
 
-  /* Status banner (id="status", referenced by JS) */
-  .status-banner {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 16px 30px;
-    background: var(--cream);
-    border-bottom: 1px solid var(--line);
-    transition: background-color 220ms ease, border-color 220ms ease;
-  }
-
-  .status-icon-wrap {
-    width: 48px;
-    height: 48px;
-    flex: 0 0 auto;
-    border-radius: 50%;
-    background: #fff;
-    display: grid;
-    place-items: center;
-    font-size: 23px;
-    box-shadow: 0 8px 18px rgba(42, 27, 16, 0.1);
-  }
-
-  .status-copy strong {
+  .agent-info strong {
     display: block;
-    font-family: 'Fraunces', serif;
-    font-weight: 650;
-    font-size: 17.5px;
-    color: var(--crust);
+    font-size: 16.5px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
   }
 
-  .status-copy span {
+  .agent-info span {
     display: block;
-    margin-top: 2px;
-    font-size: 15px;
-    color: var(--crust-soft);
+    margin-top: 1px;
+    font-size: 13px;
+    color: var(--muted);
     font-weight: 500;
   }
 
-  .status-banner[data-state="connecting"] { background: var(--gold-soft); border-color: var(--gold-border); }
-  .status-banner[data-state="connecting"] .status-copy strong { color: var(--gold-deep); }
-  .status-banner[data-state="connecting"] .status-icon-wrap { animation: pulse 1.15s ease-in-out infinite; }
-
-  .status-banner[data-state="connected"] { background: var(--basil-soft); border-color: var(--basil-border); }
-  .status-banner[data-state="connected"] .status-copy strong { color: var(--basil-deep); }
-  .status-banner[data-state="connected"] .status-icon-wrap {
-    animation: pulse 1.15s ease-in-out infinite;
-    box-shadow: 0 0 0 6px rgba(60, 107, 69, 0.14);
-  }
-
-  .status-banner[data-state="speaking"] { background: var(--sky-soft); border-color: var(--sky-border); }
-  .status-banner[data-state="speaking"] .status-copy strong { color: var(--sky-deep); }
-  .status-banner[data-state="speaking"] .status-icon-wrap { animation: pulse 1.15s ease-in-out infinite; }
-
-  .status-banner[data-state="error"] { background: var(--tomato-soft); border-color: var(--tomato-border); }
-  .status-banner[data-state="error"] .status-copy strong { color: var(--tomato-deep); }
-
-  .status-banner[data-state="stopped"] { background: var(--cream-deep); border-color: var(--line-strong); }
-
-  /* Ticket-stub divider: dashed line with two punched notches */
-  .ticket-divider {
-    position: relative;
-    height: 0;
-    border-top: 2px dashed var(--line-strong);
-  }
-
-  .ticket-divider::before,
-  .ticket-divider::after {
-    content: "";
-    position: absolute;
-    top: -11px;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: var(--cream-deep);
-  }
-
-  .ticket-divider::before { left: -11px; }
-  .ticket-divider::after { right: -11px; }
-
-  .demo-body {
-    padding: 24px 30px 30px;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-  }
-
-  .call-explainer {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 18px;
-  }
-
-  .small-card {
-    padding: 15px;
-    border: 1px solid var(--line);
-    border-radius: 17px;
-    background: #FEFCF6;
-  }
-
-  .small-card strong {
-    display: block;
-    margin-bottom: 5px;
-    font-size: 14.5px;
-    color: var(--crust);
-  }
-
-  .small-card p {
-    margin: 0;
-    color: var(--ink-muted);
+  .status-pill {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-soft);
     font-size: 13.5px;
-    line-height: 1.45;
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--muted);
+  }
+
+  .status-pill[data-state="connecting"] .status-dot { background: var(--amber); animation: pulse 1.1s ease-in-out infinite; }
+  .status-pill[data-state="connected"] .status-dot { background: var(--green); animation: pulse 1.1s ease-in-out infinite; }
+  .status-pill[data-state="speaking"] .status-dot { background: var(--blue); animation: pulse 1.1s ease-in-out infinite; }
+  .status-pill[data-state="error"] .status-dot { background: var(--red); }
+  .status-pill[data-state="stopped"] .status-dot { background: var(--muted); }
+
+  .status-help {
+    margin: 0 26px 16px;
+    color: var(--muted);
+    font-size: 13.5px;
+    font-weight: 500;
   }
 
   .transcript {
-    min-height: 320px;
-    max-height: 430px;
-    flex: 1;
+    margin: 0 26px;
+    min-height: 250px;
+    max-height: 400px;
     overflow: auto;
-    border: 1px solid var(--line);
-    border-radius: 22px;
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.9), rgba(251,247,238,0.97)),
-      #FEFCF6;
-    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--bg-soft);
+    padding: 18px;
     scroll-behavior: smooth;
   }
 
   .empty {
-    min-height: 280px;
+    min-height: 210px;
     display: grid;
     place-items: center;
     text-align: center;
   }
 
-  .empty-inner { max-width: 380px; }
-
   .empty-icon {
-    width: 58px;
-    height: 58px;
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 10px;
+    border-radius: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
     display: grid;
     place-items: center;
-    margin: 0 auto 14px;
-    border-radius: 20px;
-    background: #fff;
-    border: 1px solid var(--line);
-    color: var(--basil);
-    font-size: 24px;
-    box-shadow: 0 14px 32px rgba(42, 27, 16, 0.08);
+    font-size: 19px;
   }
 
   .empty-title {
-    margin: 0 0 6px;
-    color: var(--crust);
-    font-size: 18.5px;
-    font-weight: 800;
-    font-family: 'Fraunces', serif;
+    margin: 0 0 4px;
+    font-size: 15.5px;
+    font-weight: 700;
+    color: var(--ink);
   }
 
   .empty-copy {
     margin: 0;
-    color: var(--ink-muted);
-    font-size: 14.5px;
+    max-width: 280px;
+    color: var(--muted);
+    font-size: 13.5px;
     font-weight: 500;
-    line-height: 1.5;
+    line-height: 1.45;
   }
 
   .msg {
     width: fit-content;
-    max-width: min(84%, 560px);
-    margin: 0 0 14px;
-    padding: 13px 16px;
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    background: #fff;
-    box-shadow: 0 8px 20px rgba(42, 27, 16, 0.05);
+    max-width: min(84%, 480px);
+    margin: 0 0 12px;
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--card);
   }
 
   .msg.user {
     margin-left: auto;
-    background: var(--crust);
-    color: var(--cream);
-    border-color: var(--crust);
-    border-bottom-right-radius: 6px;
-  }
-
-  .msg.assistant {
-    margin-right: auto;
-    background: #fff;
-    border-bottom-left-radius: 6px;
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
   }
 
   .role {
-    margin-bottom: 6px;
-    color: var(--basil-deep);
-    font-size: 12px;
-    line-height: 1;
+    margin-bottom: 4px;
+    font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
+    color: var(--green);
   }
 
-  .msg.user .role { color: rgba(251, 244, 232, 0.75); }
+  .msg.user .role { color: rgba(255, 255, 255, 0.65); }
 
   .text {
     white-space: pre-wrap;
-    line-height: 1.6;
-    font-size: 17px;
+    line-height: 1.5;
+    font-size: 15.5px;
     font-weight: 500;
   }
 
   .controls {
-    display: grid;
-    grid-template-columns: 1.2fr 0.8fr;
-    gap: 12px;
-    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+    padding: 18px 26px 26px;
   }
 
   button {
-    min-height: 64px;
+    min-height: 54px;
     border: 0;
-    border-radius: 18px;
-    font-size: 18px;
-    font-weight: 800;
+    border-radius: 999px;
+    font-size: 16px;
+    font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+    gap: 8px;
+    transition: transform 150ms ease, opacity 150ms ease;
   }
 
   button:hover:not(:disabled) { transform: translateY(-1px); }
@@ -688,108 +361,121 @@
 
   button:disabled {
     cursor: not-allowed;
-    opacity: 0.45;
-    box-shadow: none !important;
+    opacity: 0.4;
   }
 
   #startBtn {
-    background: linear-gradient(180deg, #467650, var(--basil));
+    flex: 1.3;
+    background: var(--ink);
     color: #fff;
-    box-shadow: 0 18px 36px rgba(60, 107, 69, 0.28);
   }
 
   #stopBtn {
-    background: var(--tomato-soft);
-    color: var(--tomato-deep);
-    border: 1px solid var(--tomato-border);
+    flex: 1;
+    background: var(--bg-soft);
+    color: var(--ink);
+    border: 1px solid var(--border);
   }
 
   .hint {
     margin: 16px 0 0;
     text-align: center;
-    color: var(--ink-muted);
-    font-size: 14.5px;
-    line-height: 1.5;
-    font-weight: 600;
+    color: var(--muted);
+    font-size: 13.5px;
+    font-weight: 500;
   }
 
-  /* ---------- Bottom info ---------- */
+  /* ---------- Compact info row ---------- */
 
-  .bottom-info {
+  .mini-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    margin-top: 20px;
+    gap: 12px;
+    margin-top: 36px;
   }
 
-  .info-card {
-    padding: 20px;
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.78);
-    box-shadow: 0 10px 28px rgba(42, 27, 16, 0.05);
+  .mini {
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--card);
   }
 
-  .info-card .icon { font-size: 22px; display: block; margin-bottom: 8px; }
-
-  .info-card strong {
+  .mini strong {
     display: block;
-    margin-bottom: 6px;
-    font-size: 15.5px;
-    color: var(--crust);
+    font-size: 14.5px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
   }
 
-  .info-card p {
-    margin: 0;
-    color: var(--ink-muted);
-    font-size: 14.5px;
-    line-height: 1.5;
+  .mini span {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  /* ---------- Strips (menu / examples) ---------- */
+
+  .strip { margin-top: 30px; }
+
+  .strip-label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .strip-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .strip-pills .pill {
+    padding: 8px 13px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink);
   }
 
   .footnote {
-    margin-top: 26px;
+    margin-top: 38px;
     text-align: center;
-    color: var(--ink-muted);
-    font-size: 13.5px;
-    line-height: 1.5;
+    color: var(--muted);
+    font-size: 12.5px;
   }
 
-  /* ---------- Hidden technical telemetry (not shown to users, kept for scripting) ---------- */
+  /* ---------- Hidden technical telemetry (kept for scripting only) ---------- */
   .hidden-tech { display: none !important; }
 
   @keyframes pulse {
     0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(0.84); opacity: 0.7; }
+    50% { transform: scale(0.8); opacity: 0.65; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .status-icon-wrap, .top-pill-dot { animation: none !important; }
-    button, .panel { transition: none !important; }
-  }
-
-  @media (max-width: 980px) {
-    .topbar { margin-bottom: 32px; }
-    .layout { grid-template-columns: 1fr; }
-    .demo { min-height: auto; }
-    .bottom-info { grid-template-columns: 1fr; }
+    .status-dot { animation: none !important; }
+    button { transition: none !important; }
   }
 
   @media (max-width: 640px) {
-    .page { width: min(100% - 20px, 1180px); padding-top: 18px; }
-    .topbar { align-items: flex-start; flex-direction: column; }
-    .top-pill { width: 100%; justify-content: center; }
-    .hero-text { font-size: 16.5px; }
-
-    .guide, .demo-header, .demo-body { padding: 22px; }
-    .status-banner { padding: 14px 22px; }
-    .ticket-divider::before, .ticket-divider::after { display: none; }
-
-    .demo-header { flex-wrap: wrap; }
-    .stamp-badge { position: static; transform: none; margin-left: auto; }
-
-    .call-explainer, .menu-grid, .controls { grid-template-columns: 1fr; }
-    .transcript { min-height: 280px; }
-    .msg { max-width: 96%; }
+    .topbar { margin-bottom: 36px; }
+    .call-header, .status-help, .transcript, .controls { padding-left: 18px; padding-right: 18px; }
+    .transcript { margin: 0 18px; }
+    .status-help { margin: 0 18px 14px; }
+    .status-pill { margin-left: 0; }
+    .call-header { gap: 10px; }
+    .controls { flex-direction: column; }
+    .mini-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -798,210 +484,95 @@
 <div class="page">
 
   <header class="topbar">
-    <div class="brand">
-      <div class="brand-mark">z</div>
-      <div>
-        <div class="brand-name">zeppo.</div>
-        <div class="brand-tagline">AI til restauranttelefonen</div>
-      </div>
-    </div>
-
+    <div class="brand">zeppo.</div>
     <div class="top-pill">
-      <span class="top-pill-dot"></span>
-      Live demo til restauranter
+      <span class="dot"></span>
+      Pizzeria Napoli · Live demo
     </div>
   </header>
 
   <section class="hero">
-    <div class="eyebrow">🍕 Demo · AI-telefon til pizzariaer</div>
-
-    <h1>Prøv selv at ringe og bestille — <em>helt med din egen stemme</em>.</h1>
-
-    <p class="hero-text">
-      I denne demo ringer du til et tænkt pizzaria, <strong>Pizzeria Napoli</strong>.
-      Telefonen tages af <strong>Anja</strong>, en AI-medarbejder, der tager din bestilling
-      akkurat som en rigtig kollega ville gøre.
-    </p>
+    <div class="badge">Bygget til Pizzeria Napoli</div>
+    <h1>Ring ind og bestil — med din egen stemme.</h1>
+    <p class="hero-text">Anja er pizzariaets AI-telefonmedarbejder. Tryk start, og tal helt normalt.</p>
   </section>
 
-  <main class="layout">
-
-    <aside class="panel guide">
-      <h2 class="section-title">Sådan virker demoen</h2>
-      <p class="section-text">
-        Du taler med Anja, ligesom du ville gøre i en almindelig telefonsamtale med pizzariaet.
-        Ingen kommandoer, ingen menuer — bare tal.
-      </p>
-
-      <div class="steps">
-        <div class="step">
-          <div class="step-number">1</div>
-          <div>
-            <strong>Tryk på “Ring til Anja”</strong>
-            <span>Samtalen starter direkte her i din browser. Du behøver ikke ringe noget nummer.</span>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-number">2</div>
-          <div>
-            <strong>Sig ja til mikrofonen</strong>
-            <span>Browseren spørger om lov til at bruge din mikrofon — kun til denne samtale.</span>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-number">3</div>
-          <div>
-            <strong>Sig din bestilling helt normalt</strong>
-            <span>Tal roligt og naturligt, som du ville gøre i en rigtig telefonsamtale.</span>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-number">4</div>
-          <div>
-            <strong>Anja svarer og bekræfter</strong>
-            <span>Hun spørger ind, hvis noget er uklart, og bekræfter ordren til sidst.</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="example-block">
-        <h2 class="section-title">Det kan du fx sige</h2>
-        <p class="section-text">Du behøver ikke huske bestemte ord eller sætninger — tal frit.</p>
-
-        <div class="examples">
-          <div class="example">“Jeg vil gerne bestille en pepperoni”</div>
-          <div class="example">“En kebab durum og en Pepsi Max, tak”</div>
-          <div class="example">“Kan jeg hente om 20 minutter?”</div>
-          <div class="example">“Har I margherita på menuen?”</div>
-          <div class="example">“Hvor lang tid tager det?”</div>
-        </div>
-      </div>
-
-      <div class="menu">
-        <h2 class="section-title">Menu i denne demo</h2>
-        <p class="section-text">I denne test kan Anja tage bestillinger på disse fire varer.</p>
-
-        <div class="menu-grid">
-          <div class="menu-item">
-            <span class="icon">🍕</span>
-            <strong>Pepperoni</strong>
-            <span class="price">50 kr.</span>
-          </div>
-
-          <div class="menu-item">
-            <span class="icon">🍕</span>
-            <strong>Margherita</strong>
-            <span class="price">50 kr.</span>
-          </div>
-
-          <div class="menu-item">
-            <span class="icon">🥙</span>
-            <strong>Kebab Durum</strong>
-            <span class="price">50 kr.</span>
-          </div>
-
-          <div class="menu-item">
-            <span class="icon">🥤</span>
-            <strong>Pepsi Max</strong>
-            <span class="price">15 kr.</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="booking-note">
-        <span class="icon">📅</span>
-        <div>
-          <strong>I virkeligheden kan Anja også booke borde</strong>
-          <p>
-            Hos en rigtig kunde tager Anja desuden imod bordreservationer, ændringer og spørgsmål
-            om åbningstider — helt automatisk, døgnet rundt. I denne demo kan du kun prøve at
-            bestille mad, så det er nemt og hurtigt at teste.
-          </p>
-        </div>
-      </div>
-    </aside>
-
-    <section class="panel demo">
-      <div class="demo-header">
-        <div class="agent-avatar">A</div>
-        <div class="agent">
-          <h2>Anja</h2>
-          <p>AI-telefonmedarbejder for Pizzeria Napoli</p>
-        </div>
-        <div class="stamp-badge">● Demo-opkald</div>
-      </div>
-
-      <div id="status" class="status-banner" data-state="idle" aria-live="polite">
-        <div class="status-icon-wrap"><span id="statusIcon">☎️</span></div>
-        <div class="status-copy">
-          <strong id="statusTitle">Klar til at ringe</strong>
-          <span id="statusHelp">Tryk på den grønne knap herunder.</span>
-        </div>
-      </div>
-
-      <div class="ticket-divider" aria-hidden="true"></div>
-
-      <div class="demo-body">
-        <div class="call-explainer">
-          <div class="small-card">
-            <strong>Hvad sker der lige nu?</strong>
-            <p>Du taler direkte med Anja, som om telefonen hos pizzariaet ringede, og hun tog den.</p>
-          </div>
-
-          <div class="small-card">
-            <strong>Hvad kan du sige?</strong>
-            <p>Bestil mad, spørg ind til menuen, eller spørg hvor lang tid det tager.</p>
-          </div>
-        </div>
-
-        <div id="transcript" class="transcript">
-          <div class="empty">
-            <div class="empty-inner">
-              <div class="empty-icon">☎️</div>
-              <p class="empty-title">Samtalen vises her</p>
-              <p class="empty-copy">
-                Når du starter, kan du fx sige: “Jeg vil gerne bestille en pepperoni og en Pepsi Max.”
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div class="controls">
-          <button id="startBtn">📞 Ring til Anja</button>
-          <button id="stopBtn" disabled>⏹ Afslut samtalen</button>
-        </div>
-
-        <p class="hint">Du kan altid tale — vent bare et øjeblik, hvis Anja er midt i en sætning.</p>
-      </div>
-    </section>
-  </main>
-
-  <section class="bottom-info">
-    <div class="info-card">
-      <span class="icon">📋</span>
-      <strong>Tager imod bestillinger</strong>
-      <p>Anja spørger ind til varer, antal, afhentningstid og navn — helt af sig selv.</p>
+  <div class="browser-card">
+    <div class="chrome-bar">
+      <span class="chrome-dot red"></span>
+      <span class="chrome-dot amber"></span>
+      <span class="chrome-dot green"></span>
+      <div class="chrome-address">Pizzeria Napoli — telefonopkald</div>
+      <div class="chrome-help">?</div>
     </div>
 
-    <div class="info-card">
-      <span class="icon">📅</span>
+    <div class="call-header">
+      <div class="agent-avatar">A</div>
+      <div class="agent-info">
+        <strong>Anja</strong>
+        <span>AI-telefonmedarbejder</span>
+      </div>
+      <div id="status" class="status-pill" data-state="idle" aria-live="polite">
+        <span class="status-dot"></span>
+        <span id="statusTitle">Klar til at ringe</span>
+      </div>
+    </div>
+
+    <p id="statusHelp" class="status-help">Tryk på knappen herunder.</p>
+
+    <div id="transcript" class="transcript">
+      <div class="empty">
+        <div class="empty-inner">
+          <div class="empty-icon">☎️</div>
+          <p class="empty-title">Samtalen vises her</p>
+          <p class="empty-copy">Sig fx: “Jeg vil gerne bestille en pepperoni.”</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn">📞 Ring til Anja</button>
+      <button id="stopBtn" disabled>Afslut</button>
+    </div>
+  </div>
+
+  <p class="hint">Tryk start → tillad mikrofon → tal helt normalt.</p>
+
+  <div class="mini-grid">
+    <div class="mini">
+      <strong>Bestiller mad</strong>
+      <span>Varer, antal og afhentningstid.</span>
+    </div>
+    <div class="mini">
       <strong>Booker også borde</strong>
-      <p>Udover bestillinger kan den fulde løsning tage bordreservationer og svare gæster.</p>
+      <span>I den fulde version — ikke i denne demo.</span>
     </div>
-
-    <div class="info-card">
-      <span class="icon">🧑‍🍳</span>
+    <div class="mini">
       <strong>Aflaster personalet</strong>
-      <p>Når telefonen ringer i en hektisk periode, kan Anja tage samtalen, så personalet kan fokusere på gæsterne.</p>
+      <span>Tager samtalen, når det er hektisk.</span>
     </div>
-  </section>
+  </div>
 
-  <p class="footnote">
-    Dette er en demo. Anja er kunstig intelligens og kan svare en smule forskelligt fra gang til gang — det er helt normalt.
-  </p>
+  <div class="strip">
+    <span class="strip-label">Menu i denne demo</span>
+    <div class="strip-pills">
+      <span class="pill">🍕 Pepperoni — 50 kr.</span>
+      <span class="pill">🍕 Margherita — 50 kr.</span>
+      <span class="pill">🥙 Kebab Durum — 50 kr.</span>
+      <span class="pill">🥤 Pepsi Max — 15 kr.</span>
+    </div>
+  </div>
+
+  <div class="strip">
+    <span class="strip-label">Du kan f.eks. sige</span>
+    <div class="strip-pills">
+      <span class="pill">“En pepperoni, tak”</span>
+      <span class="pill">“Kan jeg hente om 20 minutter?”</span>
+      <span class="pill">“Har I margherita?”</span>
+    </div>
+  </div>
+
+  <p class="footnote">Dette er en demo. Anja kan svare lidt forskelligt fra gang til gang.</p>
 </div>
 
 <div class="hidden-tech" aria-hidden="true">
@@ -1111,7 +682,7 @@ function getFriendlyStatus(text, state = '') {
     return {
       state: 'connecting',
       icon: '⏳',
-      title: 'Forbinder til Anja...',
+      title: 'Forbinder...',
       help: 'Det tager kun et øjeblik.',
     };
   }
@@ -1138,7 +709,7 @@ function getFriendlyStatus(text, state = '') {
     state: 'idle',
     icon: '☎️',
     title: 'Klar til at ringe',
-    help: 'Tryk på den grønne knap herunder.',
+    help: 'Tryk på knappen herunder.',
   };
 }
 
@@ -1425,9 +996,7 @@ function clearTranscript() {
       <div class="empty-inner">
         <div class="empty-icon">☎️</div>
         <p class="empty-title">Samtalen vises her</p>
-        <p class="empty-copy">
-          Når du starter, kan du fx sige: “Jeg vil gerne bestille en pepperoni og en Pepsi Max.”
-        </p>
+        <p class="empty-copy">Sig fx: “Jeg vil gerne bestille en pepperoni.”</p>
       </div>
     </div>
   `;
