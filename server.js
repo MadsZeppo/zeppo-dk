@@ -14,7 +14,7 @@ import createRealtimeOrderHandler, { createRealtimeOrder } from './api/realtime-
 import realtimeSessionHandler from './api/realtime-session.js';
 import ttsHandler from './api/tts.js';
 import { getTranscript as getSharedTranscript } from './api/_vvs-shared.js';
-import { GODTFOLK_FAST_INSTRUCTIONS } from './lib/godtfolk-prompt.js';
+import { GODTFOLK_FAST_INSTRUCTIONS, HAERVEJEN_FAST_INSTRUCTIONS } from './lib/godtfolk-prompt.js';
 import {
   createCall as createDashboardCall,
   createOrder as createDashboardOrder,
@@ -1004,6 +1004,33 @@ const CARTESIA_MODEL_ID = process.env.CARTESIA_MODEL_ID || 'sonic-3.5';
 const SUPABASE_DEFAULT_CUSTOMER_ID = clean(process.env.SUPABASE_DEFAULT_CUSTOMER_ID || process.env.ZEPPO_CUSTOMER_ID);
 const SUPABASE_DEFAULT_CUSTOMER_NAME = clean(process.env.SUPABASE_DEFAULT_CUSTOMER_NAME || process.env.ZEPPO_CUSTOMER_NAME || 'Pizzaria Napoli');
 
+const VOICE_AGENT_PROFILES = {
+  napoli: {
+    id: 'napoli',
+    businessName: 'Pizzaria Napoli',
+    assistantName: 'Anja',
+    instructions: GODTFOLK_FAST_INSTRUCTIONS,
+    greeting: 'Hej og velkommen til Pizzaria Napoli, hvad kan jeg hjælpe med?',
+    greetingPronunciation: 'Udtal Pizzaria Napoli roligt og samlet.',
+    voiceEnv: 'CARTESIA_VOICE_ID',
+    allowOrders: true,
+  },
+  haervejen: {
+    id: 'haervejen',
+    businessName: 'Restaurant Hærvejen',
+    assistantName: 'Freja',
+    instructions: HAERVEJEN_FAST_INSTRUCTIONS,
+    greeting: 'Hej og velkommen til Restaurant Hærvejen, hvad kan jeg hjælpe med?',
+    greetingPronunciation: 'Udtal Restaurant Hærvejen roligt og samlet.',
+    voiceEnv: 'CARTESIA_VOICE_ID_HAERVEJEN',
+    allowOrders: false,
+  },
+};
+
+function resolveVoiceAgentProfile(agentId) {
+  return VOICE_AGENT_PROFILES[clean(agentId).toLowerCase()] || VOICE_AGENT_PROFILES.napoli;
+}
+
 function setupCartesiaVoiceAgent(httpServer) {
   const voiceWss = new WebSocketServer({ noServer: true });
 
@@ -1058,6 +1085,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     let dashboardCallInitPromise = null;
     let dashboardCallFinalized = false;
     let dashboardCallHadOrder = false;
+    let activeProfile = VOICE_AGENT_PROFILES.napoli;
     const transcriptLines = [];
 
     function clientJson(data) {
@@ -1189,11 +1217,11 @@ function setupCartesiaVoiceAgent(httpServer) {
       });
     }
 
-    function ensureEnv() {
+    function ensureEnv(profile = activeProfile) {
       const missing = [];
       if (!clean(process.env.OPENAI_API_KEY)) missing.push('OPENAI_API_KEY');
       if (!clean(process.env.CARTESIA_API_KEY)) missing.push('CARTESIA_API_KEY');
-      if (!clean(process.env.CARTESIA_VOICE_ID)) missing.push('CARTESIA_VOICE_ID');
+      if (!clean(process.env[profile.voiceEnv])) missing.push(profile.voiceEnv);
       if (missing.length) {
         clientJson({ type: 'error', error: `Missing environment variables: ${missing.join(', ')}` });
         return false;
@@ -1237,7 +1265,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           type: 'response.create',
           response: {
             output_modalities: ['text'],
-            instructions: 'Sig præcis denne ene sætning og intet andet: "Hej og velkommen til Pizzaria Napoli, hvad kan jeg hjælpe med?" Udtal Pizzaria Napoli roligt og samlet.',
+            instructions: `Sig præcis denne ene sætning og intet andet: "${activeProfile.greeting}" ${activeProfile.greetingPronunciation}`,
           },
         }));
       }
@@ -1253,9 +1281,10 @@ function setupCartesiaVoiceAgent(httpServer) {
         clientJson({ type: 'openai_status', status: 'connected' });
         openaiWs.send(JSON.stringify({
           type: 'session.update',
-          session: {
+          session: (() => {
+            const session = {
             type: 'realtime',
-            instructions: GODTFOLK_FAST_INSTRUCTIONS,
+            instructions: activeProfile.instructions,
             output_modalities: ['text'],
             audio: {
               input: {
@@ -1269,7 +1298,11 @@ function setupCartesiaVoiceAgent(httpServer) {
                 },
               },
             },
-            tools: [
+            tool_choice: 'auto',
+          };
+
+          if (activeProfile.allowOrders) {
+            session.tools = [
               {
                 type: 'function',
                 name: 'create_woocommerce_order',
@@ -1305,9 +1338,11 @@ function setupCartesiaVoiceAgent(httpServer) {
                   required: ['confirmed_by_customer', 'name', 'items', 'delivery_type', 'pickup_time_text'],
                 },
               },
-            ],
-            tool_choice: 'auto',
-          },
+            ];
+          }
+
+          return session;
+          })(),
         }));
 
         while (pendingOpenAiAudio.length > 0) {
@@ -1382,9 +1417,10 @@ function setupCartesiaVoiceAgent(httpServer) {
             orderConfirmationAnswered = true;
             if (isClearDanishConfirmation(latestUserTranscript)) {
               orderConfirmationApproved = true;
-              forceOrderToolOnNextResponse = true;
+              forceOrderToolOnNextResponse = activeProfile.allowOrders;
               console.log('[voice] order_confirmation_approved', {
                 latest_user_transcript: latestUserTranscript,
+                agent: activeProfile.id,
               });
             } else if (isOrderCorrectionOrRejection(latestUserTranscript) && !orderConfirmationApproved) {
               awaitingOrderConfirmation = false;
@@ -1501,7 +1537,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           responseCreatePending = false;
           manualResponsePending = false;
           manualCommitPending = false;
-          if (shouldLogAssistantResponse) appendTranscriptLine('Anja', assistantResponseText);
+          if (shouldLogAssistantResponse) appendTranscriptLine(activeProfile.assistantName, assistantResponseText);
           if (greetingResponseActive) {
             greetingResponseActive = false;
             clientJson({ type: 'transcript_done', role: 'assistant' });
@@ -1750,6 +1786,23 @@ function setupCartesiaVoiceAgent(httpServer) {
     }
 
     function responseContextInstructions() {
+      if (!activeProfile.allowOrders) {
+        const rules = [
+          'Du er i en Restaurant Hærvejen booking-demo.',
+          'Kald aldrig create_woocommerce_order.',
+          'Du skal kun hjælpe med bordbooking, ændringer, restaurantspørgsmål og beskeder.',
+          'Efter kunden har sagt tydeligt ja til opsummeringen, må du aldrig opsummere igen.',
+          'Efter ja, sig kun: "Perfekt, jeg sender ønsket videre til restauranten. Restauranten vender tilbage hvis der er noget."',
+          'Hvis kunden spørger om pizza, takeaway eller varer, sig: "Det kan jeg ikke hjælpe med her, men jeg kan hjælpe med at booke bord."',
+          'Spørg aldrig efter telefonnummer.',
+          'Gæt aldrig antal personer, dag, tid eller navn.',
+        ];
+        if (knownCustomerName) {
+          rules.unshift(`Kundens navn er ${knownCustomerName}. Spørg ikke efter navn igen. Hvis du opsummerer, start med "Okay ${knownCustomerName}."`);
+        }
+        return rules.join(' ');
+      }
+
       const rules = [
         'Hawaii og calzone findes ikke på menuen. Match dem aldrig til Margherita, Pepperoni eller andre produkter.',
         'Hvis kunden beder om Hawaii, svar præcis: "Vi har desværre ikke Hawaii på kortet. Kan jeg byde på noget andet?"',
@@ -1780,7 +1833,7 @@ function setupCartesiaVoiceAgent(httpServer) {
     }
 
     function createOpenAiResponsePayload() {
-      if (forceOrderToolOnNextResponse) {
+      if (forceOrderToolOnNextResponse && activeProfile.allowOrders) {
         forceOrderToolOnNextResponse = false;
         console.log('[voice] forcing_order_tool_response');
         return {
@@ -1797,6 +1850,7 @@ function setupCartesiaVoiceAgent(httpServer) {
           },
         };
       }
+      forceOrderToolOnNextResponse = false;
 
       return {
         type: 'response.create',
@@ -2023,7 +2077,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         model_id: CARTESIA_MODEL_ID,
         voice: {
           mode: 'id',
-          id: process.env.CARTESIA_VOICE_ID,
+          id: process.env[activeProfile.voiceEnv],
         },
         output_format: {
           container: 'raw',
@@ -2162,7 +2216,14 @@ function setupCartesiaVoiceAgent(httpServer) {
 
     async function startSession(options = {}) {
       if (sessionStarted) return;
-      if (!ensureEnv()) return;
+      activeProfile = resolveVoiceAgentProfile(options.agent);
+      console.log('[voice] selected_agent', {
+        agent: activeProfile.id,
+        business: activeProfile.businessName,
+        assistant: activeProfile.assistantName,
+        voiceEnv: activeProfile.voiceEnv,
+      });
+      if (!ensureEnv(activeProfile)) return;
       sessionStarted = true;
       dashboardCallFinalized = false;
       dashboardCallHadOrder = false;
@@ -2179,6 +2240,9 @@ function setupCartesiaVoiceAgent(httpServer) {
         cartesia_model: CARTESIA_MODEL_ID,
         openai_input_rate: OPENAI_REALTIME_INPUT_RATE,
         cartesia_output_rate: cartesiaOutputRate,
+        agent: activeProfile.id,
+        assistant_name: activeProfile.assistantName,
+        business_name: activeProfile.businessName,
       });
       openCartesia();
       openOpenAi();
@@ -2211,6 +2275,7 @@ function setupCartesiaVoiceAgent(httpServer) {
         if (message.type === 'start') {
           console.log('[voice] client_start', {
             outputSampleRate: message.outputSampleRate,
+            agent: message.agent,
           });
           startSession(message).catch((error) => {
             console.error('[voice] start_session_error', error);

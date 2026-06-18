@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pizzeria Napoli – Prøv AI-telefonen (demo)</title>
+<title>Zeppo Voice Agents – Live demo</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='8' fill='%23080808'/%3E%3C/svg%3E">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,224 +14,291 @@
   * { box-sizing: border-box; }
 
   :root {
-    --bg: #f8f7f3;
+    --bg: #fbfaf8;
+    --panel: #f5f3ef;
     --card: #ffffff;
-    --bg-soft: #f2f0ea;
-    --ink: #111110;
-    --ink-soft: #54504a;
-    --muted: #8b867c;
-    --border: #e7e3d9;
-
-    --green: #1c7a43;
+    --ink: #080808;
+    --ink-soft: #55514b;
+    --muted: #908b84;
+    --border: #e8e4dc;
+    --green: #0f8a56;
     --amber: #b9790a;
-    --blue: #2660c4;
+    --blue: #2764d9;
     --red: #c23b2c;
-
-    --shadow: 0 26px 60px rgba(20, 18, 12, 0.08);
+    --shadow: 0 34px 90px rgba(20, 18, 12, 0.09);
   }
 
   html { -webkit-text-size-adjust: 100%; }
 
   body {
     margin: 0;
-    background: var(--bg);
+    background:
+      linear-gradient(90deg, rgba(0,0,0,0.05) 0 1px, transparent 1px calc(100% - 1px), rgba(0,0,0,0.05) calc(100% - 1px)),
+      radial-gradient(circle at 50% 0%, #fff 0, #fff 35%, rgba(255,255,255,0) 62%),
+      var(--bg);
+    background-size: min(1176px, 100%) 100%, 100% 100%, auto;
+    background-position: center top;
+    background-repeat: no-repeat;
     color: var(--ink);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    font-size: 16.5px;
+    font-size: 16px;
     line-height: 1.5;
   }
 
   button { font-family: inherit; }
 
   :focus-visible {
-    outline: 3px solid var(--blue);
+    outline: 3px solid rgba(39, 100, 217, 0.35);
     outline-offset: 2px;
-    border-radius: 6px;
+    border-radius: 10px;
   }
 
   .page {
-    width: min(900px, calc(100% - 32px));
+    width: min(1176px, calc(100% - 32px));
     margin: 0 auto;
-    padding: 28px 0 60px;
+    padding: 0 0 64px;
   }
 
-  /* ---------- Nav ---------- */
-
   .topbar {
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 56px;
-    flex-wrap: wrap;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
   }
 
   .brand {
-    font-size: 20px;
-    font-weight: 800;
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 700;
     letter-spacing: -0.03em;
-    color: var(--ink);
+    text-decoration: none;
   }
 
-  .top-pill {
-    display: inline-flex;
+  .top-links {
+    display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--card);
-    color: var(--ink-soft);
-    font-size: 13.5px;
-    font-weight: 700;
-  }
-
-  .top-pill .dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 999px;
-    background: var(--green);
-  }
-
-  /* ---------- Hero ---------- */
-
-  .hero {
-    text-align: center;
-    margin: 0 auto 38px;
-  }
-
-  .badge {
-    width: fit-content;
-    margin: 0 auto 18px;
-    padding: 7px 14px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--card);
-    color: var(--ink-soft);
-    font-size: 13px;
-    font-weight: 700;
-  }
-
-  h1 {
-    margin: 0;
-    font-weight: 800;
-    font-size: clamp(32px, 5.4vw, 50px);
-    line-height: 1.08;
-    letter-spacing: -0.025em;
-    color: var(--ink);
-  }
-
-  .hero-text {
-    max-width: 480px;
-    margin: 16px auto 0;
-    color: var(--ink-soft);
-    font-size: 16.5px;
-    line-height: 1.55;
+    gap: 28px;
+    color: #161616;
+    font-size: 14px;
     font-weight: 500;
   }
 
-  /* ---------- Browser-style demo card ---------- */
+  .top-links a { color: inherit; text-decoration: none; }
 
-  .browser-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    box-shadow: var(--shadow);
-    overflow: hidden;
+  .hero {
+    padding: 78px 18px 34px;
+    max-width: 620px;
   }
 
-  .chrome-bar {
+  .hero h1 {
+    margin: 0;
+    font-size: clamp(44px, 5.1vw, 66px);
+    line-height: 0.98;
+    letter-spacing: -0.065em;
+    font-weight: 500;
+  }
+
+  .hero-text {
+    margin: 22px 0 0;
+    max-width: 580px;
+    color: #171717;
+    font-size: 17px;
+    line-height: 1.45;
+    letter-spacing: -0.01em;
+  }
+
+  .hero-actions {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 13px 16px;
-    background: var(--bg-soft);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .chrome-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    flex: 0 0 auto;
-  }
-
-  .chrome-dot.red { background: #ec6a5e; }
-  .chrome-dot.amber { background: #f4bf4f; }
-  .chrome-dot.green { background: #61c454; }
-
-  .chrome-address {
-    flex: 1;
-    text-align: center;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 5px 14px;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--muted);
-    margin: 0 10px;
-  }
-
-  .chrome-help {
-    width: 24px;
-    height: 24px;
-    flex: 0 0 auto;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    display: grid;
-    place-items: center;
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .call-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 22px 26px 16px;
+    gap: 10px;
+    margin-top: 28px;
     flex-wrap: wrap;
   }
 
-  .agent-avatar {
-    width: 44px;
-    height: 44px;
-    flex: 0 0 auto;
-    border-radius: 13px;
-    background: var(--ink);
+  .hero-link,
+  .hero-button {
+    min-height: 48px;
+    padding: 0 20px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--ink);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+  }
+
+  .hero-button {
+    border-color: #000;
+    background: #000;
     color: #fff;
+  }
+
+  .agent-showcase {
+    margin: 0 18px;
+    min-height: 530px;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    background: var(--panel);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+
+  .orbs {
+    min-height: 390px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    align-items: center;
+    justify-items: center;
+    padding: 54px 80px 18px;
+    position: relative;
+  }
+
+  .agent-choice {
+    border: 0;
+    background: transparent;
+    min-height: auto;
+    padding: 0;
+    display: grid;
+    justify-items: center;
+    gap: 20px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: transform 180ms ease, color 180ms ease, opacity 180ms ease;
+  }
+
+  .agent-choice:hover:not(:disabled) { transform: translateY(-2px); }
+  .agent-choice[aria-pressed="true"] { color: var(--ink); }
+  .agent-choice:disabled { cursor: not-allowed; opacity: 0.55; }
+
+  .voice-orb {
+    width: clamp(170px, 20vw, 260px);
+    aspect-ratio: 1;
+    border-radius: 999px;
     display: grid;
     place-items: center;
-    font-weight: 800;
-    font-size: 17px;
+    background:
+      radial-gradient(circle at 28% 24%, rgba(255,255,255,0.95), rgba(255,255,255,0) 25%),
+      radial-gradient(circle at 70% 68%, rgba(37,148,255,0.78), rgba(37,148,255,0) 42%),
+      radial-gradient(circle at 35% 55%, rgba(55,123,55,0.72), rgba(55,123,55,0) 43%),
+      radial-gradient(circle at 78% 30%, rgba(255,233,156,0.78), rgba(255,233,156,0) 34%),
+      #c9ecf1;
+    box-shadow:
+      inset 0 20px 42px rgba(255,255,255,0.42),
+      inset 0 -34px 60px rgba(40,122,220,0.20),
+      0 28px 80px rgba(35,87,107,0.12);
+    filter: saturate(1.08);
+  }
+
+  .agent-choice[data-agent="haervejen"] .voice-orb {
+    background:
+      radial-gradient(circle at 32% 22%, rgba(255,255,255,0.98), rgba(255,255,255,0) 25%),
+      radial-gradient(circle at 70% 62%, rgba(42,122,205,0.68), rgba(42,122,205,0) 42%),
+      radial-gradient(circle at 30% 62%, rgba(217,132,64,0.58), rgba(217,132,64,0) 41%),
+      radial-gradient(circle at 68% 25%, rgba(245,229,151,0.78), rgba(245,229,151,0) 35%),
+      #d8efe5;
+  }
+
+  .agent-choice[aria-pressed="true"] .voice-orb {
+    width: clamp(220px, 24vw, 310px);
+  }
+
+  .call-button {
+    width: 58px;
+    height: 58px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.92);
+    color: #050505;
+    box-shadow: 0 14px 38px rgba(0,0,0,0.12);
+    font-size: 23px;
+    display: grid;
+    place-items: center;
+  }
+
+  .agent-copy {
+    text-align: center;
+    max-width: 250px;
+  }
+
+  .agent-copy strong {
+    display: block;
+    color: currentColor;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  .agent-copy span {
+    display: block;
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+
+  .clone-pill {
+    display: inline-flex;
+    margin-top: 16px;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #fff;
+    padding: 0 18px;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.05);
+  }
+
+  .call-console {
+    border-top: 1px solid var(--border);
+    background: rgba(255,255,255,0.72);
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    gap: 0;
+  }
+
+  .call-panel {
+    padding: 26px;
+    border-right: 1px solid var(--border);
   }
 
   .agent-info strong {
     display: block;
-    font-size: 16.5px;
-    font-weight: 800;
-    letter-spacing: -0.01em;
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.04em;
   }
 
   .agent-info span {
     display: block;
-    margin-top: 1px;
-    font-size: 13px;
+    margin-top: 4px;
     color: var(--muted);
+    font-size: 14px;
     font-weight: 500;
   }
 
   .status-pill {
-    margin-left: auto;
+    margin-top: 18px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 7px 13px;
+    padding: 8px 13px;
     border-radius: 999px;
     border: 1px solid var(--border);
-    background: var(--bg-soft);
+    background: #fff;
     font-size: 13.5px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--ink);
   }
 
@@ -248,21 +316,51 @@
   .status-pill[data-state="stopped"] .status-dot { background: var(--muted); }
 
   .status-help {
-    margin: 0 26px 16px;
+    margin: 12px 0 0;
     color: var(--muted);
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 500;
   }
 
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .controls button {
+    min-height: 48px;
+    border: 0;
+    border-radius: 999px;
+    padding: 0 17px;
+    font-size: 15px;
+    font-weight: 650;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 150ms ease, opacity 150ms ease;
+  }
+
+  .controls button:hover:not(:disabled) { transform: translateY(-1px); }
+  .controls button:disabled { cursor: not-allowed; opacity: 0.42; }
+
+  #startBtn { flex: 1.3; background: var(--ink); color: #fff; }
+  #stopBtn { flex: 1; background: #fff; color: var(--ink); border: 1px solid var(--border); }
+
+  .voice-note {
+    margin: 18px 0 0;
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
   .transcript {
-    margin: 0 26px;
-    min-height: 250px;
-    max-height: 400px;
+    min-height: 285px;
+    max-height: 430px;
     overflow: auto;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    background: var(--bg-soft);
-    padding: 18px;
+    padding: 26px;
     scroll-behavior: smooth;
   }
 
@@ -336,124 +434,6 @@
     font-weight: 500;
   }
 
-  .controls {
-    display: flex;
-    gap: 10px;
-    padding: 18px 26px 26px;
-  }
-
-  button {
-    min-height: 54px;
-    border: 0;
-    border-radius: 999px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: transform 150ms ease, opacity 150ms ease;
-  }
-
-  button:hover:not(:disabled) { transform: translateY(-1px); }
-  button:active:not(:disabled) { transform: translateY(0); }
-
-  button:disabled {
-    cursor: not-allowed;
-    opacity: 0.4;
-  }
-
-  #startBtn {
-    flex: 1.3;
-    background: var(--ink);
-    color: #fff;
-  }
-
-  #stopBtn {
-    flex: 1;
-    background: var(--bg-soft);
-    color: var(--ink);
-    border: 1px solid var(--border);
-  }
-
-  .hint {
-    margin: 16px 0 0;
-    text-align: center;
-    color: var(--muted);
-    font-size: 13.5px;
-    font-weight: 500;
-  }
-
-  /* ---------- Compact info row ---------- */
-
-  .mini-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 36px;
-  }
-
-  .mini {
-    padding: 16px;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    background: var(--card);
-  }
-
-  .mini strong {
-    display: block;
-    font-size: 14.5px;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-  }
-
-  .mini span {
-    display: block;
-    margin-top: 4px;
-    color: var(--muted);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.4;
-  }
-
-  /* ---------- Strips (menu / examples) ---------- */
-
-  .strip { margin-top: 30px; }
-
-  .strip-label {
-    display: block;
-    margin-bottom: 10px;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .strip-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .strip-pills .pill {
-    padding: 8px 13px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: var(--card);
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--ink);
-  }
-
-  .footnote {
-    margin-top: 38px;
-    text-align: center;
-    color: var(--muted);
-    font-size: 12.5px;
-  }
-
   /* ---------- Hidden technical telemetry (kept for scripting only) ---------- */
   .hidden-tech { display: none !important; }
 
@@ -467,112 +447,99 @@
     button { transition: none !important; }
   }
 
-  @media (max-width: 640px) {
-    .topbar { margin-bottom: 36px; }
-    .call-header, .status-help, .transcript, .controls { padding-left: 18px; padding-right: 18px; }
-    .transcript { margin: 0 18px; }
-    .status-help { margin: 0 18px 14px; }
-    .status-pill { margin-left: 0; }
-    .call-header { gap: 10px; }
+  @media (max-width: 760px) {
+    .page { width: min(100% - 20px, 1176px); }
+    .topbar { height: 58px; }
+    .top-links { gap: 14px; font-size: 13px; }
+    .hero { padding: 54px 8px 28px; }
+    .hero h1 { font-size: clamp(42px, 13vw, 58px); }
+    .agent-showcase { margin: 0; border-radius: 18px; }
+    .orbs { grid-template-columns: 1fr; padding: 38px 22px 28px; gap: 34px; }
+    .agent-choice[aria-pressed="true"] .voice-orb,
+    .voice-orb { width: min(235px, 70vw); }
+    .call-console { grid-template-columns: 1fr; }
+    .call-panel { border-right: 0; border-bottom: 1px solid var(--border); }
     .controls { flex-direction: column; }
-    .mini-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 
 <body>
 <div class="page">
-
   <header class="topbar">
-    <div class="brand">zeppo.</div>
-    <div class="top-pill">
-      <span class="dot"></span>
-      Pizzeria Napoli · Live demo
-    </div>
+    <a class="brand" href="/">Zeppo</a>
+    <nav class="top-links" aria-label="Navigation">
+      <a href="/">Platform</a>
+      <a href="/book-demo">Kontakt</a>
+      <a href="https://dashboard.zeppo.dk/login">Dashboard</a>
+    </nav>
   </header>
 
   <section class="hero">
-    <div class="badge">Bygget til Pizzeria Napoli</div>
-    <h1>Ring ind og bestil — med din egen stemme.</h1>
-    <p class="hero-text">Anja er pizzariaets AI-telefonmedarbejder. Tryk start, og tal helt normalt.</p>
+    <h1>AI Voice Agents der tager telefonen for dig</h1>
+    <p class="hero-text">Vælg en demo-agent, tryk ring op, og tal helt normalt. Zeppo viser hvordan opkald kan håndteres for restaurant, takeaway og service.</p>
+    <div class="hero-actions">
+      <button class="hero-button" type="button" data-start-hero>Ring op</button>
+      <a class="hero-link" href="/book-demo">Kontakt</a>
+    </div>
   </section>
 
-  <div class="browser-card">
-    <div class="chrome-bar">
-      <span class="chrome-dot red"></span>
-      <span class="chrome-dot amber"></span>
-      <span class="chrome-dot green"></span>
-      <div class="chrome-address">Pizzeria Napoli — telefonopkald</div>
-      <div class="chrome-help">?</div>
+  <section class="agent-showcase" aria-label="Voice agent demo">
+    <div class="orbs" id="agentChoices">
+      <button class="agent-choice" type="button" data-agent="napoli" aria-pressed="true">
+        <div class="voice-orb"><span class="call-button">☎</span></div>
+        <div class="agent-copy">
+          <strong>Pizzeria Napoli</strong>
+          <span>Anja tager imod pizzaordrer og sender dem til WooCommerce.</span>
+          <span class="clone-pill">Brug Anja</span>
+        </div>
+      </button>
+
+      <button class="agent-choice" type="button" data-agent="haervejen" aria-pressed="false">
+        <div class="voice-orb"><span class="call-button">☎</span></div>
+        <div class="agent-copy">
+          <strong>Restaurant Hærvejen</strong>
+          <span>Freja tager bordbookinger og restaurantspørgsmål.</span>
+          <span class="clone-pill">Brug Freja</span>
+        </div>
+      </button>
     </div>
 
-    <div class="call-header">
-      <div class="agent-avatar">A</div>
-      <div class="agent-info">
-        <strong>Anja</strong>
-        <span>AI-telefonmedarbejder</span>
-      </div>
-      <div id="status" class="status-pill" data-state="idle" aria-live="polite">
-        <span class="status-dot"></span>
-        <span id="statusTitle">Klar til at ringe</span>
-      </div>
-    </div>
+    <div class="call-console">
+      <div class="call-panel">
+        <div class="agent-info">
+          <strong id="agentTitle">Pizzeria Napoli</strong>
+          <span id="agentSubtitle">Anja · ordre-demo med WooCommerce</span>
+        </div>
 
-    <p id="statusHelp" class="status-help">Tryk på knappen herunder.</p>
+        <div id="status" class="status-pill" data-state="idle" aria-live="polite">
+          <span class="status-dot"></span>
+          <span id="statusTitle">Klar til at ringe</span>
+        </div>
 
-    <div id="transcript" class="transcript">
-      <div class="empty">
-        <div class="empty-inner">
-          <div class="empty-icon">☎️</div>
-          <p class="empty-title">Samtalen vises her</p>
-          <p class="empty-copy">Sig fx: “Jeg vil gerne bestille en pepperoni.”</p>
+        <p id="statusHelp" class="status-help">Vælg en agent og tryk ring op.</p>
+
+        <div class="controls">
+          <button id="startBtn">Ring til Anja</button>
+          <button id="stopBtn" disabled>Afslut</button>
+        </div>
+
+        <p class="voice-note" id="voiceNote">
+          Napoli bruger <code>CARTESIA_VOICE_ID</code>. Hærvejen bruger <code>CARTESIA_VOICE_ID_HAERVEJEN</code>.
+        </p>
+      </div>
+
+      <div id="transcript" class="transcript">
+        <div class="empty">
+          <div class="empty-inner">
+            <div class="empty-icon">☎</div>
+            <p class="empty-title">Samtalen vises her</p>
+            <p class="empty-copy">Sig fx: “Jeg vil gerne bestille en pepperoni.”</p>
+          </div>
         </div>
       </div>
     </div>
-
-    <div class="controls">
-      <button id="startBtn">📞 Ring til Anja</button>
-      <button id="stopBtn" disabled>Afslut</button>
-    </div>
-  </div>
-
-  <p class="hint">Tryk start → tillad mikrofon → tal helt normalt.</p>
-
-  <div class="mini-grid">
-    <div class="mini">
-      <strong>Bestiller mad</strong>
-      <span>Varer, antal og afhentningstid.</span>
-    </div>
-    <div class="mini">
-      <strong>Booker også borde</strong>
-      <span>I den fulde version — ikke i denne demo.</span>
-    </div>
-    <div class="mini">
-      <strong>Aflaster personalet</strong>
-      <span>Tager samtalen, når det er hektisk.</span>
-    </div>
-  </div>
-
-  <div class="strip">
-    <span class="strip-label">Menu i denne demo</span>
-    <div class="strip-pills">
-      <span class="pill">🍕 Pepperoni — 50 kr.</span>
-      <span class="pill">🍕 Margherita — 50 kr.</span>
-      <span class="pill">🥙 Kebab Durum — 50 kr.</span>
-      <span class="pill">🥤 Pepsi Max — 15 kr.</span>
-    </div>
-  </div>
-
-  <div class="strip">
-    <span class="strip-label">Du kan f.eks. sige</span>
-    <div class="strip-pills">
-      <span class="pill">“En pepperoni, tak”</span>
-      <span class="pill">“Kan jeg hente om 20 minutter?”</span>
-      <span class="pill">“Har I margherita?”</span>
-    </div>
-  </div>
-
-  <p class="footnote">Dette er en demo. Anja kan svare lidt forskelligt fra gang til gang.</p>
+  </section>
 </div>
 
 <div class="hidden-tech" aria-hidden="true">
@@ -601,6 +568,28 @@ const LOCAL_MIN_SPEECH_MS = 220;
 const LOCAL_MIN_SENT_AUDIO_MS = 150;
 const TARGET_LATENCY_MS = 500;
 const VOICE_AGENT_BACKEND_HOST = 'zeppo-dk.onrender.com';
+const AGENT_PROFILES = {
+  napoli: {
+    id: 'napoli',
+    businessName: 'Pizzeria Napoli',
+    assistantName: 'Anja',
+    subtitle: 'Anja · ordre-demo med WooCommerce',
+    startLabel: 'Ring til Anja',
+    emptyCopy: 'Sig fx: “Jeg vil gerne bestille en pepperoni.”',
+    connectedHelp: 'Sig fx: “Jeg vil gerne bestille en pepperoni.”',
+    stoppedHelp: 'Tryk på “Ring til Anja” for at prøve igen.',
+  },
+  haervejen: {
+    id: 'haervejen',
+    businessName: 'Restaurant Hærvejen',
+    assistantName: 'Freja',
+    subtitle: 'Freja · booking-demo til restaurant',
+    startLabel: 'Ring til Freja',
+    emptyCopy: 'Sig fx: “Jeg vil gerne booke bord til fire på fredag.”',
+    connectedHelp: 'Sig fx: “Jeg vil gerne booke bord til fire på fredag.”',
+    stoppedHelp: 'Tryk på “Ring til Freja” for at prøve igen.',
+  },
+};
 
 let ws = null;
 let audioContext = null;
@@ -634,6 +623,7 @@ let localSpeechCandidateCrestTotal = 0;
 let localSpeechCandidateZcrTotal = 0;
 let localSpeechCandidateFrames = [];
 let localLastNoiseLogAt = 0;
+let selectedAgentId = 'napoli';
 
 const statusEl = document.getElementById('status');
 const statusIconEl = document.getElementById('statusIcon');
@@ -648,6 +638,37 @@ const latencyPillEl = document.querySelector('.pill.latency');
 const transcriptEl = document.getElementById('transcript');
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
+const agentTitleEl = document.getElementById('agentTitle');
+const agentSubtitleEl = document.getElementById('agentSubtitle');
+const agentChoiceEls = Array.from(document.querySelectorAll('[data-agent]'));
+const heroStartBtn = document.querySelector('[data-start-hero]');
+
+function activeAgent() {
+  return AGENT_PROFILES[selectedAgentId] || AGENT_PROFILES.napoli;
+}
+
+function setAgentChoiceDisabled(disabled) {
+  agentChoiceEls.forEach((button) => {
+    button.disabled = disabled;
+  });
+}
+
+function renderAgentSelection({ resetConversation = false } = {}) {
+  const profile = activeAgent();
+
+  agentTitleEl.textContent = profile.businessName;
+  agentSubtitleEl.textContent = profile.subtitle;
+  startBtn.textContent = profile.startLabel;
+
+  agentChoiceEls.forEach((button) => {
+    button.setAttribute('aria-pressed', button.dataset.agent === selectedAgentId ? 'true' : 'false');
+  });
+
+  if (resetConversation) {
+    clearTranscript();
+    setStatus('Klar til at ringe', 'idle');
+  }
+}
 
 function setStatus(text, state = '') {
   const normalized = getFriendlyStatus(text, state);
@@ -659,12 +680,13 @@ function setStatus(text, state = '') {
 
 function getFriendlyStatus(text, state = '') {
   const raw = String(text || '').toLowerCase();
+  const profile = activeAgent();
 
   if (state === 'speaking' || raw.includes('svarer')) {
     return {
       state: 'speaking',
       icon: '🗣️',
-      title: 'Anja svarer',
+      title: `${profile.assistantName} svarer`,
       help: 'Vent et øjeblik, så kan du tale igen.',
     };
   }
@@ -674,7 +696,7 @@ function getFriendlyStatus(text, state = '') {
       state: 'connected',
       icon: '🎤',
       title: 'Du kan tale nu',
-      help: 'Sig fx: “Jeg vil gerne bestille en pepperoni.”',
+      help: profile.connectedHelp,
     };
   }
 
@@ -701,7 +723,7 @@ function getFriendlyStatus(text, state = '') {
       state: 'stopped',
       icon: '⏹️',
       title: 'Samtalen er stoppet',
-      help: 'Tryk på “Ring til Anja” for at prøve igen.',
+      help: profile.stoppedHelp,
     };
   }
 
@@ -709,7 +731,7 @@ function getFriendlyStatus(text, state = '') {
     state: 'idle',
     icon: '☎️',
     title: 'Klar til at ringe',
-    help: 'Tryk på knappen herunder.',
+    help: 'Vælg en agent og tryk ring op.',
   };
 }
 
@@ -990,13 +1012,14 @@ function getMicrophoneFramesToSend(input) {
 
 function clearTranscript() {
   assistantDraft = null;
+  const profile = activeAgent();
 
   transcriptEl.innerHTML = `
     <div class="empty">
       <div class="empty-inner">
-        <div class="empty-icon">☎️</div>
+        <div class="empty-icon">☎</div>
         <p class="empty-title">Samtalen vises her</p>
-        <p class="empty-copy">Sig fx: “Jeg vil gerne bestille en pepperoni.”</p>
+        <p class="empty-copy">${profile.emptyCopy}</p>
       </div>
     </div>
   `;
@@ -1014,7 +1037,7 @@ function addMessage(role, text) {
 
   const msg = document.createElement('div');
   msg.className = `msg ${role}`;
-  msg.innerHTML = `<div class="role">${role === 'user' ? 'Du' : 'Anja'}</div><div class="text"></div>`;
+  msg.innerHTML = `<div class="role">${role === 'user' ? 'Du' : activeAgent().assistantName}</div><div class="text"></div>`;
   msg.querySelector('.text').textContent = text;
 
   transcriptEl.appendChild(msg);
@@ -1026,7 +1049,7 @@ function addMessage(role, text) {
 function addAssistantDelta(delta) {
   if (!delta) return;
 
-  setStatus('Anja svarer...', 'speaking');
+  setStatus(`${activeAgent().assistantName} svarer...`, 'speaking');
   removeEmpty();
 
   if (!assistantDraft) assistantDraft = addMessage('assistant', '');
@@ -1222,7 +1245,7 @@ function playPcmF32(arrayBuffer) {
   awaitingAssistantResponse = false;
   assistantSpeaking = true;
   micStateEl.textContent = 'muted while assistant speaks';
-  setStatus('Anja svarer...', 'speaking');
+  setStatus(`${activeAgent().assistantName} svarer...`, 'speaking');
 
   if (assistantUnmuteTimer) clearTimeout(assistantUnmuteTimer);
 
@@ -1353,6 +1376,7 @@ async function startSession() {
   try {
     startBtn.disabled = true;
     stopBtn.disabled = false;
+    setAgentChoiceDisabled(true);
 
     setStatus('Forbinder...', 'connecting');
     clearTranscript();
@@ -1389,6 +1413,10 @@ async function startSession() {
       if (message.type === 'session_started') {
         openaiStateEl.textContent = message.openai_model || '';
         cartesiaStateEl.textContent = message.cartesia_model || '';
+        if (message.agent && AGENT_PROFILES[message.agent]) {
+          selectedAgentId = message.agent;
+          renderAgentSelection();
+        }
 
         startMicrophone().catch((error) => {
           console.error('[voice] microphone_error', error);
@@ -1407,6 +1435,7 @@ async function startSession() {
           ws.send(JSON.stringify({
             type: 'start',
             outputSampleRate: audioContext.sampleRate,
+            agent: selectedAgentId,
           }));
         }
 
@@ -1516,6 +1545,7 @@ function cleanup() {
 
   startBtn.disabled = false;
   stopBtn.disabled = true;
+  setAgentChoiceDisabled(false);
   micStateEl.textContent = '';
 }
 
@@ -1531,6 +1561,17 @@ function stopSession() {
 
 startBtn.addEventListener('click', startSession);
 stopBtn.addEventListener('click', stopSession);
+if (heroStartBtn) heroStartBtn.addEventListener('click', startSession);
+
+agentChoiceEls.forEach((button) => {
+  button.addEventListener('click', () => {
+    if (connected || microphoneStarted) return;
+    selectedAgentId = button.dataset.agent || 'napoli';
+    renderAgentSelection({ resetConversation: true });
+  });
+});
+
+renderAgentSelection();
 
 window.addEventListener('beforeunload', () => {
   if (ws) ws.close();
