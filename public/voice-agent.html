@@ -1,980 +1,1016 @@
 <!DOCTYPE html>
 <html lang="da">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Zeppo Demo - AI-telefonmedarbejder</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    :root {
-      --bg: #f7f4ee;
-      --card: #ffffff;
-      --card-soft: #fbfaf7;
-      --text: #151515;
-      --muted: #706b63;
-      --light: #928c82;
-      --border: #e4dfd6;
-      --border-strong: #d7d0c4;
-      --green: #157a3f;
-      --green-soft: #e8f6ee;
-      --green-border: #bfe6cf;
-      --red: #c83b2d;
-      --red-soft: #fff0ee;
-      --yellow: #fff5d8;
-      --yellow-text: #775500;
-      --black: #111111;
-      --shadow: 0 28px 90px rgba(30, 25, 18, 0.13);
-      --radius-xl: 28px;
-      --radius-lg: 20px;
-      --radius-md: 14px;
-    }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.95), transparent 32%),
-        radial-gradient(circle at 85% 8%, rgba(255, 255, 255, 0.85), transparent 28%),
-        linear-gradient(180deg, #fbfaf7 0%, var(--bg) 100%);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
-    }
-
-    .page {
-      width: min(1180px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 26px 0 52px;
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      margin-bottom: 52px;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 22px;
-      font-weight: 850;
-      letter-spacing: -0.04em;
-    }
-
-    .brand-mark {
-      width: 34px;
-      height: 34px;
-      display: grid;
-      place-items: center;
-      border-radius: 10px;
-      background: var(--black);
-      color: white;
-      font-size: 17px;
-      font-weight: 900;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-    }
-
-    .top-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.72);
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 700;
-      box-shadow: 0 8px 30px rgba(20, 20, 20, 0.04);
-      backdrop-filter: blur(16px);
-    }
-
-    .top-pill-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: var(--green);
-      box-shadow: 0 0 0 5px rgba(21, 122, 63, 0.12);
-    }
-
-    .hero {
-      text-align: center;
-      margin: 0 auto 34px;
-      max-width: 920px;
-    }
-
-    .eyebrow {
-      width: fit-content;
-      margin: 0 auto 20px;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 14px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.75);
-      color: #38342f;
-      font-size: 14px;
-      font-weight: 750;
-      box-shadow: 0 8px 34px rgba(20, 20, 20, 0.04);
-    }
-
-    .spark {
-      width: 18px;
-      height: 18px;
-      display: grid;
-      place-items: center;
-      border-radius: 999px;
-      background: var(--black);
-      color: #fff;
-      font-size: 11px;
-      line-height: 1;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: clamp(44px, 7vw, 82px);
-      line-height: 0.94;
-      letter-spacing: -0.075em;
-      font-weight: 900;
-    }
-
-    .hero-text {
-      max-width: 740px;
-      margin: 22px auto 0;
-      color: #69635b;
-      font-size: clamp(18px, 2vw, 23px);
-      line-height: 1.48;
-      letter-spacing: -0.025em;
-      font-weight: 540;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 0.92fr 1.08fr;
-      gap: 18px;
-      align-items: stretch;
-      margin-top: 28px;
-    }
-
-    .panel {
-      background: rgba(255, 255, 255, 0.86);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      backdrop-filter: blur(18px);
-    }
-
-    .guide {
-      padding: 28px;
-    }
-
-    .section-title {
-      margin: 0 0 8px;
-      font-size: 21px;
-      line-height: 1.15;
-      letter-spacing: -0.04em;
-      font-weight: 850;
-    }
-
-    .section-text {
-      margin: 0;
-      color: var(--muted);
-      font-size: 15px;
-      line-height: 1.55;
-    }
-
-    .steps {
-      display: grid;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .step {
-      display: grid;
-      grid-template-columns: 34px 1fr;
-      gap: 12px;
-      align-items: start;
-      padding: 14px;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: #fff;
-    }
-
-    .step-number {
-      width: 34px;
-      height: 34px;
-      display: grid;
-      place-items: center;
-      border-radius: 12px;
-      background: #161616;
-      color: #fff;
-      font-size: 14px;
-      font-weight: 850;
-    }
-
-    .step strong {
-      display: block;
-      margin-bottom: 3px;
-      font-size: 15px;
-      letter-spacing: -0.02em;
-    }
-
-    .step span {
-      display: block;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.4;
-    }
-
-    .example-block {
-      margin-top: 22px;
-      padding-top: 22px;
-      border-top: 1px solid var(--border);
-    }
-
-    .examples {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 9px;
-      margin-top: 14px;
-    }
-
-    .example {
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: #fff;
-      color: #282522;
-      font-size: 14px;
-      line-height: 1.2;
-      font-weight: 650;
-    }
-
-    .menu {
-      margin-top: 22px;
-      padding-top: 22px;
-      border-top: 1px solid var(--border);
-    }
-
-    .menu-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .menu-item {
-      padding: 14px;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: linear-gradient(180deg, #fff 0%, #fbfaf7 100%);
-    }
-
-    .menu-item strong {
-      display: block;
-      font-size: 15px;
-      letter-spacing: -0.02em;
-    }
-
-    .menu-item span {
-      display: block;
-      margin-top: 5px;
-      color: var(--green);
-      font-size: 14px;
-      font-weight: 850;
-    }
-
-    .booking-note {
-      margin-top: 18px;
-      padding: 16px;
-      border: 1px solid var(--green-border);
-      border-radius: 18px;
-      background: var(--green-soft);
-    }
-
-    .booking-note strong {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-      color: #125f33;
-      font-size: 15px;
-      letter-spacing: -0.02em;
-    }
-
-    .booking-note p {
-      margin: 0;
-      color: #32654a;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .demo {
-      display: flex;
-      flex-direction: column;
-      min-height: 760px;
-    }
-
-    .demo-header {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      padding: 28px;
-      border-bottom: 1px solid var(--border);
-      background:
-        radial-gradient(circle at top right, rgba(21, 122, 63, 0.12), transparent 34%),
-        #fff;
-    }
-
-    .agent {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-width: 0;
-    }
-
-    .agent-avatar {
-      width: 54px;
-      height: 54px;
-      display: grid;
-      place-items: center;
-      flex: 0 0 auto;
-      border-radius: 18px;
-      background: #151515;
-      color: white;
-      font-size: 22px;
-      font-weight: 900;
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.16);
-    }
-
-    .agent h2 {
-      margin: 0;
-      font-size: 28px;
-      letter-spacing: -0.055em;
-      line-height: 1;
-    }
-
-    .agent p {
-      margin: 7px 0 0;
-      color: var(--muted);
-      font-size: 15px;
-      line-height: 1.3;
-      font-weight: 560;
-    }
-
-    .status {
-      flex: 0 0 auto;
-      width: 226px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 13px 14px;
-      border-radius: 18px;
-      border: 1px solid var(--border);
-      background: #f8f6f1;
-    }
-
-    .status-dot {
-      width: 12px;
-      height: 12px;
-      flex: 0 0 auto;
-      border-radius: 999px;
-      background: #9a948a;
-    }
-
-    .status strong {
-      display: block;
-      font-size: 14px;
-      line-height: 1.15;
-      letter-spacing: -0.02em;
-    }
-
-    .status span {
-      display: block;
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.25;
-      font-weight: 560;
-    }
-
-    .status[data-state="connecting"] {
-      border-color: #ead893;
-      background: var(--yellow);
-    }
-
-    .status[data-state="connecting"] .status-dot {
-      background: #e5a900;
-      animation: pulse 1.15s ease-in-out infinite;
-    }
-
-    .status[data-state="connected"] {
-      border-color: var(--green-border);
-      background: var(--green-soft);
-    }
-
-    .status[data-state="connected"] .status-dot {
-      background: var(--green);
-      box-shadow: 0 0 0 6px rgba(21, 122, 63, 0.12);
-      animation: pulse 1.15s ease-in-out infinite;
-    }
-
-    .status[data-state="speaking"] {
-      border-color: #c9d8ef;
-      background: #eef5ff;
-    }
-
-    .status[data-state="speaking"] .status-dot {
-      background: #2e6dcc;
-      animation: pulse 1.15s ease-in-out infinite;
-    }
-
-    .status[data-state="error"] {
-      border-color: #efc0ba;
-      background: var(--red-soft);
-    }
-
-    .status[data-state="error"] .status-dot {
-      background: var(--red);
-    }
-
-    .status[data-state="stopped"] {
-      border-color: var(--border);
-      background: #f8f6f1;
-    }
-
-    .demo-body {
-      padding: 24px 28px 28px;
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-    }
-
-    .call-explainer {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .small-card {
-      padding: 14px;
-      border: 1px solid var(--border);
-      border-radius: 17px;
-      background: var(--card-soft);
-    }
-
-    .small-card strong {
-      display: block;
-      margin-bottom: 5px;
-      font-size: 14px;
-      letter-spacing: -0.02em;
-    }
-
-    .small-card p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.4;
-    }
-
-    .transcript {
-      min-height: 330px;
-      max-height: 430px;
-      flex: 1;
-      overflow: auto;
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.88), rgba(251,250,247,0.96)),
-        var(--card-soft);
-      padding: 18px;
-      scroll-behavior: smooth;
-    }
-
-    .empty {
-      min-height: 290px;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      color: var(--light);
-      font-weight: 650;
-      line-height: 1.45;
-    }
-
-    .empty-inner {
-      max-width: 360px;
-    }
-
-    .empty-icon {
-      width: 54px;
-      height: 54px;
-      display: grid;
-      place-items: center;
-      margin: 0 auto 14px;
-      border-radius: 20px;
-      background: #fff;
-      border: 1px solid var(--border);
-      color: var(--green);
-      font-size: 22px;
-      box-shadow: 0 14px 35px rgba(20, 20, 20, 0.06);
-    }
-
-    .empty-title {
-      margin: 0 0 6px;
-      color: #2b2824;
-      font-size: 18px;
-      font-weight: 850;
-      letter-spacing: -0.035em;
-    }
-
-    .empty-copy {
-      margin: 0;
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 560;
-    }
-
-    .msg {
-      width: fit-content;
-      max-width: min(82%, 560px);
-      margin: 0 0 12px;
-      padding: 13px 15px;
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: #fff;
-      box-shadow: 0 8px 22px rgba(20, 20, 20, 0.04);
-    }
-
-    .msg.user {
-      margin-left: auto;
-      background: #151515;
-      color: #fff;
-      border-color: #151515;
-      border-bottom-right-radius: 6px;
-    }
-
-    .msg.assistant {
-      margin-right: auto;
-      background: #fff;
-      border-bottom-left-radius: 6px;
-    }
-
-    .role {
-      margin-bottom: 6px;
-      color: var(--green);
-      font-size: 12px;
-      line-height: 1;
-      font-weight: 900;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-    }
-
-    .msg.user .role {
-      color: rgba(255, 255, 255, 0.72);
-    }
-
-    .text {
-      white-space: pre-wrap;
-      line-height: 1.48;
-      font-size: 16px;
-      letter-spacing: -0.015em;
-      font-weight: 560;
-    }
-
-    .controls {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    button {
-      min-height: 62px;
-      border: 0;
-      border-radius: 18px;
-      font-size: 17px;
-      font-weight: 900;
-      letter-spacing: -0.025em;
-      cursor: pointer;
-      transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
-    }
-
-    button:hover:not(:disabled) {
-      transform: translateY(-1px);
-    }
-
-    button:active:not(:disabled) {
-      transform: translateY(0);
-    }
-
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.44;
-      box-shadow: none !important;
-    }
-
-    #startBtn {
-      background: var(--green);
-      color: #fff;
-      box-shadow: 0 18px 36px rgba(21, 122, 63, 0.22);
-    }
-
-    #stopBtn {
-      background: #f0d6d2;
-      color: #8a281f;
-    }
-
-    .hint {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin: 16px 0 0;
-      text-align: center;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.4;
-      font-weight: 600;
-    }
-
-    .hint-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: var(--green);
-    }
-
-    .bottom-info {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      margin-top: 18px;
-    }
-
-    .info-card {
-      padding: 18px;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.72);
-      box-shadow: 0 10px 30px rgba(20, 20, 20, 0.04);
-    }
-
-    .info-card strong {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 15px;
-      letter-spacing: -0.025em;
-    }
-
-    .info-card p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.45;
-    }
-
-    .hidden-tech {
-      display: none !important;
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        transform: scale(1);
-        opacity: 1;
-      }
-
-      50% {
-        transform: scale(0.82);
-        opacity: 0.68;
-      }
-    }
-
-    @media (max-width: 980px) {
-      .topbar {
-        margin-bottom: 34px;
-      }
-
-      .layout {
-        grid-template-columns: 1fr;
-      }
-
-      .demo {
-        min-height: auto;
-      }
-
-      .bottom-info {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .page {
-        width: min(100% - 20px, 1180px);
-        padding-top: 16px;
-      }
-
-      .topbar {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .top-pill {
-        width: 100%;
-        justify-content: center;
-      }
-
-      h1 {
-        font-size: 44px;
-      }
-
-      .hero-text {
-        font-size: 17px;
-      }
-
-      .guide,
-      .demo-header,
-      .demo-body {
-        padding: 20px;
-      }
-
-      .demo-header {
-        flex-direction: column;
-      }
-
-      .status {
-        width: 100%;
-      }
-
-      .call-explainer,
-      .menu-grid,
-      .controls {
-        grid-template-columns: 1fr;
-      }
-
-      .transcript {
-        min-height: 300px;
-      }
-
-      .msg {
-        max-width: 94%;
-      }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pizzeria Napoli – Prøv AI-telefonen (demo)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500..800;1,9..144,500..700&family=Atkinson+Hyperlegible:wght@400;700;800&display=swap" rel="stylesheet">
+
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --cream: #FBF4E8;
+    --cream-deep: #F2E7CF;
+    --paper: #FFFFFF;
+    --crust: #2A1B10;
+    --crust-soft: #5C4630;
+    --ink-muted: #7C6A53;
+    --line: #E8D9BC;
+    --line-strong: #D9C49A;
+
+    --tomato: #C1432B;
+    --tomato-deep: #8C2E1C;
+    --tomato-soft: #FBE2DA;
+    --tomato-border: #EFBFB1;
+
+    --basil: #3C6B45;
+    --basil-deep: #234B2C;
+    --basil-soft: #E6F1E4;
+    --basil-border: #BEDCC0;
+
+    --gold: #D89A2E;
+    --gold-deep: #8A5C16;
+    --gold-soft: #FBEFD2;
+    --gold-border: #EAD299;
+
+    --sky-deep: #1F4D94;
+    --sky-soft: #E8F0FC;
+    --sky-border: #C2D7F2;
+
+    --shadow: 0 26px 70px rgba(42, 27, 16, 0.16);
+    --radius-xl: 26px;
+    --radius-lg: 20px;
+    --radius-md: 14px;
+  }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 12% -4%, rgba(255, 255, 255, 0.9), transparent 34%),
+      radial-gradient(circle at 92% 0%, rgba(255, 255, 255, 0.65), transparent 30%),
+      linear-gradient(180deg, #FCF8EE 0%, var(--cream) 55%, var(--cream-deep) 100%);
+    color: var(--crust);
+    font-family: 'Atkinson Hyperlegible', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.5;
+  }
+
+  h1, h2, .display {
+    font-family: 'Fraunces', Georgia, serif;
+  }
+
+  button, input { font-family: inherit; }
+
+  a { color: var(--tomato-deep); }
+
+  :focus-visible {
+    outline: 3px solid var(--gold);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  .page {
+    width: min(1180px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 28px 0 56px;
+  }
+
+  /* ---------- Topbar ---------- */
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 46px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    background: var(--crust);
+    color: var(--cream);
+    font-size: 18px;
+    font-weight: 800;
+    font-family: 'Fraunces', serif;
+    box-shadow: 0 10px 26px rgba(42, 27, 16, 0.25);
+    flex: 0 0 auto;
+  }
+
+  .brand-name {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 23px;
+    color: var(--crust);
+  }
+
+  .brand-tagline {
+    font-size: 13.5px;
+    color: var(--ink-muted);
+    font-weight: 700;
+  }
+
+  .top-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--crust-soft);
+    font-size: 14px;
+    font-weight: 800;
+    box-shadow: 0 8px 24px rgba(42, 27, 16, 0.06);
+  }
+
+  .top-pill-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--basil);
+    box-shadow: 0 0 0 5px rgba(60, 107, 69, 0.16);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+
+  /* ---------- Hero ---------- */
+
+  .hero {
+    text-align: center;
+    margin: 0 auto 30px;
+    max-width: 880px;
+  }
+
+  .eyebrow {
+    width: fit-content;
+    margin: 0 auto 22px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--crust-soft);
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  h1 {
+    margin: 0;
+    font-weight: 650;
+    font-size: clamp(36px, 5.6vw, 62px);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    color: var(--crust);
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--tomato-deep);
+  }
+
+  .hero-text {
+    max-width: 660px;
+    margin: 20px auto 0;
+    color: var(--crust-soft);
+    font-size: clamp(17px, 1.7vw, 19px);
+    line-height: 1.55;
+    font-weight: 500;
+  }
+
+  .hero-text strong { color: var(--crust); font-weight: 800; }
+
+  /* ---------- Layout ---------- */
+
+  .layout {
+    display: grid;
+    grid-template-columns: 0.94fr 1.06fr;
+    gap: 20px;
+    align-items: stretch;
+    margin-top: 30px;
+  }
+
+  .panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .guide { padding: 30px; }
+
+  .section-title {
+    margin: 0 0 8px;
+    font-size: 21px;
+    line-height: 1.2;
+    font-weight: 650;
+    color: var(--crust);
+  }
+
+  .section-text {
+    margin: 0;
+    color: var(--ink-muted);
+    font-size: 15.5px;
+    line-height: 1.6;
+  }
+
+  /* ---------- Steps ---------- */
+
+  .steps {
+    display: grid;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 38px 1fr;
+    gap: 14px;
+    align-items: start;
+    padding: 15px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: linear-gradient(180deg, #FFFFFF, #FEFCF6);
+  }
+
+  .step-number {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--crust);
+    color: var(--cream);
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .step strong {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 15.5px;
+    color: var(--crust);
+  }
+
+  .step span {
+    display: block;
+    color: var(--ink-muted);
+    font-size: 14.5px;
+    line-height: 1.45;
+  }
+
+  /* ---------- Examples ---------- */
+
+  .example-block {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+
+  .examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 14px;
+  }
+
+  .example {
+    padding: 10px 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: var(--cream);
+    color: var(--crust);
+    font-size: 14.5px;
+    font-weight: 700;
+  }
+
+  /* ---------- Menu ---------- */
+
+  .menu {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+
+  .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .menu-item {
+    padding: 16px 14px 14px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: linear-gradient(180deg, #FFFFFF 0%, var(--cream) 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .menu-item .icon { font-size: 26px; line-height: 1; }
+
+  .menu-item strong {
+    font-family: 'Fraunces', serif;
+    font-weight: 650;
+    font-size: 16px;
+    color: var(--crust);
+  }
+
+  .menu-item .price {
+    align-self: flex-start;
+    background: var(--basil-soft);
+    color: var(--basil-deep);
+    border: 1px solid var(--basil-border);
+    border-radius: 999px;
+    padding: 3px 11px;
+    font-size: 13.5px;
+    font-weight: 800;
+  }
+
+  /* ---------- Booking note ---------- */
+
+  .booking-note {
+    margin-top: 20px;
+    padding: 18px;
+    border: 1px solid var(--basil-border);
+    border-radius: 18px;
+    background: var(--basil-soft);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .booking-note .icon {
+    font-size: 22px;
+    flex: 0 0 auto;
+    line-height: 1;
+    margin-top: 2px;
+  }
+
+  .booking-note strong {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--basil-deep);
+    font-size: 15.5px;
+  }
+
+  .booking-note p {
+    margin: 0;
+    color: #2E5638;
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+
+  /* ---------- Demo / call panel ---------- */
+
+  .demo {
+    display: flex;
+    flex-direction: column;
+    min-height: 760px;
+  }
+
+  .demo-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 28px 30px 24px;
+    border-bottom: 1px solid var(--line);
+    background:
+      radial-gradient(circle at top right, rgba(216, 154, 46, 0.14), transparent 36%),
+      #fff;
+  }
+
+  .agent-avatar {
+    width: 56px;
+    height: 56px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 18px;
+    background: var(--crust);
+    color: var(--cream);
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 700;
+    box-shadow: 0 14px 32px rgba(42, 27, 16, 0.2);
+  }
+
+  .agent h2 {
+    margin: 0;
+    font-size: 25px;
+    font-weight: 650;
+    line-height: 1.1;
+    color: var(--crust);
+  }
+
+  .agent p {
+    margin: 5px 0 0;
+    color: var(--ink-muted);
+    font-size: 14.5px;
+    line-height: 1.35;
+    font-weight: 600;
+  }
+
+  .stamp-badge {
+    position: absolute;
+    top: 18px;
+    right: 24px;
+    transform: rotate(-4deg);
+    background: var(--tomato-soft);
+    color: var(--tomato-deep);
+    border: 1px solid var(--tomato-border);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Status banner (id="status", referenced by JS) */
+  .status-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 30px;
+    background: var(--cream);
+    border-bottom: 1px solid var(--line);
+    transition: background-color 220ms ease, border-color 220ms ease;
+  }
+
+  .status-icon-wrap {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 23px;
+    box-shadow: 0 8px 18px rgba(42, 27, 16, 0.1);
+  }
+
+  .status-copy strong {
+    display: block;
+    font-family: 'Fraunces', serif;
+    font-weight: 650;
+    font-size: 17.5px;
+    color: var(--crust);
+  }
+
+  .status-copy span {
+    display: block;
+    margin-top: 2px;
+    font-size: 15px;
+    color: var(--crust-soft);
+    font-weight: 500;
+  }
+
+  .status-banner[data-state="connecting"] { background: var(--gold-soft); border-color: var(--gold-border); }
+  .status-banner[data-state="connecting"] .status-copy strong { color: var(--gold-deep); }
+  .status-banner[data-state="connecting"] .status-icon-wrap { animation: pulse 1.15s ease-in-out infinite; }
+
+  .status-banner[data-state="connected"] { background: var(--basil-soft); border-color: var(--basil-border); }
+  .status-banner[data-state="connected"] .status-copy strong { color: var(--basil-deep); }
+  .status-banner[data-state="connected"] .status-icon-wrap {
+    animation: pulse 1.15s ease-in-out infinite;
+    box-shadow: 0 0 0 6px rgba(60, 107, 69, 0.14);
+  }
+
+  .status-banner[data-state="speaking"] { background: var(--sky-soft); border-color: var(--sky-border); }
+  .status-banner[data-state="speaking"] .status-copy strong { color: var(--sky-deep); }
+  .status-banner[data-state="speaking"] .status-icon-wrap { animation: pulse 1.15s ease-in-out infinite; }
+
+  .status-banner[data-state="error"] { background: var(--tomato-soft); border-color: var(--tomato-border); }
+  .status-banner[data-state="error"] .status-copy strong { color: var(--tomato-deep); }
+
+  .status-banner[data-state="stopped"] { background: var(--cream-deep); border-color: var(--line-strong); }
+
+  /* Ticket-stub divider: dashed line with two punched notches */
+  .ticket-divider {
+    position: relative;
+    height: 0;
+    border-top: 2px dashed var(--line-strong);
+  }
+
+  .ticket-divider::before,
+  .ticket-divider::after {
+    content: "";
+    position: absolute;
+    top: -11px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--cream-deep);
+  }
+
+  .ticket-divider::before { left: -11px; }
+  .ticket-divider::after { right: -11px; }
+
+  .demo-body {
+    padding: 24px 30px 30px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .call-explainer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .small-card {
+    padding: 15px;
+    border: 1px solid var(--line);
+    border-radius: 17px;
+    background: #FEFCF6;
+  }
+
+  .small-card strong {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14.5px;
+    color: var(--crust);
+  }
+
+  .small-card p {
+    margin: 0;
+    color: var(--ink-muted);
+    font-size: 13.5px;
+    line-height: 1.45;
+  }
+
+  .transcript {
+    min-height: 320px;
+    max-height: 430px;
+    flex: 1;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.9), rgba(251,247,238,0.97)),
+      #FEFCF6;
+    padding: 20px;
+    scroll-behavior: smooth;
+  }
+
+  .empty {
+    min-height: 280px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+  }
+
+  .empty-inner { max-width: 380px; }
+
+  .empty-icon {
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 14px;
+    border-radius: 20px;
+    background: #fff;
+    border: 1px solid var(--line);
+    color: var(--basil);
+    font-size: 24px;
+    box-shadow: 0 14px 32px rgba(42, 27, 16, 0.08);
+  }
+
+  .empty-title {
+    margin: 0 0 6px;
+    color: var(--crust);
+    font-size: 18.5px;
+    font-weight: 800;
+    font-family: 'Fraunces', serif;
+  }
+
+  .empty-copy {
+    margin: 0;
+    color: var(--ink-muted);
+    font-size: 14.5px;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  .msg {
+    width: fit-content;
+    max-width: min(84%, 560px);
+    margin: 0 0 14px;
+    padding: 13px 16px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(42, 27, 16, 0.05);
+  }
+
+  .msg.user {
+    margin-left: auto;
+    background: var(--crust);
+    color: var(--cream);
+    border-color: var(--crust);
+    border-bottom-right-radius: 6px;
+  }
+
+  .msg.assistant {
+    margin-right: auto;
+    background: #fff;
+    border-bottom-left-radius: 6px;
+  }
+
+  .role {
+    margin-bottom: 6px;
+    color: var(--basil-deep);
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .msg.user .role { color: rgba(251, 244, 232, 0.75); }
+
+  .text {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    font-size: 17px;
+    font-weight: 500;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  button {
+    min-height: 64px;
+    border: 0;
+    border-radius: 18px;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: transform 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+  }
+
+  button:hover:not(:disabled) { transform: translateY(-1px); }
+  button:active:not(:disabled) { transform: translateY(0); }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    box-shadow: none !important;
+  }
+
+  #startBtn {
+    background: linear-gradient(180deg, #467650, var(--basil));
+    color: #fff;
+    box-shadow: 0 18px 36px rgba(60, 107, 69, 0.28);
+  }
+
+  #stopBtn {
+    background: var(--tomato-soft);
+    color: var(--tomato-deep);
+    border: 1px solid var(--tomato-border);
+  }
+
+  .hint {
+    margin: 16px 0 0;
+    text-align: center;
+    color: var(--ink-muted);
+    font-size: 14.5px;
+    line-height: 1.5;
+    font-weight: 600;
+  }
+
+  /* ---------- Bottom info ---------- */
+
+  .bottom-info {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 20px;
+  }
+
+  .info-card {
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 10px 28px rgba(42, 27, 16, 0.05);
+  }
+
+  .info-card .icon { font-size: 22px; display: block; margin-bottom: 8px; }
+
+  .info-card strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 15.5px;
+    color: var(--crust);
+  }
+
+  .info-card p {
+    margin: 0;
+    color: var(--ink-muted);
+    font-size: 14.5px;
+    line-height: 1.5;
+  }
+
+  .footnote {
+    margin-top: 26px;
+    text-align: center;
+    color: var(--ink-muted);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  /* ---------- Hidden technical telemetry (not shown to users, kept for scripting) ---------- */
+  .hidden-tech { display: none !important; }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.84); opacity: 0.7; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .status-icon-wrap, .top-pill-dot { animation: none !important; }
+    button, .panel { transition: none !important; }
+  }
+
+  @media (max-width: 980px) {
+    .topbar { margin-bottom: 32px; }
+    .layout { grid-template-columns: 1fr; }
+    .demo { min-height: auto; }
+    .bottom-info { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 640px) {
+    .page { width: min(100% - 20px, 1180px); padding-top: 18px; }
+    .topbar { align-items: flex-start; flex-direction: column; }
+    .top-pill { width: 100%; justify-content: center; }
+    .hero-text { font-size: 16.5px; }
+
+    .guide, .demo-header, .demo-body { padding: 22px; }
+    .status-banner { padding: 14px 22px; }
+    .ticket-divider::before, .ticket-divider::after { display: none; }
+
+    .demo-header { flex-wrap: wrap; }
+    .stamp-badge { position: static; transform: none; margin-left: auto; }
+
+    .call-explainer, .menu-grid, .controls { grid-template-columns: 1fr; }
+    .transcript { min-height: 280px; }
+    .msg { max-width: 96%; }
+  }
+</style>
 </head>
 
 <body>
-  <div class="page">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark">z</div>
-        zeppo.
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">z</div>
+      <div>
+        <div class="brand-name">zeppo.</div>
+        <div class="brand-tagline">AI til restauranttelefonen</div>
       </div>
+    </div>
 
-      <div class="top-pill">
-        <span class="top-pill-dot"></span>
-        Live demo for restauranter
-      </div>
-    </header>
+    <div class="top-pill">
+      <span class="top-pill-dot"></span>
+      Live demo til restauranter
+    </div>
+  </header>
 
-    <section class="hero">
-      <div class="eyebrow">
-        <span class="spark">✦</span>
-        AI-telefonmedarbejder til pizzariaer
-      </div>
+  <section class="hero">
+    <div class="eyebrow">🍕 Demo · AI-telefon til pizzariaer</div>
 
-      <h1>Prøv at bestille mad med stemmen.</h1>
+    <h1>Prøv selv at ringe og bestille — <em>helt med din egen stemme</em>.</h1>
 
-      <p class="hero-text">
-        Tryk start, tillad mikrofon, og tal helt normalt. AI’en tager imod din bestilling,
-        svarer på spørgsmål og viser hvordan restauranter kan håndtere telefonen automatisk.
+    <p class="hero-text">
+      I denne demo ringer du til et tænkt pizzaria, <strong>Pizzeria Napoli</strong>.
+      Telefonen tages af <strong>Anja</strong>, en AI-medarbejder, der tager din bestilling
+      akkurat som en rigtig kollega ville gøre.
+    </p>
+  </section>
+
+  <main class="layout">
+
+    <aside class="panel guide">
+      <h2 class="section-title">Sådan virker demoen</h2>
+      <p class="section-text">
+        Du taler med Anja, ligesom du ville gøre i en almindelig telefonsamtale med pizzariaet.
+        Ingen kommandoer, ingen menuer — bare tal.
       </p>
-    </section>
 
-    <main class="layout">
-      <aside class="panel guide">
-        <h2 class="section-title">Sådan virker demoen</h2>
-        <p class="section-text">
-          Du taler med Anja, som er en AI-telefonmedarbejder. Hun hjælper dig som en rigtig medarbejder i telefonen.
-        </p>
-
-        <div class="steps">
-          <div class="step">
-            <div class="step-number">1</div>
-            <div>
-              <strong>Tryk på “Start samtale”</strong>
-              <span>Samtalen starter direkte i browseren.</span>
-            </div>
-          </div>
-
-          <div class="step">
-            <div class="step-number">2</div>
-            <div>
-              <strong>Tillad mikrofon</strong>
-              <span>Browseren spørger om lov til at bruge din mikrofon.</span>
-            </div>
-          </div>
-
-          <div class="step">
-            <div class="step-number">3</div>
-            <div>
-              <strong>Sig din bestilling</strong>
-              <span>Tal som du normalt ville gøre i telefonen.</span>
-            </div>
-          </div>
-
-          <div class="step">
-            <div class="step-number">4</div>
-            <div>
-              <strong>AI’en hjælper dig videre</strong>
-              <span>Den forstår ordren, stiller spørgsmål og bekræfter til sidst.</span>
-            </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div>
+            <strong>Tryk på “Ring til Anja”</strong>
+            <span>Samtalen starter direkte her i din browser. Du behøver ikke ringe noget nummer.</span>
           </div>
         </div>
 
-        <div class="example-block">
-          <h2 class="section-title">Det kan du fx sige</h2>
-          <p class="section-text">
-            Start bare naturligt. Du behøver ikke bruge bestemte kommandoer.
-          </p>
-
-          <div class="examples">
-            <div class="example">“Jeg vil gerne bestille en pepperoni”</div>
-            <div class="example">“En kebab durum og en Pepsi Max”</div>
-            <div class="example">“Kan jeg hente om 20 minutter?”</div>
-            <div class="example">“Har I margherita?”</div>
-            <div class="example">“Jeg vil gerne bestille bord til 4 personer”</div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div>
+            <strong>Sig ja til mikrofonen</strong>
+            <span>Browseren spørger om lov til at bruge din mikrofon — kun til denne samtale.</span>
           </div>
         </div>
 
-        <div class="menu">
-          <h2 class="section-title">Menu i denne demo</h2>
-          <p class="section-text">
-            I denne test kan AI’en tage imod bestillinger på disse varer.
-          </p>
-
-          <div class="menu-grid">
-            <div class="menu-item">
-              <strong>Pepperoni</strong>
-              <span>50 kr.</span>
-            </div>
-
-            <div class="menu-item">
-              <strong>Margherita</strong>
-              <span>50 kr.</span>
-            </div>
-
-            <div class="menu-item">
-              <strong>Kebab Durum</strong>
-              <span>50 kr.</span>
-            </div>
-
-            <div class="menu-item">
-              <strong>Pepsi Max</strong>
-              <span>15 kr.</span>
-            </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div>
+            <strong>Sig din bestilling helt normalt</strong>
+            <span>Tal roligt og naturligt, som du ville gøre i en rigtig telefonsamtale.</span>
           </div>
         </div>
 
-        <div class="booking-note">
-          <strong>✓ Kan også hjælpe med bordbookinger</strong>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div>
+            <strong>Anja svarer og bekræfter</strong>
+            <span>Hun spørger ind, hvis noget er uklart, og bekræfter ordren til sidst.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="example-block">
+        <h2 class="section-title">Det kan du fx sige</h2>
+        <p class="section-text">Du behøver ikke huske bestemte ord eller sætninger — tal frit.</p>
+
+        <div class="examples">
+          <div class="example">“Jeg vil gerne bestille en pepperoni”</div>
+          <div class="example">“En kebab durum og en Pepsi Max, tak”</div>
+          <div class="example">“Kan jeg hente om 20 minutter?”</div>
+          <div class="example">“Har I margherita på menuen?”</div>
+          <div class="example">“Hvor lang tid tager det?”</div>
+        </div>
+      </div>
+
+      <div class="menu">
+        <h2 class="section-title">Menu i denne demo</h2>
+        <p class="section-text">I denne test kan Anja tage bestillinger på disse fire varer.</p>
+
+        <div class="menu-grid">
+          <div class="menu-item">
+            <span class="icon">🍕</span>
+            <strong>Pepperoni</strong>
+            <span class="price">50 kr.</span>
+          </div>
+
+          <div class="menu-item">
+            <span class="icon">🍕</span>
+            <strong>Margherita</strong>
+            <span class="price">50 kr.</span>
+          </div>
+
+          <div class="menu-item">
+            <span class="icon">🥙</span>
+            <strong>Kebab Durum</strong>
+            <span class="price">50 kr.</span>
+          </div>
+
+          <div class="menu-item">
+            <span class="icon">🥤</span>
+            <strong>Pepsi Max</strong>
+            <span class="price">15 kr.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="booking-note">
+        <span class="icon">📅</span>
+        <div>
+          <strong>I virkeligheden kan Anja også booke borde</strong>
           <p>
-            Den fulde løsning kan også tage imod bordreservationer, ændringer og spørgsmål fra gæster.
-            Denne demo viser primært telefonbestillinger.
+            Hos en rigtig kunde tager Anja desuden imod bordreservationer, ændringer og spørgsmål
+            om åbningstider — helt automatisk, døgnet rundt. I denne demo kan du kun prøve at
+            bestille mad, så det er nemt og hurtigt at teste.
           </p>
         </div>
-      </aside>
+      </div>
+    </aside>
 
-      <section class="panel demo">
-        <div class="demo-header">
-          <div class="agent">
-            <div class="agent-avatar">A</div>
-            <div>
-              <h2>Anja</h2>
-              <p>AI-telefonmedarbejder til restaurant og takeaway</p>
-            </div>
+    <section class="panel demo">
+      <div class="demo-header">
+        <div class="agent-avatar">A</div>
+        <div class="agent">
+          <h2>Anja</h2>
+          <p>AI-telefonmedarbejder for Pizzeria Napoli</p>
+        </div>
+        <div class="stamp-badge">● Demo-opkald</div>
+      </div>
+
+      <div id="status" class="status-banner" data-state="idle" aria-live="polite">
+        <div class="status-icon-wrap"><span id="statusIcon">☎️</span></div>
+        <div class="status-copy">
+          <strong id="statusTitle">Klar til at ringe</strong>
+          <span id="statusHelp">Tryk på den grønne knap herunder.</span>
+        </div>
+      </div>
+
+      <div class="ticket-divider" aria-hidden="true"></div>
+
+      <div class="demo-body">
+        <div class="call-explainer">
+          <div class="small-card">
+            <strong>Hvad sker der lige nu?</strong>
+            <p>Du taler direkte med Anja, som om telefonen hos pizzariaet ringede, og hun tog den.</p>
           </div>
 
-          <div id="status" class="status" data-state="idle">
-            <div class="status-dot"></div>
-            <div>
-              <strong id="statusTitle">Klar til at starte</strong>
-              <span id="statusHelp">Tryk start og tal normalt.</span>
+          <div class="small-card">
+            <strong>Hvad kan du sige?</strong>
+            <p>Bestil mad, spørg ind til menuen, eller spørg hvor lang tid det tager.</p>
+          </div>
+        </div>
+
+        <div id="transcript" class="transcript">
+          <div class="empty">
+            <div class="empty-inner">
+              <div class="empty-icon">☎️</div>
+              <p class="empty-title">Samtalen vises her</p>
+              <p class="empty-copy">
+                Når du starter, kan du fx sige: “Jeg vil gerne bestille en pepperoni og en Pepsi Max.”
+              </p>
             </div>
           </div>
         </div>
 
-        <div class="demo-body">
-          <div class="call-explainer">
-            <div class="small-card">
-              <strong>Hvad sker der her?</strong>
-              <p>Du taler direkte med AI’en, som om du ringede til pizzariaet.</p>
-            </div>
-
-            <div class="small-card">
-              <strong>Hvad skal jeg gøre?</strong>
-              <p>Sig din bestilling, afhentningstid eller et spørgsmål.</p>
-            </div>
-          </div>
-
-          <div id="transcript" class="transcript">
-            <div class="empty">
-              <div class="empty-inner">
-                <div class="empty-icon">☎</div>
-                <p class="empty-title">Samtalen vises her</p>
-                <p class="empty-copy">
-                  Når du starter, kan du fx sige: “Jeg vil gerne bestille en pepperoni og en Pepsi Max.”
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div class="controls">
-            <button id="startBtn">Start samtale</button>
-            <button id="stopBtn" disabled>Stop samtale</button>
-          </div>
-
-          <p class="hint">
-            <span class="hint-dot"></span>
-            Tryk start, tillad mikrofon, og tal som i en normal telefonsamtale.
-          </p>
+        <div class="controls">
+          <button id="startBtn">📞 Ring til Anja</button>
+          <button id="stopBtn" disabled>⏹ Afslut samtalen</button>
         </div>
-      </section>
-    </main>
 
-    <section class="bottom-info">
-      <div class="info-card">
-        <strong>Tager imod ordrer</strong>
-        <p>AI’en kan spørge ind til varer, antal, afhentning og navn.</p>
-      </div>
-
-      <div class="info-card">
-        <strong>Aflaster personalet</strong>
-        <p>Når telefonen ringer midt i travlheden, kan AI’en tage samtalen.</p>
-      </div>
-
-      <div class="info-card">
-        <strong>Kan kobles til systemer</strong>
-        <p>I den fulde løsning kan ordrer og bookinger sendes videre til restaurantens system.</p>
+        <p class="hint">Du kan altid tale — vent bare et øjeblik, hvis Anja er midt i en sætning.</p>
       </div>
     </section>
-  </div>
+  </main>
 
-  <div class="hidden-tech" aria-hidden="true">
-    <span id="openaiState"></span>
-    <span id="cartesiaState"></span>
-    <span id="micState"></span>
-    <span id="audioState"></span>
-    <div class="pill latency"><strong id="latencyState"></strong></div>
-  </div>
+  <section class="bottom-info">
+    <div class="info-card">
+      <span class="icon">📋</span>
+      <strong>Tager imod bestillinger</strong>
+      <p>Anja spørger ind til varer, antal, afhentningstid og navn — helt af sig selv.</p>
+    </div>
+
+    <div class="info-card">
+      <span class="icon">📅</span>
+      <strong>Booker også borde</strong>
+      <p>Udover bestillinger kan den fulde løsning tage bordreservationer og svare gæster.</p>
+    </div>
+
+    <div class="info-card">
+      <span class="icon">🧑‍🍳</span>
+      <strong>Aflaster personalet</strong>
+      <p>Når telefonen ringer i en hektisk periode, kan Anja tage samtalen, så personalet kan fokusere på gæsterne.</p>
+    </div>
+  </section>
+
+  <p class="footnote">
+    Dette er en demo. Anja er kunstig intelligens og kan svare en smule forskelligt fra gang til gang — det er helt normalt.
+  </p>
+</div>
+
+<div class="hidden-tech" aria-hidden="true">
+  <span id="openaiState"></span>
+  <span id="cartesiaState"></span>
+  <span id="micState"></span>
+  <span id="audioState"></span>
+  <div class="pill latency"><strong id="latencyState"></strong></div>
+</div>
 
 <script>
 const INPUT_SAMPLE_RATE = 24000;
@@ -1029,6 +1065,7 @@ let localSpeechCandidateFrames = [];
 let localLastNoiseLogAt = 0;
 
 const statusEl = document.getElementById('status');
+const statusIconEl = document.getElementById('statusIcon');
 const statusTitleEl = document.getElementById('statusTitle');
 const statusHelpEl = document.getElementById('statusHelp');
 const openaiStateEl = document.getElementById('openaiState');
@@ -1044,6 +1081,7 @@ const stopBtn = document.getElementById('stopBtn');
 function setStatus(text, state = '') {
   const normalized = getFriendlyStatus(text, state);
   statusEl.dataset.state = normalized.state;
+  if (statusIconEl) statusIconEl.textContent = normalized.icon;
   statusTitleEl.textContent = normalized.title;
   statusHelpEl.textContent = normalized.help;
 }
@@ -1054,7 +1092,8 @@ function getFriendlyStatus(text, state = '') {
   if (state === 'speaking' || raw.includes('svarer')) {
     return {
       state: 'speaking',
-      title: 'AI’en svarer',
+      icon: '🗣️',
+      title: 'Anja svarer',
       help: 'Vent et øjeblik, så kan du tale igen.',
     };
   }
@@ -1062,6 +1101,7 @@ function getFriendlyStatus(text, state = '') {
   if (state === 'connected' || raw.includes('lytter') || raw.includes('forbundet')) {
     return {
       state: 'connected',
+      icon: '🎤',
       title: 'Du kan tale nu',
       help: 'Sig fx: “Jeg vil gerne bestille en pepperoni.”',
     };
@@ -1070,31 +1110,35 @@ function getFriendlyStatus(text, state = '') {
   if (state === 'connecting' || raw.includes('forbinder') || raw.includes('websocket')) {
     return {
       state: 'connecting',
-      title: 'Forbinder samtalen',
-      help: 'Vent et øjeblik. Demoen gøres klar.',
+      icon: '⏳',
+      title: 'Forbinder til Anja...',
+      help: 'Det tager kun et øjeblik.',
     };
   }
 
   if (state === 'error' || raw.includes('fejl')) {
     return {
       state: 'error',
+      icon: '⚠️',
       title: 'Noget gik galt',
-      help: 'Tjek at mikrofonen er tilladt, og prøv igen.',
+      help: 'Tjek at du har tilladt mikrofon, og prøv igen.',
     };
   }
 
   if (state === 'stopped' || raw.includes('lukket') || raw.includes('stoppet')) {
     return {
       state: 'stopped',
+      icon: '⏹️',
       title: 'Samtalen er stoppet',
-      help: 'Tryk start for at prøve igen.',
+      help: 'Tryk på “Ring til Anja” for at prøve igen.',
     };
   }
 
   return {
     state: 'idle',
-    title: 'Klar til at starte',
-    help: 'Tryk start og tal normalt.',
+    icon: '☎️',
+    title: 'Klar til at ringe',
+    help: 'Tryk på den grønne knap herunder.',
   };
 }
 
@@ -1379,7 +1423,7 @@ function clearTranscript() {
   transcriptEl.innerHTML = `
     <div class="empty">
       <div class="empty-inner">
-        <div class="empty-icon">☎</div>
+        <div class="empty-icon">☎️</div>
         <p class="empty-title">Samtalen vises her</p>
         <p class="empty-copy">
           Når du starter, kan du fx sige: “Jeg vil gerne bestille en pepperoni og en Pepsi Max.”
@@ -1413,7 +1457,7 @@ function addMessage(role, text) {
 function addAssistantDelta(delta) {
   if (!delta) return;
 
-  setStatus('AI’en svarer...', 'speaking');
+  setStatus('Anja svarer...', 'speaking');
   removeEmpty();
 
   if (!assistantDraft) assistantDraft = addMessage('assistant', '');
@@ -1609,7 +1653,7 @@ function playPcmF32(arrayBuffer) {
   awaitingAssistantResponse = false;
   assistantSpeaking = true;
   micStateEl.textContent = 'muted while assistant speaks';
-  setStatus('AI’en svarer...', 'speaking');
+  setStatus('Anja svarer...', 'speaking');
 
   if (assistantUnmuteTimer) clearTimeout(assistantUnmuteTimer);
 
