@@ -1002,18 +1002,18 @@ const OPENAI_MIN_COMMIT_AUDIO_MS = 100;
 const CARTESIA_VERSION = process.env.CARTESIA_VERSION || '2026-03-01';
 const CARTESIA_MODEL_ID = process.env.CARTESIA_MODEL_ID || 'sonic-3.5';
 const SUPABASE_DEFAULT_CUSTOMER_ID = clean(process.env.SUPABASE_DEFAULT_CUSTOMER_ID || process.env.ZEPPO_CUSTOMER_ID);
-const SUPABASE_DEFAULT_CUSTOMER_NAME = clean(process.env.SUPABASE_DEFAULT_CUSTOMER_NAME || process.env.ZEPPO_CUSTOMER_NAME || 'Pizzaria Napoli');
+const SUPABASE_DEFAULT_CUSTOMER_NAME = clean(process.env.SUPABASE_DEFAULT_CUSTOMER_NAME || process.env.ZEPPO_CUSTOMER_NAME || 'Danske Fragtmænd');
 
 const VOICE_AGENT_PROFILES = {
   napoli: {
     id: 'napoli',
-    businessName: 'Pizzaria Napoli',
+    businessName: 'Danske Fragtmænd',
     assistantName: 'Anja',
     instructions: GODTFOLK_FAST_INSTRUCTIONS,
-    greeting: 'Hej og velkommen til Pizzaria Napoli, hvad kan jeg hjælpe med?',
-    greetingPronunciation: 'Udtal Pizzaria Napoli roligt og samlet.',
+    greeting: 'Hej og velkommen du har ringet til Danske fragtmænd',
+    greetingPronunciation: 'Udtal Danske Fragtmænd roligt og samlet.',
     voiceEnv: 'CARTESIA_VOICE_ID',
-    allowOrders: true,
+    allowOrders: false,
   },
   haervejen: {
     id: 'haervejen',
@@ -1787,6 +1787,18 @@ function setupCartesiaVoiceAgent(httpServer) {
 
     function responseContextInstructions() {
       if (!activeProfile.allowOrders) {
+        if (activeProfile.id === 'napoli') {
+          return [
+            'Du er i en Danske Fragtmænd forsinkelses-demo.',
+            'Kald aldrig create_woocommerce_order.',
+            'Du skal kun hjælpe en chauffør med at melde forsinkelse.',
+            'Hvis chaufføren siger, at han er forsinket på grund af kø eller trafik, spørg: "Okay, hvornår regner du så med at ankomme?"',
+            'Når chaufføren har sagt en tydelig forsinkelse eller ny ankomsttid, sig kun: "Det er modtaget, jeg sætter det ind i systemet."',
+            'Spørg ikke efter navn, telefonnummer, adresse, ordrenummer eller kundenummer.',
+            'Tal aldrig om pizza, takeaway, bordbooking eller restaurant.',
+          ].join(' ');
+        }
+
         const rules = [
           'Du er i en Restaurant Hærvejen booking-demo.',
           'Kald aldrig create_woocommerce_order.',

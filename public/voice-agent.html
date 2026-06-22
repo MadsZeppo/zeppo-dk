@@ -489,8 +489,8 @@
       <button class="agent-choice" type="button" data-agent="napoli" aria-pressed="true">
         <div class="voice-orb"><span class="call-button">☎</span></div>
         <div class="agent-copy">
-          <strong>Pizzeria Napoli</strong>
-          <span>Anja tager imod pizzaordrer og sender dem til WooCommerce.</span>
+          <strong>Danske Fragtmænd</strong>
+          <span>Anja tager imod forsinkelser fra chauffører og sender dem til systemet.</span>
           <span class="clone-pill">Brug Anja</span>
         </div>
       </button>
@@ -508,8 +508,8 @@
     <div class="call-console">
       <div class="call-panel">
         <div class="agent-info">
-          <strong id="agentTitle">Pizzeria Napoli</strong>
-          <span id="agentSubtitle">Anja · ordre-demo med WooCommerce</span>
+          <strong id="agentTitle">Danske Fragtmænd</strong>
+          <span id="agentSubtitle">Anja · forsinkelses-demo til fragt</span>
         </div>
 
         <div id="status" class="status-pill" data-state="idle" aria-live="polite">
@@ -525,7 +525,7 @@
         </div>
 
         <p class="voice-note" id="voiceNote">
-          Napoli bruger <code>CARTESIA_VOICE_ID</code>. Hærvejen bruger <code>CARTESIA_VOICE_ID_HAERVEJEN</code>.
+          Anja bruger <code>CARTESIA_VOICE_ID</code>. Hærvejen bruger <code>CARTESIA_VOICE_ID_HAERVEJEN</code>.
         </p>
       </div>
 
@@ -534,7 +534,7 @@
           <div class="empty-inner">
             <div class="empty-icon">☎</div>
             <p class="empty-title">Samtalen vises her</p>
-            <p class="empty-copy">Sig fx: “Jeg vil gerne bestille en pepperoni.”</p>
+            <p class="empty-copy">Sig fx: “Jeg er forsinket på grund af kø.”</p>
           </div>
         </div>
       </div>
@@ -571,12 +571,12 @@ const VOICE_AGENT_BACKEND_HOST = 'zeppo-dk.onrender.com';
 const AGENT_PROFILES = {
   napoli: {
     id: 'napoli',
-    businessName: 'Pizzeria Napoli',
+    businessName: 'Danske Fragtmænd',
     assistantName: 'Anja',
-    subtitle: 'Anja · ordre-demo med WooCommerce',
+    subtitle: 'Anja · forsinkelses-demo til fragt',
     startLabel: 'Ring til Anja',
-    emptyCopy: 'Sig fx: “Jeg vil gerne bestille en pepperoni.”',
-    connectedHelp: 'Sig fx: “Jeg vil gerne bestille en pepperoni.”',
+    emptyCopy: 'Sig fx: “Jeg er forsinket på grund af kø.”',
+    connectedHelp: 'Sig fx: “Jeg er forsinket på grund af kø.”',
     stoppedHelp: 'Tryk på “Ring til Anja” for at prøve igen.',
   },
   haervejen: {
